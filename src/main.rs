@@ -5,6 +5,7 @@ use winit::event::{Event, WindowEvent};
 use std::any::Any;
 use tile_editor::State;
 use pollster::block_on;
+use log::info;
 
 fn handle_key(input: KeyboardInput, control_flow: &mut ControlFlow) {
     if input.state == ElementState::Pressed && input.virtual_keycode == Some(VirtualKeyCode::Escape) {
@@ -28,8 +29,7 @@ fn handle_resume() {
     println!("Resuming");
 }
 
-
-fn main() {
+async fn start() {
 
     // Sets up logging
     env_logger::init();
@@ -39,16 +39,23 @@ fn main() {
     let window = WindowBuilder::new()
         .with_title("Map Editor")
         .build(&event_loop).unwrap();
+    info!("Created window!");
 
     // Creates rendering state
-    let state: State = block_on(State::new(&window));
-    println!("Got state!");
+    let state: State = State::new(&window).await;
+    info!("Created state!");
 
     // Starts event loop and handles events
+    info!("Running event loop!");
     event_loop.run(move |event, window_target, control_flow| match event {
         Event::WindowEvent { window_id, event } if window_id == window.id() => { handle_window_event(event, control_flow) },
         Event::Suspended => { handle_suspend() },
         Event::Resumed => { handle_resume() },
         _ => {}
     });
+    info!("See ya!");
+}
+
+fn main() {
+    block_on(start());
 }
