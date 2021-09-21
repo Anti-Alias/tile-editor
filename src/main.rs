@@ -42,7 +42,7 @@ async fn start() {
     info!("Created window!");
 
     // Creates rendering state
-    let state: State = State::new(&window).await;
+    let state = State::new(&window).await;
     info!("Created state!");
 
     // Starts event loop and handles events
