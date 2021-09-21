@@ -5,19 +5,15 @@ use winit::event::{Event, WindowEvent};
 use std::any::Any;
 
 fn handle_key(input: KeyboardInput, control_flow: &mut ControlFlow) {
-    if input.state == ElementState::Pressed {
-        if let Some(keycode) = input.virtual_keycode {
-            if keycode == VirtualKeyCode::Escape {
-                *control_flow = ControlFlow::Exit;
-            }
-        }
+    if input.state == ElementState::Pressed && input.virtual_keycode == Some(VirtualKeyCode::Escape) {
+        *control_flow = ControlFlow::Exit;
     }
 }
 
 fn handle_window_event(event: WindowEvent, control_flow: &mut ControlFlow) {
     match event {
         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-        WindowEvent::KeyboardInput { device_id, input, is_synthetic } => handle_key(input, control_flow),
+        WindowEvent::KeyboardInput { input, .. } => handle_key(input, control_flow),
         _ => {}
     }
 }
