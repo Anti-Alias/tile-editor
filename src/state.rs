@@ -2,6 +2,7 @@ use winit::window::Window;
 use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use wgpu::{Instance, Backends, DeviceDescriptor, SurfaceConfiguration, TextureFormat, PresentMode, TextureUsages};
+use log::info;
 
 /// Represents entire graphics state (window, surface device, queue) all wrapped in one struct
 pub struct State {
@@ -64,8 +65,14 @@ impl State {
         self.surface.configure(&self.device, &self.config);
     }
 
-    pub fn input(&mut self, event: &WindowEvent) {
-        todo!()
+    /// Handles window event.
+    /// Returns true if event was processed.
+    ///
+    /// # Arguments
+    ///
+    /// * `event` - Window event to consider
+    pub fn input(&mut self, event: &WindowEvent) -> bool {
+        return false;
     }
 
     pub fn update(&mut self) {

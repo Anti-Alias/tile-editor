@@ -7,18 +7,26 @@ use tile_editor::State;
 use pollster::block_on;
 use log::info;
 
+fn close(control_flow: &mut ControlFlow) {
+    *control_flow = ControlFlow::Exit;
+    info!("See ya!");
+}
+
 fn handle_key(input: KeyboardInput, control_flow: &mut ControlFlow) {
     if input.state == ElementState::Pressed && input.virtual_keycode == Some(VirtualKeyCode::Escape) {
-        *control_flow = ControlFlow::Exit;
+        close(control_flow);
     }
 }
 
 fn handle_window_event(event: WindowEvent, state: &mut State, control_flow: &mut ControlFlow) {
-    match event {
-        WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-        WindowEvent::KeyboardInput { input, .. } => handle_key(input, control_flow),
-        WindowEvent::Resized(new_size) => state.resize(new_size),
-        _ => {}
+    if !state.input(&event) {
+        match event {
+            WindowEvent::CloseRequested => close(control_flow),
+            WindowEvent::KeyboardInput { input, .. } => handle_key(input, control_flow),
+            WindowEvent::Resized(new_size) => state.resize(new_size),
+            WindowEvent::ScaleFactorChanged { new_inner_size, .. } => state.resize(*new_inner_size),
+            _ => {}
+        }
     }
 }
 
@@ -49,9 +57,9 @@ async fn start() {
     // Starts event loop and handles events
     info!("Running event loop!");
     event_loop.run(move |event, window_target, control_flow| match event {
-        Event::WindowEvent { window_id, event } if window_id == window.id() => {
-            handle_window_event(event, &mut state, control_flow)
-        },
+        Event::WindowEvent { window_id, event: window_event } if window_id == window.id() => {
+            handle_window_event(window_event, &mut state, control_flow)
+        }
         Event::Suspended => {
             handle_suspend()
         },
@@ -60,7 +68,6 @@ async fn start() {
         },
         _ => {}
     });
-    info!("See ya!");
 }
 
 fn main() {
