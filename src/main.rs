@@ -30,6 +30,10 @@ fn handle_window_event(event: WindowEvent, state: &mut State, control_flow: &mut
     }
 }
 
+fn handle_redraw(state: &mut State) {
+    state.render();
+}
+
 fn handle_suspend() {
     println!("Suspended");
 }
@@ -61,11 +65,17 @@ async fn start() {
             handle_window_event(window_event, &mut state, control_flow)
         }
         Event::Suspended => {
-            handle_suspend()
+            handle_suspend();
         },
         Event::Resumed => {
-            handle_resume()
+            handle_resume();
         },
+        Event::MainEventsCleared => {
+            window.request_redraw();
+        }
+        Event::RedrawRequested(_) =>{
+            handle_redraw(&mut state);
+        }
         _ => {}
     });
 }
