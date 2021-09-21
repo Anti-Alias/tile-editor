@@ -3,6 +3,7 @@ use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use wgpu::{Instance, Backends, DeviceDescriptor, SurfaceConfiguration, TextureFormat, PresentMode, TextureUsages};
 
+/// Represents entire graphics state (window, surface device, queue) all wrapped in one struct
 pub struct State {
     surface: wgpu::Surface,
     device: wgpu::Device,
@@ -13,6 +14,7 @@ pub struct State {
 
 impl State {
 
+    /// Asynchronously creates State using window
     pub async fn new(window: &Window) -> Self {
 
         // Gets window inner size
@@ -54,8 +56,12 @@ impl State {
         }
     }
 
+    /// Resizes surface the new size specified
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
-        todo!()
+        self.size = new_size;
+        self.config.width = new_size.width;
+        self.config.height = new_size.height;
+        self.surface.configure(&self.device, &self.config);
     }
 
     pub fn input(&mut self, event: &WindowEvent) {

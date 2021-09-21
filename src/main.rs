@@ -13,10 +13,11 @@ fn handle_key(input: KeyboardInput, control_flow: &mut ControlFlow) {
     }
 }
 
-fn handle_window_event(event: WindowEvent, control_flow: &mut ControlFlow) {
+fn handle_window_event(event: WindowEvent, state: &mut State, control_flow: &mut ControlFlow) {
     match event {
         WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
         WindowEvent::KeyboardInput { input, .. } => handle_key(input, control_flow),
+        WindowEvent::Resized(new_size) => state.resize(new_size),
         _ => {}
     }
 }
@@ -42,15 +43,21 @@ async fn start() {
     info!("Created window!");
 
     // Creates rendering state
-    let state = State::new(&window).await;
+    let mut state = State::new(&window).await;
     info!("Created state!");
 
     // Starts event loop and handles events
     info!("Running event loop!");
     event_loop.run(move |event, window_target, control_flow| match event {
-        Event::WindowEvent { window_id, event } if window_id == window.id() => { handle_window_event(event, control_flow) },
-        Event::Suspended => { handle_suspend() },
-        Event::Resumed => { handle_resume() },
+        Event::WindowEvent { window_id, event } if window_id == window.id() => {
+            handle_window_event(event, &mut state, control_flow)
+        },
+        Event::Suspended => {
+            handle_suspend()
+        },
+        Event::Resumed => {
+            handle_resume()
+        },
         _ => {}
     });
     info!("See ya!");
