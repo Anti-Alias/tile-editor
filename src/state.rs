@@ -11,7 +11,7 @@ pub struct State {
     queue: Queue,
     config: SurfaceConfiguration,
     size: PhysicalSize<u32>,
-    //render_pipeline: RenderPipeline
+    render_pipeline: RenderPipeline
 }
 
 impl State {
@@ -48,6 +48,9 @@ impl State {
         };
         surface.configure(&device, &config);
 
+        // Creates render pipeline
+        let render_pipeline = Self::create_render_pipeline(&device, &config);
+
         // Return state
         State {
             surface,
@@ -55,7 +58,7 @@ impl State {
             queue,
             config,
             size,
-            //render_pipeline
+            render_pipeline
         }
     }
 
@@ -90,9 +93,22 @@ impl State {
         let command_desc = CommandEncoderDescriptor { label: Some("Render Encoder") };
         let mut encoder = self.device.create_command_encoder(&command_desc);
 
+        // Creates render pass and attaches pipeline
+        {
+            let mut render_pass = self.create_render_pass(&mut encoder, &tex_view);
+            render_pass.set_pipeline(&self.render_pipeline);
+        }
+
+        let cmd_buffer = encoder.finish();
+        self.queue.submit(std::iter::once(cmd_buffer));
+        Ok(())
+    }
+
+    fn create_render_pass<'a>(&self, encoder: &'a mut CommandEncoder, texture_view: &'a TextureView) -> RenderPass<'a> {
+
         // Creates color attachment
         let color_attachment = RenderPassColorAttachment {
-            view: &tex_view,
+            view: texture_view,
             resolve_target: None,
             ops: Operations {
                 load: LoadOp::Clear(Color {
@@ -111,9 +127,82 @@ impl State {
             color_attachments: &[color_attachment],
             depth_stencil_attachment: None
         };
-        encoder.begin_render_pass(&render_desc);
-        let cmd_buffer = encoder.finish();
-        self.queue.submit(std::iter::once(cmd_buffer));
-        Ok(())
+        encoder.begin_render_pass(&render_desc)
+    }
+
+    // ------------- Static -------------
+
+    fn create_pipeline_layout(device: &Device) -> PipelineLayout {
+        let desc = PipelineLayoutDescriptor {
+            label: Some("Pipeline Layout"),
+            bind_group_layouts: &[],
+            push_constant_ranges: &[]
+        };
+        device.create_pipeline_layout(&desc)
+    }
+
+    fn create_shader_module(device: &Device) -> ShaderModule {
+        let desc = ShaderModuleDescriptor {
+            label: Some("Shader Module"),
+            source: ShaderSource::Wgsl(include_str!("shader.wgsl").into())
+        };
+        device.create_shader_module(&desc)
+    }
+
+    fn create_vertex_state(module: &ShaderModule) -> VertexState {
+        VertexState {
+            module: &module,
+            entry_point: "main",
+            buffers: &[]
+        }
+    }
+
+    fn create_fragment_state<'a>(
+        module: &'a ShaderModule,
+        targets: &'a [ColorTargetState]
+    ) -> FragmentState<'a> {
+        FragmentState {
+            module: &module,
+            entry_point: "main",
+            targets
+        }
+    }
+
+    fn create_color_target(config: &SurfaceConfiguration) -> ColorTargetState {
+        ColorTargetState {
+            format: config.format,
+            blend: Some(BlendState::REPLACE),
+            write_mask: ColorWrites::ALL
+        }
+    }
+
+    fn get_primitive_state() -> PrimitiveState {
+        PrimitiveState {
+            topology: PrimitiveTopology::TriangleList,
+            strip_index_format: None,
+            front_face: FrontFace::Ccw,
+            cull_mode: Some(Face::Back),
+            clamp_depth: false,
+            polygon_mode: PolygonMode::Fill,
+            conservative: false
+        }
+    }
+
+    fn create_render_pipeline(device: &Device, config: &SurfaceConfiguration) -> RenderPipeline {
+        let module = Self::create_shader_module(device);
+        let vertex_state = Self::create_vertex_state(&module);
+        let color_targets = [Self::create_color_target(&config)];
+        let fragment_state = Self::create_fragment_state(&module, &color_targets);
+        let pipeline_layout = Self::create_pipeline_layout(device);
+        let desc = RenderPipelineDescriptor {
+            label: Some("Render Pipeline"),
+            layout: Some(&pipeline_layout),
+            vertex: vertex_state,
+            fragment: Some(fragment_state),
+            primitive: Self::get_primitive_state(),
+            depth_stencil: None,
+            multisample: MultisampleState::default()
+        };
+        device.create_render_pipeline(&desc)
     }
 }
