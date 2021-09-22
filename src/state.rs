@@ -93,10 +93,12 @@ impl State {
         let command_desc = CommandEncoderDescriptor { label: Some("Render Encoder") };
         let mut encoder = self.device.create_command_encoder(&command_desc);
 
-        // Creates render pass and attaches pipeline
+        // Creates render pass and attaches pipeline.
+        // Then, uses it to draw to teh screen!!1
         {
             let mut render_pass = self.create_render_pass(&mut encoder, &tex_view);
             render_pass.set_pipeline(&self.render_pipeline);
+            render_pass.draw(0..3, 0..1);
         }
 
         let cmd_buffer = encoder.finish();
@@ -168,7 +170,7 @@ impl State {
         }
     }
 
-    fn create_color_target(config: &SurfaceConfiguration) -> ColorTargetState {
+    fn create_color_target_state(config: &SurfaceConfiguration) -> ColorTargetState {
         ColorTargetState {
             format: config.format,
             blend: Some(BlendState::REPLACE),
@@ -191,7 +193,7 @@ impl State {
     fn create_render_pipeline(device: &Device, config: &SurfaceConfiguration) -> RenderPipeline {
         let module = Self::create_shader_module(device);
         let vertex_state = Self::create_vertex_state(&module);
-        let color_targets = [Self::create_color_target(&config)];
+        let color_targets = [Self::create_color_target_state(&config)];
         let fragment_state = Self::create_fragment_state(&module, &color_targets);
         let pipeline_layout = Self::create_pipeline_layout(device);
         let desc = RenderPipelineDescriptor {
