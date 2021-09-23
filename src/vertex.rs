@@ -13,11 +13,13 @@ impl Vertex {
         array_stride: std::mem::size_of::<Vertex>() as BufferAddress,
         step_mode: VertexStepMode::Vertex,
         attributes: &[
+            // Position
             VertexAttribute{
                 offset: 0,
                 shader_location: 0,
                 format: VertexFormat::Float32x3
             },
+            // Color
             VertexAttribute {
                 offset: std::mem::size_of::<[f32; 3]>() as BufferAddress,
                 shader_location: 1,

@@ -6,6 +6,13 @@ use log::info;
 use crate::Vertex;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
+struct Mesh {
+    pub vertex_buffer: Buffer,
+    pub index_buffer: Buffer,
+    pub num_vertices: u32,
+    pub num_indices: u32
+}
+
 /// Represents entire graphics state (window, surface device, queue) all wrapped in one struct
 pub struct State {
     surface: Surface,
@@ -14,8 +21,7 @@ pub struct State {
     config: SurfaceConfiguration,
     size: PhysicalSize<u32>,
     render_pipeline: RenderPipeline,
-    vertex_buffer: Buffer,
-    num_vertices: u32
+    mesh: Mesh
 }
 
 impl State {
@@ -53,7 +59,7 @@ impl State {
         surface.configure(&device, &config);
 
         let render_pipeline = Self::create_render_pipeline(&device, &config);
-        let (vertex_buffer, num_vertices) = Self::create_vertex_buffer(&device);
+        let mesh = Self::create_mesh(&device);
 
         // Return state
         State {
@@ -63,8 +69,7 @@ impl State {
             config,
             size,
             render_pipeline,
-            vertex_buffer,
-            num_vertices
+            mesh
         }
     }
 
@@ -102,10 +107,12 @@ impl State {
         // Creates render pass and attaches pipeline.
         // Then, uses it to draw to teh screen!!1
         {
+            let mesh = &self.mesh;
             let mut render_pass = self.create_render_pass(&mut encoder, &tex_view);
             render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.draw(0..self.num_vertices, 0..1);
+            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
+            render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
+            render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
         }
 
         let cmd_buffer = encoder.finish();
@@ -215,17 +222,37 @@ impl State {
         device.create_render_pipeline(&desc)
     }
 
-    fn create_vertex_buffer(device: &Device) -> (Buffer, u32) {
+    fn create_mesh(device: &Device) -> Mesh {
         let vertices = [
-            Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
-            Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
-            Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
+            Vertex { position: [-0.0868241, 0.49240386, 0.0], color: [0.5, 0.0, 0.5] }, // A
+            Vertex { position: [-0.49513406, 0.06958647, 0.0], color: [0.5, 0.0, 0.5] }, // B
+            Vertex { position: [-0.21918549, -0.44939706, 0.0], color: [0.5, 0.0, 0.5] }, // C
+            Vertex { position: [0.35966998, -0.3473291, 0.0], color: [0.5, 0.0, 0.5] }, // D
+            Vertex { position: [0.44147372, 0.2347359, 0.0], color: [0.5, 0.0, 0.5] }, // E
         ];
-        let desc = BufferInitDescriptor {
+        let indices = [
+            0, 1, 4,
+            1, 2, 4,
+            2, 3, 4,
+            /* padding */ 0,
+        ];
+        let vert_desc = BufferInitDescriptor {
             label: Some("Vertex Buffer"),
             contents: bytemuck::bytes_of(&vertices),
             usage: BufferUsages::VERTEX
         };
-        (device.create_buffer_init(&desc), 3)
+        let index_desc = BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::bytes_of(&indices),
+            usage: BufferUsages::INDEX
+        };
+        let vertex_buffer = device.create_buffer_init(&vert_desc);
+        let index_buffer = device.create_buffer_init(&index_desc);
+        Mesh {
+            vertex_buffer,
+            index_buffer,
+            num_vertices: vertices.len() as u32,
+            num_indices: indices.len() as u32
+        }
     }
 }
