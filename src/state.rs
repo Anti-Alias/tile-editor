@@ -3,6 +3,8 @@ use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use wgpu::*;
 use log::info;
+use crate::Vertex;
+use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 /// Represents entire graphics state (window, surface device, queue) all wrapped in one struct
 pub struct State {
@@ -11,7 +13,8 @@ pub struct State {
     queue: Queue,
     config: SurfaceConfiguration,
     size: PhysicalSize<u32>,
-    render_pipeline: RenderPipeline
+    render_pipeline: RenderPipeline,
+    vertex_buffer: Buffer
 }
 
 impl State {
@@ -48,8 +51,8 @@ impl State {
         };
         surface.configure(&device, &config);
 
-        // Creates render pipeline
         let render_pipeline = Self::create_render_pipeline(&device, &config);
+        let vertex_buffer = Self::create_vertex_buffer(&device);
 
         // Return state
         State {
@@ -58,7 +61,8 @@ impl State {
             queue,
             config,
             size,
-            render_pipeline
+            render_pipeline,
+            vertex_buffer
         }
     }
 
@@ -206,5 +210,19 @@ impl State {
             multisample: MultisampleState::default()
         };
         device.create_render_pipeline(&desc)
+    }
+
+    fn create_vertex_buffer(device: &Device) -> Buffer {
+        let vertices = [
+            Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
+            Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
+            Vertex { position: [0.5, -0.5, 0.0], color: [0.0, 0.0, 1.0] },
+        ];
+        let desc = BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::bytes_of(&vertices),
+            usage: BufferUsages::VERTEX
+        };
+        device.create_buffer_init(&desc)
     }
 }
