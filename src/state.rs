@@ -102,6 +102,7 @@ impl State {
         {
             let mut render_pass = self.create_render_pass(&mut encoder, &tex_view);
             render_pass.set_pipeline(&self.render_pipeline);
+            //render_pass.set_vertex_buffer();
             render_pass.draw(0..3, 0..1);
         }
 
