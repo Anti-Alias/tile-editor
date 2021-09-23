@@ -158,7 +158,7 @@ impl State {
         device.create_shader_module(&desc)
     }
 
-    fn create_vertex_state<'a>(module: &'a ShaderModule) -> VertexState<'a> {
+    fn create_vertex_state(module: &ShaderModule) -> VertexState {
         VertexState {
             module: &module,
             entry_point: "main",
