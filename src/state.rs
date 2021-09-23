@@ -14,7 +14,8 @@ pub struct State {
     config: SurfaceConfiguration,
     size: PhysicalSize<u32>,
     render_pipeline: RenderPipeline,
-    vertex_buffer: Buffer
+    vertex_buffer: Buffer,
+    num_vertices: u32
 }
 
 impl State {
@@ -52,7 +53,7 @@ impl State {
         surface.configure(&device, &config);
 
         let render_pipeline = Self::create_render_pipeline(&device, &config);
-        let vertex_buffer = Self::create_vertex_buffer(&device);
+        let (vertex_buffer, num_vertices) = Self::create_vertex_buffer(&device);
 
         // Return state
         State {
@@ -62,7 +63,8 @@ impl State {
             config,
             size,
             render_pipeline,
-            vertex_buffer
+            vertex_buffer,
+            num_vertices
         }
     }
 
@@ -102,8 +104,8 @@ impl State {
         {
             let mut render_pass = self.create_render_pass(&mut encoder, &tex_view);
             render_pass.set_pipeline(&self.render_pipeline);
-            //render_pass.set_vertex_buffer();
-            render_pass.draw(0..3, 0..1);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+            render_pass.draw(0..self.num_vertices, 0..1);
         }
 
         let cmd_buffer = encoder.finish();
@@ -156,11 +158,11 @@ impl State {
         device.create_shader_module(&desc)
     }
 
-    fn create_vertex_state(module: &ShaderModule) -> VertexState {
+    fn create_vertex_state<'a>(module: &'a ShaderModule) -> VertexState<'a> {
         VertexState {
             module: &module,
             entry_point: "main",
-            buffers: &[]
+            buffers: &[Vertex::DESC]
         }
     }
 
@@ -213,7 +215,7 @@ impl State {
         device.create_render_pipeline(&desc)
     }
 
-    fn create_vertex_buffer(device: &Device) -> Buffer {
+    fn create_vertex_buffer(device: &Device) -> (Buffer, u32) {
         let vertices = [
             Vertex { position: [0.0, 0.5, 0.0], color: [1.0, 0.0, 0.0] },
             Vertex { position: [-0.5, -0.5, 0.0], color: [0.0, 1.0, 0.0] },
@@ -224,6 +226,6 @@ impl State {
             contents: bytemuck::bytes_of(&vertices),
             usage: BufferUsages::VERTEX
         };
-        device.create_buffer_init(&desc)
+        (device.create_buffer_init(&desc), 3)
     }
 }
