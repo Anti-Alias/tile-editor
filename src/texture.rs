@@ -32,6 +32,10 @@ impl Texture {
         image: &DynamicImage,
         label: Option<&'a str>
     ) -> Texture {
+
+        let dimensions = image.dimensions();
+
+        // Raw texture
         let tex = device.create_texture(&TextureDescriptor{
             label,
             size: todo!(),
@@ -41,7 +45,8 @@ impl Texture {
             format: TextureFormat::Rgba8UnormSrgb,
             usage: TextureUsages::COPY_DST
         });
-        let dimensions = image.dimensions();
+
+        // Writes data to texture
         queue.write_texture(
             ImageCopyTexture {
                 texture: &tex,
@@ -57,8 +62,14 @@ impl Texture {
             },
             Default::default()
         );
+
+        // Texture view
         let view = tex.create_view(&TextureViewDescriptor::default());
+
+        // Sampler
         let sampler = device.create_sampler(&SamplerDescriptor { ..Default::default() });
+
+        // Done
         Texture {
             texture: Rc::new(tex),
             view: Rc::new(view),
