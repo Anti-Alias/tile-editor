@@ -3,7 +3,7 @@ use winit::event::*;
 use winit::event_loop::{EventLoop, ControlFlow};
 use winit::event::{Event, WindowEvent};
 use std::any::Any;
-use tile_editor::State;
+use tile_editor::{State, Texture};
 use pollster::block_on;
 use log::info;
 
@@ -54,9 +54,8 @@ async fn start() {
         .build(&event_loop).unwrap();
     info!("Created window!");
 
-    // Creates rendering state
+    // Creates window manager
     let mut state = State::new(&window).await;
-    info!("Created state!");
 
     // Starts event loop and handles events
     info!("Running event loop!");

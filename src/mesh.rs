@@ -17,6 +17,7 @@ struct Mesh {
 }
 
 impl Mesh {
+
 }
 
 trait Vertex {
