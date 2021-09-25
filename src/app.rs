@@ -3,11 +3,11 @@ use winit::dpi::PhysicalSize;
 use winit::event::{WindowEvent, Event, KeyboardInput, ElementState, VirtualKeyCode};
 use wgpu::*;
 use log::info;
-use crate::Vertex;
+use crate::{Vertex, WindowState, GraphicsState};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use winit::event_loop::{EventLoop, ControlFlow};
 
-/// Represents entire graphics state (window, surface device, queue) all wrapped in one struct
+/// Represents tile application as a whole
 pub struct App {
     event_loop: EventLoop<()>,
     window_state: WindowState,
@@ -165,133 +165,4 @@ impl App {
         };
         device.create_render_pipeline(&desc)
     }
-}
-
-struct WindowState {
-    window: Window,
-    surface: Surface,
-    size: PhysicalSize<u32>,
-    config: SurfaceConfiguration
-}
-
-impl WindowState {
-
-    /// Handles window event.
-    /// Returns true if event was processed.
-    ///
-    /// # Arguments
-    ///
-    /// * `event` - Window event to consider
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
-        return false;
-    }
-
-    fn request_redraw(&self) {
-        self.window.request_redraw();
-    }
-
-    fn handle_window_event(
-        &mut self,
-        event: WindowEvent,
-        device: &Device,
-        control_flow: &mut ControlFlow
-    ) {
-        if !self.input(&event) {
-            match event {
-                WindowEvent::CloseRequested => close(control_flow),
-                WindowEvent::KeyboardInput { input, .. } => self.handle_key(input, control_flow),
-                WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(device, *new_inner_size),
-                _ => {}
-            }
-        }
-    }
-
-    /// Resizes surface the new size specified
-    pub fn resize(&mut self, device: &Device, new_size: PhysicalSize<u32>) {
-        self.size = new_size;
-        self.config.width = new_size.width;
-        self.config.height = new_size.height;
-        self.surface.configure(device, &self.config);
-    }
-
-    fn handle_key(&self, input: KeyboardInput, control_flow: &mut ControlFlow) {
-        if input.state == ElementState::Pressed && input.virtual_keycode == Some(VirtualKeyCode::Escape) {
-            close(control_flow);
-        }
-    }
-
-    fn handle_suspend(&self) {
-        println!("Suspended");
-    }
-
-    fn handle_resume(&self) {
-        println!("Resuming");
-    }
-}
-
-struct GraphicsState {
-    pub device: Device,
-    pub queue: Queue,
-    render_pipeline: RenderPipeline
-}
-
-impl GraphicsState {
-
-    pub fn render(&mut self, surface: &Surface) -> Result<(), wgpu::SurfaceError> {
-
-        let tex = &surface.get_current_frame()?.output.texture;
-        let texture_view = tex.create_view(&TextureViewDescriptor::default());
-
-        // Creates an encoder
-        let command_desc = CommandEncoderDescriptor { label: Some("Render Encoder") };
-        let mut encoder = self.device.create_command_encoder(&command_desc);
-
-        // Creates render pass and attaches pipeline.
-        // Then, uses it to draw to teh screen!!1
-        {
-            let mut render_pass = self.create_render_pass(&mut encoder, &texture_view);
-            /*
-            let mesh = &self.mesh;
-            render_pass.set_pipeline(&self.render_pipeline);
-            render_pass.set_vertex_buffer(0, mesh.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(mesh.index_buffer.slice(..), IndexFormat::Uint32);
-            render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
-            */
-        }
-
-        let cmd_buffer = encoder.finish();
-        self.queue.submit(std::iter::once(cmd_buffer));
-        Ok(())
-    }
-
-    fn create_render_pass<'a>(&self, encoder: &'a mut CommandEncoder, texture_view: &'a TextureView) -> RenderPass<'a> {
-
-        // Creates color attachment
-        let color_attachment = RenderPassColorAttachment {
-            view: texture_view,
-            resolve_target: None,
-            ops: Operations {
-                load: LoadOp::Clear(Color {
-                    r: 0.1,
-                    g: 0.2,
-                    b: 0.3,
-                    a: 1.0
-                }),
-                store: true
-            }
-        };
-
-        // Creates render pass
-        let render_desc = RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[color_attachment],
-            depth_stencil_attachment: None
-        };
-        encoder.begin_render_pass(&render_desc)
-    }
-}
-
-fn close(control_flow: &mut ControlFlow) {
-    *control_flow = ControlFlow::Exit;
-    info!("See ya!");
 }
