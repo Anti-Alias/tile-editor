@@ -9,7 +9,7 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub const DESC: VertexBufferLayout<'static> = VertexBufferLayout {
+    pub const BUFFER_LAYOUT: VertexBufferLayout<'static> = VertexBufferLayout {
         array_stride: std::mem::size_of::<Vertex>() as BufferAddress,
         step_mode: VertexStepMode::Vertex,
         attributes: &[

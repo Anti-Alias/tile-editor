@@ -6,7 +6,7 @@ use log::info;
 use crate::Vertex;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
-struct Mesh {
+struct StateMesh {
     pub vertex_buffer: Buffer,
     pub index_buffer: Buffer,
     pub num_vertices: u32,
@@ -21,7 +21,7 @@ pub struct State {
     config: SurfaceConfiguration,
     size: PhysicalSize<u32>,
     render_pipeline: RenderPipeline,
-    mesh: Mesh
+    mesh: StateMesh
 }
 
 impl State {
@@ -103,6 +103,7 @@ impl State {
         // Creates an encoder
         let command_desc = CommandEncoderDescriptor { label: Some("Render Encoder") };
         let mut encoder = self.device.create_command_encoder(&command_desc);
+        //let tex = self.device.create_texture();
 
         // Creates render pass and attaches pipeline.
         // Then, uses it to draw to teh screen!!1
@@ -169,7 +170,7 @@ impl State {
         VertexState {
             module: &module,
             entry_point: "main",
-            buffers: &[Vertex::DESC]
+            buffers: &[Vertex::BUFFER_LAYOUT]
         }
     }
 
@@ -222,7 +223,7 @@ impl State {
         device.create_render_pipeline(&desc)
     }
 
-    fn create_mesh(device: &Device) -> Mesh {
+    fn create_mesh(device: &Device) -> StateMesh {
         let vertices = [
             Vertex { position: [-0.0868241, 0.49240386, 0.0], color: [0.5, 0.0, 0.5] }, // A
             Vertex { position: [-0.49513406, 0.06958647, 0.0], color: [0.5, 0.0, 0.5] }, // B
@@ -248,7 +249,7 @@ impl State {
         };
         let vertex_buffer = device.create_buffer_init(&vert_desc);
         let index_buffer = device.create_buffer_init(&index_desc);
-        Mesh {
+        StateMesh {
             vertex_buffer,
             index_buffer,
             num_vertices: vertices.len() as u32,
