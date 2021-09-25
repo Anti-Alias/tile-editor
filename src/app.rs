@@ -92,26 +92,25 @@ impl App {
     fn handle_window_event(
         &mut self,
         event: WindowEvent,
-        device: &Device,
         control_flow: &mut ControlFlow
     ) {
         if !self.input(&event) {
             match event {
                 WindowEvent::CloseRequested => close(control_flow),
                 WindowEvent::KeyboardInput { input, .. } => self.handle_key(input, control_flow),
-                WindowEvent::Resized(new_size) => self.resize(device, new_size),
-                WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(device, *new_inner_size),
+                WindowEvent::Resized(new_size) => self.resize(new_size),
+                WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(*new_inner_size),
                 _ => {}
             }
         }
     }
 
     /// Resizes surface the new size specified
-    pub fn resize(&mut self, device: &Device, new_size: PhysicalSize<u32>) {
+    pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         self.size = new_size;
         self.config.width = new_size.width;
         self.config.height = new_size.height;
-        self.surface.configure(device, &self.config);
+        self.surface.configure(&self.device, &self.config);
     }
 
     fn handle_key(&self, input: KeyboardInput, control_flow: &mut ControlFlow) {
@@ -135,8 +134,16 @@ impl App {
 
         // Starts event loop
         self.event_loop.run(move |event, window_target, control_flow| match event {
-            Event::WindowEvent { window_id, event: window_event } if window_id == self.window.id() => {
-                self.handle_window_event(window_event, &self.device, control_flow);
+            Event::WindowEvent { window_id, event: window_event } => {
+                if window_id == self.window.id() && !self.input(&window_event) {
+                    match window_event {
+                        WindowEvent::CloseRequested => close(control_flow),
+                        WindowEvent::KeyboardInput { input, .. } => self.handle_key(input, control_flow),
+                        WindowEvent::Resized(new_size) => self.resize(new_size),
+                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(*new_inner_size),
+                        _ => {}
+                    }
+                }
             }
             Event::Suspended => { },
             Event::Resumed => { },
@@ -259,7 +266,6 @@ impl App {
         // Creates an encoder
         let command_desc = CommandEncoderDescriptor { label: Some("Render Encoder") };
         let mut encoder = self.device.create_command_encoder(&command_desc);
-        //let tex = self.device.create_texture();
 
         // Creates render pass and attaches pipeline.
         // Then, uses it to draw to teh screen!!1
