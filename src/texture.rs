@@ -1,4 +1,4 @@
-use wgpu::{Sampler, TextureView, Device, Queue, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor, ImageCopyTexture, ImageDataLayout, SamplerDescriptor};
+use wgpu::{Sampler, TextureView, Device, Queue, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor, ImageCopyTexture, ImageDataLayout, SamplerDescriptor, Extent3d};
 use std::rc::Rc;
 use image::{DynamicImage, ImageResult, ImageError, GenericImageView};
 use std::num::NonZeroU32;
@@ -38,7 +38,11 @@ impl Texture {
         // Raw texture
         let tex = device.create_texture(&TextureDescriptor{
             label,
-            size: todo!(),
+            size: Extent3d {
+                width: dimensions.0,
+                height: dimensions.1,
+                depth_or_array_layers: 1
+            },
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,

@@ -14,6 +14,9 @@ async fn start() {
 
     // Creates app and consumes window
     let mut app = App::new().await;
+    let device = app.device();
+    let queue = app.queue();
+    let tex = Texture::from_bytes(device, queue, include_bytes!("happy-tree.png"), None);
 
     // Starts/consumes app
     app.start();

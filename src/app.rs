@@ -90,6 +90,14 @@ impl App {
         });
     }
 
+    pub fn device(&self) -> &Device {
+        &self.graphics_state.device
+    }
+
+    pub fn queue(&self) -> &Queue {
+        &self.graphics_state.queue
+    }
+
     // ------------- Static -------------
 
     fn create_pipeline_layout(device: &Device) -> PipelineLayout {
