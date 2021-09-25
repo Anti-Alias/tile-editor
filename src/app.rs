@@ -54,11 +54,7 @@ impl App {
             present_mode: PresentMode::Fifo
         };
         surface.configure(&device, &config);
-
         let render_pipeline = Self::create_render_pipeline(&device, &config);
-
-        let surface_frame = surface.get_current_frame()?.output;
-        surface_frame.texture.create_view(&TextureViewDescriptor::default());
 
         // Return state
         App {
@@ -78,40 +74,20 @@ impl App {
         // Starts event loop
         self.event_loop.run(move |event, window_target, control_flow| match event {
             Event::WindowEvent { window_id, event: window_event } if window_id == window_state.window.id() => {
+                match window_event {
+                    WindowEvent::Resized(new_size) => {
+                        window_state.resize(&graphics_state.device, new_size);
+                    },
+                    _ => {}
+                }
                 window_state.handle_window_event(window_event, &graphics_state.device, control_flow);
             }
             Event::Suspended => { },
             Event::Resumed => { },
             Event::MainEventsCleared => { window_state.request_redraw(); }
-            Event::RedrawRequested(_) =>{ graphics_state.render(); }
+            Event::RedrawRequested(_) => { graphics_state.render(&window_state.surface); }
             _ => {}
         });
-    }
-
-    fn create_render_pass<'a>(&self, encoder: &'a mut CommandEncoder, texture_view: &'a TextureView) -> RenderPass<'a> {
-
-        // Creates color attachment
-        let color_attachment = RenderPassColorAttachment {
-            view: texture_view,
-            resolve_target: None,
-            ops: Operations {
-                load: LoadOp::Clear(Color {
-                    r: 0.1,
-                    g: 0.2,
-                    b: 0.3,
-                    a: 1.0
-                }),
-                store: true
-            }
-        };
-
-        // Creates render pass
-        let render_desc = RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[color_attachment],
-            depth_stencil_attachment: None
-        };
-        encoder.begin_render_pass(&render_desc)
     }
 
     // ------------- Static -------------
@@ -224,7 +200,6 @@ impl WindowState {
             match event {
                 WindowEvent::CloseRequested => close(control_flow),
                 WindowEvent::KeyboardInput { input, .. } => self.handle_key(input, control_flow),
-                WindowEvent::Resized(new_size) => self.resize(device, new_size),
                 WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(device, *new_inner_size),
                 _ => {}
             }
@@ -257,26 +232,24 @@ impl WindowState {
 struct GraphicsState {
     pub device: Device,
     pub queue: Queue,
-    pub texture_view: TextureView,
     render_pipeline: RenderPipeline
 }
 
 impl GraphicsState {
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, surface: &Surface) -> Result<(), wgpu::SurfaceError> {
 
-        // Gets texture of surface and defines a view
-        let tex_view = &self.texture_view;
+        let tex = &surface.get_current_frame()?.output.texture;
+        let texture_view = tex.create_view(&TextureViewDescriptor::default());
 
         // Creates an encoder
         let command_desc = CommandEncoderDescriptor { label: Some("Render Encoder") };
         let mut encoder = self.device.create_command_encoder(&command_desc);
-        //let tex = self.device.create_texture();
 
         // Creates render pass and attaches pipeline.
         // Then, uses it to draw to teh screen!!1
         {
-            let mut render_pass = self.create_render_pass(&mut encoder, &tex_view);
+            let mut render_pass = self.create_render_pass(&mut encoder, &texture_view);
             /*
             let mesh = &self.mesh;
             render_pass.set_pipeline(&self.render_pipeline);
@@ -289,6 +262,32 @@ impl GraphicsState {
         let cmd_buffer = encoder.finish();
         self.queue.submit(std::iter::once(cmd_buffer));
         Ok(())
+    }
+
+    fn create_render_pass<'a>(&self, encoder: &'a mut CommandEncoder, texture_view: &'a TextureView) -> RenderPass<'a> {
+
+        // Creates color attachment
+        let color_attachment = RenderPassColorAttachment {
+            view: texture_view,
+            resolve_target: None,
+            ops: Operations {
+                load: LoadOp::Clear(Color {
+                    r: 0.1,
+                    g: 0.2,
+                    b: 0.3,
+                    a: 1.0
+                }),
+                store: true
+            }
+        };
+
+        // Creates render pass
+        let render_desc = RenderPassDescriptor {
+            label: Some("Render Pass"),
+            color_attachments: &[color_attachment],
+            depth_stencil_attachment: None
+        };
+        encoder.begin_render_pass(&render_desc)
     }
 }
 
