@@ -10,13 +10,8 @@ use winit::event_loop::{EventLoop, ControlFlow};
 /// Represents entire graphics state (window, surface device, queue) all wrapped in one struct
 pub struct App {
     event_loop: EventLoop<()>,
-    window: Window,
-    surface: Surface,
-    size: PhysicalSize<u32>,
-    pub device: Device,
-    pub queue: Queue,
-    render_pipeline: RenderPipeline,
-    config: SurfaceConfiguration
+    window_state: WindowState,
+    graphics_state: GraphicsState
 }
 
 impl App {
@@ -38,7 +33,7 @@ impl App {
         let instance = Instance::new(Backends::all());
         let surface = unsafe { instance.create_surface(&window) };
         let adapter = instance.enumerate_adapters(Backends::all())
-            .filter(|adapter| surface.get_preferred_format(&adapter).is_some())
+            .filter(|adapter| surface.get_preferred_format(&adapter).is_some() )
             .next()
             .unwrap();
 
@@ -59,124 +54,40 @@ impl App {
             present_mode: PresentMode::Fifo
         };
         surface.configure(&device, &config);
-
         let render_pipeline = Self::create_render_pipeline(&device, &config);
 
         // Return state
         App {
             event_loop,
-            window,
-            surface,
-            size,
-            device,
-            queue,
-            render_pipeline,
-            config
+            window_state: WindowState { window, surface, size, config },
+            graphics_state: GraphicsState { device, queue, render_pipeline }
         }
-    }
-
-    /// Handles window event.
-    /// Returns true if event was processed.
-    ///
-    /// # Arguments
-    ///
-    /// * `event` - Window event to consider
-    pub fn input(&mut self, event: &WindowEvent) -> bool {
-        return false;
-    }
-
-    fn request_redraw(&self) {
-        self.window.request_redraw();
-    }
-
-    fn handle_window_event(
-        &mut self,
-        event: WindowEvent,
-        control_flow: &mut ControlFlow
-    ) {
-        if !self.input(&event) {
-            match event {
-                WindowEvent::CloseRequested => close(control_flow),
-                WindowEvent::KeyboardInput { input, .. } => self.handle_key(input, control_flow),
-                WindowEvent::Resized(new_size) => self.resize(new_size),
-                WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(*new_inner_size),
-                _ => {}
-            }
-        }
-    }
-
-    /// Resizes surface the new size specified
-    pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
-        self.size = new_size;
-        self.config.width = new_size.width;
-        self.config.height = new_size.height;
-        self.surface.configure(&self.device, &self.config);
-    }
-
-    fn handle_key(&self, input: KeyboardInput, control_flow: &mut ControlFlow) {
-        if input.state == ElementState::Pressed && input.virtual_keycode == Some(VirtualKeyCode::Escape) {
-            close(control_flow);
-        }
-    }
-
-    fn handle_suspend(&self) {
-        println!("Suspended");
-    }
-
-    fn handle_resume(&self) {
-        println!("Resuming");
     }
 
     pub fn start(mut self) {
 
         // Creates event loop and window
         info!("Running event loop!");
+        let mut window_state = self.window_state;
+        let mut graphics_state = self.graphics_state;
 
         // Starts event loop
         self.event_loop.run(move |event, window_target, control_flow| match event {
-            Event::WindowEvent { window_id, event: window_event } => {
-                if window_id == self.window.id() && !self.input(&window_event) {
-                    match window_event {
-                        WindowEvent::CloseRequested => close(control_flow),
-                        WindowEvent::KeyboardInput { input, .. } => self.handle_key(input, control_flow),
-                        WindowEvent::Resized(new_size) => self.resize(new_size),
-                        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(*new_inner_size),
-                        _ => {}
-                    }
+            Event::WindowEvent { window_id, event: window_event } if window_id == window_state.window.id() => {
+                match window_event {
+                    WindowEvent::Resized(new_size) => {
+                        window_state.resize(&graphics_state.device, new_size);
+                    },
+                    _ => {}
                 }
+                window_state.handle_window_event(window_event, &graphics_state.device, control_flow);
             }
             Event::Suspended => { },
             Event::Resumed => { },
-            Event::MainEventsCleared => { self.request_redraw(); }
-            Event::RedrawRequested(_) =>{ self.render(); }
+            Event::MainEventsCleared => { window_state.request_redraw(); }
+            Event::RedrawRequested(_) => { graphics_state.render(&window_state.surface); }
             _ => {}
         });
-    }
-
-    fn create_render_pass<'a>(&self, encoder: &'a mut CommandEncoder, texture_view: &'a TextureView) -> RenderPass<'a> {
-
-        // Creates color attachment
-        let color_attachment = RenderPassColorAttachment {
-            view: texture_view,
-            resolve_target: None,
-            ops: Operations {
-                load: LoadOp::Clear(Color {
-                    r: 0.1,
-                    g: 0.2,
-                    b: 0.3,
-                    a: 1.0
-                }),
-                store: true
-            }
-        };
-
-        // Creates render pass
-        let render_desc = RenderPassDescriptor {
-            label: Some("Render Pass"),
-            color_attachments: &[color_attachment],
-            depth_stencil_attachment: None
-        };
-        encoder.begin_render_pass(&render_desc)
     }
 
     // ------------- Static -------------
@@ -254,14 +165,82 @@ impl App {
         };
         device.create_render_pipeline(&desc)
     }
+}
 
-    pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+struct WindowState {
+    window: Window,
+    surface: Surface,
+    size: PhysicalSize<u32>,
+    config: SurfaceConfiguration
+}
 
-        let surface = &self.surface;
-        let surface_frame = surface.get_current_frame()?.output;
+impl WindowState {
 
-        // Gets texture of surface and defines a view
-        let tex_view = surface_frame.texture.create_view(&TextureViewDescriptor::default());;
+    /// Handles window event.
+    /// Returns true if event was processed.
+    ///
+    /// # Arguments
+    ///
+    /// * `event` - Window event to consider
+    pub fn input(&mut self, event: &WindowEvent) -> bool {
+        return false;
+    }
+
+    fn request_redraw(&self) {
+        self.window.request_redraw();
+    }
+
+    fn handle_window_event(
+        &mut self,
+        event: WindowEvent,
+        device: &Device,
+        control_flow: &mut ControlFlow
+    ) {
+        if !self.input(&event) {
+            match event {
+                WindowEvent::CloseRequested => close(control_flow),
+                WindowEvent::KeyboardInput { input, .. } => self.handle_key(input, control_flow),
+                WindowEvent::ScaleFactorChanged { new_inner_size, .. } => self.resize(device, *new_inner_size),
+                _ => {}
+            }
+        }
+    }
+
+    /// Resizes surface the new size specified
+    pub fn resize(&mut self, device: &Device, new_size: PhysicalSize<u32>) {
+        self.size = new_size;
+        self.config.width = new_size.width;
+        self.config.height = new_size.height;
+        self.surface.configure(device, &self.config);
+    }
+
+    fn handle_key(&self, input: KeyboardInput, control_flow: &mut ControlFlow) {
+        if input.state == ElementState::Pressed && input.virtual_keycode == Some(VirtualKeyCode::Escape) {
+            close(control_flow);
+        }
+    }
+
+    fn handle_suspend(&self) {
+        println!("Suspended");
+    }
+
+    fn handle_resume(&self) {
+        println!("Resuming");
+    }
+}
+
+struct GraphicsState {
+    pub device: Device,
+    pub queue: Queue,
+    render_pipeline: RenderPipeline
+}
+
+impl GraphicsState {
+
+    pub fn render(&mut self, surface: &Surface) -> Result<(), wgpu::SurfaceError> {
+
+        let tex = &surface.get_current_frame()?.output.texture;
+        let texture_view = tex.create_view(&TextureViewDescriptor::default());
 
         // Creates an encoder
         let command_desc = CommandEncoderDescriptor { label: Some("Render Encoder") };
@@ -270,7 +249,7 @@ impl App {
         // Creates render pass and attaches pipeline.
         // Then, uses it to draw to teh screen!!1
         {
-            let mut render_pass = self.create_render_pass(&mut encoder, &tex_view);
+            let mut render_pass = self.create_render_pass(&mut encoder, &texture_view);
             /*
             let mesh = &self.mesh;
             render_pass.set_pipeline(&self.render_pipeline);
@@ -283,6 +262,32 @@ impl App {
         let cmd_buffer = encoder.finish();
         self.queue.submit(std::iter::once(cmd_buffer));
         Ok(())
+    }
+
+    fn create_render_pass<'a>(&self, encoder: &'a mut CommandEncoder, texture_view: &'a TextureView) -> RenderPass<'a> {
+
+        // Creates color attachment
+        let color_attachment = RenderPassColorAttachment {
+            view: texture_view,
+            resolve_target: None,
+            ops: Operations {
+                load: LoadOp::Clear(Color {
+                    r: 0.1,
+                    g: 0.2,
+                    b: 0.3,
+                    a: 1.0
+                }),
+                store: true
+            }
+        };
+
+        // Creates render pass
+        let render_desc = RenderPassDescriptor {
+            label: Some("Render Pass"),
+            color_attachments: &[color_attachment],
+            depth_stencil_attachment: None
+        };
+        encoder.begin_render_pass(&render_desc)
     }
 }
 

@@ -13,7 +13,7 @@ async fn start() {
     env_logger::init();
 
     // Creates app and consumes window
-    let mut app = App::new(window).await;
+    let mut app = App::new().await;
 
     // Starts/consumes app
     app.start();
