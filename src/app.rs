@@ -3,22 +3,33 @@ use winit::dpi::PhysicalSize;
 use winit::event::{WindowEvent, Event, KeyboardInput, ElementState, VirtualKeyCode};
 use wgpu::*;
 use log::info;
-use crate::{WindowState, GraphicsState};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
+use crate::{WindowState, GraphicsState};
 
 use winit::event_loop::{EventLoop, ControlFlow};
 
+pub struct AppResources<'a> {
+    pub device: &'a Device,
+    pub queue: &'a Queue
+}
+
+pub trait AppListener: 'static {
+    fn on_start(&self, resources: &AppResources);
+    fn on_draw(&self, resources: &AppResources);
+}
+
 /// Represents tile application as a whole
-pub struct App {
+pub struct App<L: AppListener> {
+    listener: L,
     event_loop: EventLoop<()>,
     window_state: WindowState,
     graphics_state: GraphicsState
 }
 
-impl App {
+impl<L : AppListener> App<L> {
 
     /// Asynchronously creates State using window
-    pub async fn new() -> Self {
+    pub async fn new(listener: L) -> Self {
 
         // Creates window and event loop
         let event_loop = EventLoop::new();
@@ -59,6 +70,7 @@ impl App {
 
         // Return state
         App {
+            listener,
             event_loop,
             window_state: WindowState { window, surface, size, config },
             graphics_state: GraphicsState { device, queue }
@@ -71,6 +83,13 @@ impl App {
         info!("Running event loop!");
         let mut window_state = self.window_state;
         let mut graphics_state = self.graphics_state;
+        let listener = self.listener;
+
+        // Alerts listener of starting
+        listener.on_start(&AppResources {
+            device: &graphics_state.device,
+            queue: &graphics_state.queue
+        });
 
         // Starts event loop
         self.event_loop.run(move |event, window_target, control_flow| match event {
@@ -86,7 +105,13 @@ impl App {
             Event::Suspended => { },
             Event::Resumed => { },
             Event::MainEventsCleared => { window_state.request_redraw(); }
-            Event::RedrawRequested(_) => { graphics_state.render(&window_state.surface); }
+            Event::RedrawRequested(_) => {
+                listener.on_draw(&AppResources{
+                    device: &graphics_state.device,
+                    queue: &graphics_state.queue
+                });
+                graphics_state.render(&window_state.surface);
+            }
             _ => {}
         });
     }
