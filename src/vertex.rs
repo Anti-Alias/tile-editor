@@ -26,12 +26,12 @@ pub struct RGBA {
 }
 
 pub trait Vertex {
-    fn layout() -> VertexBufferLayout<'static>;
+    fn layout<'a>() -> VertexBufferLayout<'a>;
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-struct ModelVertex {
+pub struct ModelVertex {
     pub position: Vector3,
     pub normal: Vector3,
     pub color: RGBA,
@@ -39,7 +39,7 @@ struct ModelVertex {
 }
 
 impl Vertex for ModelVertex {
-    fn layout() -> VertexBufferLayout<'static> {
+    fn layout<'a>() -> VertexBufferLayout<'a> {
         VertexBufferLayout {
             array_stride: std::mem::size_of::<ModelVertex>() as BufferAddress,
             step_mode: VertexStepMode::Vertex,

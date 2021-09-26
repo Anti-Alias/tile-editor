@@ -7,7 +7,10 @@ use tile_editor::{App, Texture, AppListener, AppResources};
 use pollster::block_on;
 use log::info;
 
-struct MyListener {}
+// Main application listener
+struct MyListener {
+    
+}
 impl AppListener for MyListener {
     fn on_start(&self, resources: &AppResources) {
         println!("App started");
@@ -17,22 +20,13 @@ impl AppListener for MyListener {
     }
 }
 
-async fn start() {
+fn main() {
 
     // Sets up logging
     env_logger::init();
 
-    // Creates app and consumes window
+    // Creates app and starts it
     let listener = MyListener {};
-    let mut app = App::new(listener).await;
-    let device = app.device();
-    let queue = app.queue();
-    let tex = Texture::from_bytes(device, queue, include_bytes!("happy-tree.png"), None);
-
-    // Starts/consumes app
+    let mut app = block_on(App::new(listener));
     app.start();
-}
-
-fn main() {
-    block_on(start());
 }
