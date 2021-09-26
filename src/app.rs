@@ -3,8 +3,9 @@ use winit::dpi::PhysicalSize;
 use winit::event::{WindowEvent, Event, KeyboardInput, ElementState, VirtualKeyCode};
 use wgpu::*;
 use log::info;
-use crate::{Vertex, WindowState, GraphicsState};
+use crate::{ModelVertex, WindowState, GraphicsState};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
+
 use winit::event_loop::{EventLoop, ControlFlow};
 
 /// Represents tile application as a whole
@@ -54,13 +55,13 @@ impl App {
             present_mode: PresentMode::Fifo
         };
         surface.configure(&device, &config);
-        let render_pipeline = Self::create_render_pipeline(&device, &config);
+        //let render_pipeline = Self::create_render_pipeline(&device, &config);
 
         // Return state
         App {
             event_loop,
             window_state: WindowState { window, surface, size, config },
-            graphics_state: GraphicsState { device, queue, render_pipeline }
+            graphics_state: GraphicsState { device, queue }
         }
     }
 
@@ -121,7 +122,7 @@ impl App {
         VertexState {
             module: &module,
             entry_point: "main",
-            buffers: &[Vertex::BUFFER_LAYOUT]
+            buffers: &[ModelVertex::BUFFER_LAYOUT]
         }
     }
 
@@ -156,6 +157,7 @@ impl App {
         }
     }
 
+    /*
     fn create_render_pipeline(device: &Device, config: &SurfaceConfiguration) -> RenderPipeline {
         let module = Self::create_shader_module(device);
         let vertex_state = Self::create_vertex_state(&module);
@@ -173,4 +175,5 @@ impl App {
         };
         device.create_render_pipeline(&desc)
     }
+     */
 }

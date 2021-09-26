@@ -3,14 +3,14 @@ use wgpu::{VertexBufferLayout, BufferAddress, VertexStepMode, VertexAttribute, V
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct Vertex {
+pub struct ModelVertex {
     pub position: [f32; 3],
     pub color: [f32; 3]
 }
 
-impl Vertex {
+impl ModelVertex {
     pub const BUFFER_LAYOUT: VertexBufferLayout<'static> = VertexBufferLayout {
-        array_stride: std::mem::size_of::<Vertex>() as BufferAddress,
+        array_stride: std::mem::size_of::<ModelVertex>() as BufferAddress,
         step_mode: VertexStepMode::Vertex,
         attributes: &[
             // Position

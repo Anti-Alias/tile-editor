@@ -2,8 +2,7 @@ use wgpu::*;
 
 pub struct GraphicsState {
     pub device: Device,
-    pub queue: Queue,
-    pub render_pipeline: RenderPipeline
+    pub queue: Queue
 }
 
 impl GraphicsState {
