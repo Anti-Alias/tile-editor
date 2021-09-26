@@ -3,28 +3,72 @@ use wgpu::{VertexBufferLayout, BufferAddress, VertexStepMode, VertexAttribute, V
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct ModelVertex {
-    pub position: [f32; 3],
-    pub color: [f32; 3]
+pub struct Vector3 {
+    pub x: f32,
+    pub y: f32,
+    pub z: f32
 }
 
-impl ModelVertex {
-    pub const BUFFER_LAYOUT: VertexBufferLayout<'static> = VertexBufferLayout {
-        array_stride: std::mem::size_of::<ModelVertex>() as BufferAddress,
-        step_mode: VertexStepMode::Vertex,
-        attributes: &[
-            // Position
-            VertexAttribute{
-                offset: 0,
-                shader_location: 0,
-                format: VertexFormat::Float32x3
-            },
-            // Color
-            VertexAttribute {
-                offset: std::mem::size_of::<[f32; 3]>() as BufferAddress,
-                shader_location: 1,
-                format: VertexFormat::Float32x3
-            }
-        ]
-    };
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+pub struct Vector2 {
+    pub x: f32,
+    pub y: f32
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+pub struct RGBA {
+    pub r: f32,
+    pub g: f32,
+    pub b: f32,
+    pub a: f32
+}
+
+pub trait Vertex {
+    fn layout() -> VertexBufferLayout<'static>;
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+struct ModelVertex {
+    pub position: Vector3,
+    pub normal: Vector3,
+    pub color: RGBA,
+    pub uv: Vector2
+}
+
+impl Vertex for ModelVertex {
+    fn layout() -> VertexBufferLayout<'static> {
+        VertexBufferLayout {
+            array_stride: std::mem::size_of::<ModelVertex>() as BufferAddress,
+            step_mode: VertexStepMode::Vertex,
+            attributes: &[
+                // Position (x, y, z)
+                VertexAttribute {
+                    offset: 0,
+                    shader_location: 0,
+                    format: VertexFormat::Float32x3
+                },
+                // Normal (x, y, z)
+                VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 3]>() as BufferAddress,
+                    shader_location: 1,
+                    format: VertexFormat::Float32x3
+                },
+                // Color (r, g, b, a)
+                VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 6]>() as BufferAddress,
+                    shader_location: 2,
+                    format: VertexFormat::Float32x4
+                },
+                // UV (u, v)
+                VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 10]>() as BufferAddress,
+                    shader_location: 3,
+                    format: VertexFormat::Float32x2
+                }
+            ]
+        }
+    }
 }

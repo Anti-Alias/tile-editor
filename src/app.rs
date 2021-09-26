@@ -3,7 +3,7 @@ use winit::dpi::PhysicalSize;
 use winit::event::{WindowEvent, Event, KeyboardInput, ElementState, VirtualKeyCode};
 use wgpu::*;
 use log::info;
-use crate::{ModelVertex, WindowState, GraphicsState};
+use crate::{WindowState, GraphicsState};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 
 use winit::event_loop::{EventLoop, ControlFlow};
@@ -118,6 +118,7 @@ impl App {
         device.create_shader_module(&desc)
     }
 
+    /*
     fn create_vertex_state(module: &ShaderModule) -> VertexState {
         VertexState {
             module: &module,
@@ -125,6 +126,7 @@ impl App {
             buffers: &[ModelVertex::BUFFER_LAYOUT]
         }
     }
+     */
 
     fn create_fragment_state<'a>(
         module: &'a ShaderModule,
