@@ -5,10 +5,10 @@ use winit::event::{WindowEvent, KeyboardInput, VirtualKeyCode, ElementState};
 use winit::event_loop::ControlFlow;
 use log::info;
 
+
 pub struct WindowState {
     pub window: Window,
     pub surface: Surface,
-    pub size: PhysicalSize<u32>,
     pub config: SurfaceConfiguration
 }
 
@@ -46,7 +46,6 @@ impl WindowState {
 
     /// Resizes surface the new size specified
     pub fn resize(&mut self, device: &Device, new_size: PhysicalSize<u32>) {
-        self.size = new_size;
         self.config.width = new_size.width;
         self.config.height = new_size.height;
         self.surface.configure(device, &self.config);

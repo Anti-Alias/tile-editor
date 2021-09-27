@@ -8,16 +8,6 @@ use crate::{WindowState, GraphicsState};
 
 use winit::event_loop::{EventLoop, ControlFlow};
 
-pub struct AppResources<'a> {
-    pub device: &'a Device,
-    pub queue: &'a Queue
-}
-
-pub trait AppListener: 'static {
-    fn on_start(&self, resources: &AppResources);
-    fn on_draw(&self, resources: &AppResources);
-}
-
 /// Represents tile application as a whole
 pub struct App<L: AppListener> {
     listener: L,
@@ -72,7 +62,7 @@ impl<L : AppListener> App<L> {
         App {
             listener,
             event_loop,
-            window_state: WindowState { window, surface, size, config },
+            window_state: WindowState { window, surface, config },
             graphics_state: GraphicsState { device, queue }
         }
     }
@@ -87,6 +77,7 @@ impl<L : AppListener> App<L> {
 
         // Alerts listener of starting
         listener.on_start(&AppResources {
+            config: &window_state.config,
             device: &graphics_state.device,
             queue: &graphics_state.queue
         });
@@ -96,7 +87,16 @@ impl<L : AppListener> App<L> {
             Event::WindowEvent { window_id, event: window_event } if window_id == window_state.window.id() => {
                 match window_event {
                     WindowEvent::Resized(new_size) => {
+                        let new_size = PhysicalSize {
+                            width: if new_size.width <= 0 { 1 } else { new_size.width },
+                            height: if new_size.height <= 0 { 1 } else { new_size.height }
+                        };
                         window_state.resize(&graphics_state.device, new_size);
+                        listener.on_resize(new_size, &AppResources {
+                            config: &window_state.config,
+                            device: &graphics_state.device,
+                            queue: &graphics_state.queue
+                        });
                     },
                     _ => {}
                 }
@@ -106,11 +106,20 @@ impl<L : AppListener> App<L> {
             Event::Resumed => { },
             Event::MainEventsCleared => { window_state.request_redraw(); }
             Event::RedrawRequested(_) => {
-                listener.on_draw(&AppResources{
-                    device: &graphics_state.device,
-                    queue: &graphics_state.queue
+
+                // Lets listener draw its graphics
+                let tex = &window_state.surface.get_current_frame().unwrap().output.texture;
+                let view = tex.create_view(&TextureViewDescriptor::default());
+                let mut encoder = graphics_state.device.create_command_encoder(&CommandEncoderDescriptor {
+                    label: Some("App Command Encoder")
                 });
-                graphics_state.render(&window_state.surface);
+                {
+                    let mut render_pass = graphics_state.create_render_pass(&mut encoder, &view);
+                    //listener.on_draw(&DrawResources { render_pass: &mut render_pass });
+                }
+
+                let buffer = encoder.finish();
+                graphics_state.queue.submit([buffer]);
             }
             _ => {}
         });
@@ -123,84 +132,22 @@ impl<L : AppListener> App<L> {
     pub fn queue(&self) -> &Queue {
         &self.graphics_state.queue
     }
+}
 
-    // ------------- Static -------------
+/// Resource object passed into `AppListener` during its on-* methods
+pub struct AppResources<'a> {
+    pub config: &'a SurfaceConfiguration,
+    pub device: &'a Device,
+    pub queue: &'a Queue
+}
 
-    fn create_pipeline_layout(device: &Device) -> PipelineLayout {
-        let desc = PipelineLayoutDescriptor {
-            label: Some("Pipeline Layout"),
-            bind_group_layouts: &[],
-            push_constant_ranges: &[]
-        };
-        device.create_pipeline_layout(&desc)
-    }
+pub struct DrawResources<'a> {
+    pub render_pass: &'a mut RenderPass<'a>
+}
 
-    fn create_shader_module(device: &Device) -> ShaderModule {
-        let desc = ShaderModuleDescriptor {
-            label: Some("Shader Module"),
-            source: ShaderSource::Wgsl(include_str!("shader.wgsl").into())
-        };
-        device.create_shader_module(&desc)
-    }
-
-    /*
-    fn create_vertex_state(module: &ShaderModule) -> VertexState {
-        VertexState {
-            module: &module,
-            entry_point: "main",
-            buffers: &[ModelVertex::BUFFER_LAYOUT]
-        }
-    }
-     */
-
-    fn create_fragment_state<'a>(
-        module: &'a ShaderModule,
-        targets: &'a [ColorTargetState]
-    ) -> FragmentState<'a> {
-        FragmentState {
-            module: &module,
-            entry_point: "main",
-            targets
-        }
-    }
-
-    fn create_color_target_state(config: &SurfaceConfiguration) -> ColorTargetState {
-        ColorTargetState {
-            format: config.format,
-            blend: Some(BlendState::REPLACE),
-            write_mask: ColorWrites::ALL
-        }
-    }
-
-    fn get_primitive_state() -> PrimitiveState {
-        PrimitiveState {
-            topology: PrimitiveTopology::TriangleList,
-            strip_index_format: None,
-            front_face: FrontFace::Ccw,
-            cull_mode: Some(Face::Back),
-            clamp_depth: false,
-            polygon_mode: PolygonMode::Fill,
-            conservative: false
-        }
-    }
-
-    /*
-    fn create_render_pipeline(device: &Device, config: &SurfaceConfiguration) -> RenderPipeline {
-        let module = Self::create_shader_module(device);
-        let vertex_state = Self::create_vertex_state(&module);
-        let color_targets = [Self::create_color_target_state(&config)];
-        let fragment_state = Self::create_fragment_state(&module, &color_targets);
-        let pipeline_layout = Self::create_pipeline_layout(device);
-        let desc = RenderPipelineDescriptor {
-            label: Some("Render Pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: vertex_state,
-            fragment: Some(fragment_state),
-            primitive: Self::get_primitive_state(),
-            depth_stencil: None,
-            multisample: MultisampleState::default()
-        };
-        device.create_render_pipeline(&desc)
-    }
-     */
+/// Listener of events occurring in an `App` instance
+pub trait AppListener: 'static {
+    fn on_start<'a>(&'a self, app_resources: &'a AppResources<'a>);
+    fn on_draw<'a>(&'a self, draw_resources: &'a DrawResources<'a>);
+    fn on_resize<'a>(&'a self, size: PhysicalSize<u32>, app_resources: &'a AppResources<'a>);
 }

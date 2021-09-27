@@ -16,18 +16,17 @@ impl Renderer {
     }
 
     /// Writes render-pass commands to the CommandEncoder specified
-    pub fn render(&self, encoder: &mut CommandEncoder, params: &RenderParams) {
+    pub fn render<'a>(
+        &'a self,
+        render_pass: &'a mut RenderPass<'a>,
+        render_params: &'a RenderParams<'a>
+    ) {
 
         // Begins render pass
-        let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("Renderer Render Pass"),
-            color_attachments: &[],
-            depth_stencil_attachment: None
-        });
         render_pass.set_pipeline(&self.pipeline);
-        render_pass.set_vertex_buffer(0, params.vertex_buffer.slice(..));
-        render_pass.set_index_buffer(params.vertex_buffer.slice(..), IndexFormat::Uint32);
-        render_pass.draw_indexed(params.index_range.clone(), 0, 0..1);
+        render_pass.set_vertex_buffer(0, render_params.vertex_buffer.slice(..));
+        render_pass.set_index_buffer(render_params.vertex_buffer.slice(..), IndexFormat::Uint32);
+        render_pass.draw_indexed(render_params.index_range.clone(), 0, 0..1);
     }
 
 
