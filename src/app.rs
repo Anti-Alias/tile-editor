@@ -9,17 +9,16 @@ use crate::{WindowState, GraphicsState};
 use winit::event_loop::{EventLoop, ControlFlow};
 
 /// Represents tile application as a whole
-pub struct App<L: AppListener> {
-    listener: L,
+pub struct App {
     event_loop: EventLoop<()>,
     window_state: WindowState,
     graphics_state: GraphicsState
 }
 
-impl<L : AppListener> App<L> {
+impl App {
 
     /// Asynchronously creates State using window
-    pub async fn new(listener: L) -> Self {
+    pub async fn new() -> Self {
 
         // Creates window and event loop
         let event_loop = EventLoop::new();
@@ -38,6 +37,7 @@ impl<L : AppListener> App<L> {
             .filter(|adapter| surface.get_preferred_format(&adapter).is_some() )
             .next()
             .unwrap();
+        info!("Selected adapter {:?}", adapter);
 
         // With adapter, gets device and queue
         let descriptor = DeviceDescriptor {
@@ -56,27 +56,24 @@ impl<L : AppListener> App<L> {
             present_mode: PresentMode::Fifo
         };
         surface.configure(&device, &config);
-        //let render_pipeline = Self::create_render_pipeline(&device, &config);
 
         // Return state
         App {
-            listener,
             event_loop,
             window_state: WindowState { window, surface, config },
             graphics_state: GraphicsState { device, queue }
         }
     }
 
-    pub fn start(mut self) {
+    pub fn start<L : AppListener>(mut self) {
 
         // Creates event loop and window
         info!("Running event loop!");
         let mut window_state = self.window_state;
         let mut graphics_state = self.graphics_state;
-        let listener = self.listener;
 
         // Alerts listener of starting
-        listener.on_start(&AppResources {
+        let mut listener = L::new(&AppResources {
             config: &window_state.config,
             device: &graphics_state.device,
             queue: &graphics_state.queue
@@ -145,7 +142,7 @@ pub struct AppResources<'a> {
 
 /// Listener of events occurring in an `App` instance
 pub trait AppListener: 'static {
-    fn on_start(&self, app_resources: &AppResources);
-    fn on_draw(&self, render_pass: &mut RenderPass);
-    fn on_resize(&self, size: PhysicalSize<u32>, app_resources: &AppResources);
+    fn new(app_resources: &AppResources) -> Self;
+    fn on_draw(&mut self, render_pass: &mut RenderPass);
+    fn on_resize(&mut self, size: PhysicalSize<u32>, app_resources: &AppResources);
 }

@@ -61,7 +61,7 @@ impl Renderer {
     fn create_primitive_state() -> PrimitiveState {
         PrimitiveState {
             topology: PrimitiveTopology::TriangleList,
-            strip_index_format: Some(IndexFormat::Uint32),
+            strip_index_format: None,
             front_face: FrontFace::Ccw,
             cull_mode: Some(Face::Back),
             clamp_depth: false,
