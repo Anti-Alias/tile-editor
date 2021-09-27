@@ -107,17 +107,19 @@ impl<L : AppListener> App<L> {
             Event::MainEventsCleared => { window_state.request_redraw(); }
             Event::RedrawRequested(_) => {
 
-                // Lets listener draw its graphics
+                // Gets texture from surface
                 let tex = &window_state.surface.get_current_frame().unwrap().output.texture;
                 let view = tex.create_view(&TextureViewDescriptor::default());
-                let mut encoder = graphics_state.device.create_command_encoder(&CommandEncoderDescriptor {
-                    label: Some("App Command Encoder")
-                });
+
+                // Clears screen and hands render pass to listener
+                let desc = CommandEncoderDescriptor { label: Some("App Command Encoder") };
+                let mut encoder = graphics_state.device.create_command_encoder(&desc);
                 {
                     let mut render_pass = graphics_state.create_render_pass(&mut encoder, &view);
-                    //listener.on_draw(&DrawResources { render_pass: &mut render_pass });
+                    listener.on_draw(&mut render_pass);
                 }
 
+                // Executes draw commands
                 let buffer = encoder.finish();
                 graphics_state.queue.submit([buffer]);
             }
@@ -141,13 +143,9 @@ pub struct AppResources<'a> {
     pub queue: &'a Queue
 }
 
-pub struct DrawResources<'a> {
-    pub render_pass: &'a mut RenderPass<'a>
-}
-
 /// Listener of events occurring in an `App` instance
 pub trait AppListener: 'static {
-    fn on_start<'a>(&'a self, app_resources: &'a AppResources<'a>);
-    fn on_draw<'a>(&'a self, draw_resources: &'a DrawResources<'a>);
-    fn on_resize<'a>(&'a self, size: PhysicalSize<u32>, app_resources: &'a AppResources<'a>);
+    fn on_start(&self, app_resources: &AppResources);
+    fn on_draw(&self, render_pass: &mut RenderPass);
+    fn on_resize(&self, size: PhysicalSize<u32>, app_resources: &AppResources);
 }
