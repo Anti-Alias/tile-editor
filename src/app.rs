@@ -143,6 +143,6 @@ pub struct AppResources<'a> {
 /// Listener of events occurring in an `App` instance
 pub trait AppListener: 'static {
     fn new(app_resources: &AppResources) -> Self;
-    fn on_draw(&mut self, render_pass: &mut RenderPass);
+    fn on_draw<'a, 'b>(&'a self, render_pass: &mut RenderPass<'b>) where 'a: 'b;
     fn on_resize(&mut self, size: PhysicalSize<u32>, app_resources: &AppResources);
 }

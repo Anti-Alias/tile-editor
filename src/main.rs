@@ -22,13 +22,16 @@ impl AppListener for MyListener {
         Self { renderer: Renderer::new(device, &config) }
     }
 
-    fn on_draw(&mut self, render_pass: &mut RenderPass) {
-
-        //self.renderer().render(render_pass, &params);
+    fn on_draw<'a, 'b>(&'a self, render_pass: &mut RenderPass<'b>) where 'a: 'b {
+        let render_params = RenderParams {
+            vertex_buffer: todo!(),
+            index_buffer: todo!(),
+            index_range: Default::default()
+        };
+        self.renderer.render(render_pass, &render_params);
     }
 
-    fn on_resize(&mut self, size: PhysicalSize<u32>, resources: &AppResources) {
-    }
+    fn on_resize(&mut self, size: PhysicalSize<u32>, resources: &AppResources) {}
 }
 
 fn main() {

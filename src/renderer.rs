@@ -16,11 +16,11 @@ impl Renderer {
     }
 
     /// Writes render-pass commands to the CommandEncoder specified
-    pub fn render<'a>(
+    pub fn render<'a, 'b>(
         &'a self,
-        render_pass: &'a mut RenderPass<'a>,
-        render_params: &'a RenderParams<'a>
-    ) {
+        render_pass: &mut RenderPass<'b>,
+        render_params: &RenderParams<'b>
+    ) where 'a: 'b {
 
         // Begins render pass
         render_pass.set_pipeline(&self.pipeline);
@@ -128,14 +128,11 @@ impl RenderConfig {
 /// Parameters to pass into a `Renderer.draw`
 pub struct RenderParams<'a> {
 
-    /// Color attachment to draw to
-    pub color_attachment: RenderPassColorAttachment<'a>,
-
     /// Vertices to use
-    pub vertex_buffer: Buffer,
+    pub vertex_buffer: &'a Buffer,
 
     /// Indices to use
-    pub index_buffer: Buffer,
+    pub index_buffer: &'a Buffer,
 
     /// Range of indices to use
     pub index_range: Range<u32>
