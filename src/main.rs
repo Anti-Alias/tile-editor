@@ -126,7 +126,7 @@ fn main() {
                         cpu_usage: previous_frame_time,
                         seconds_since_midnight: Some(seconds_since_midnight()),
                         native_pixels_per_point: Some(window.scale_factor() as _),
-                        prefer_dark_mode: None,
+                        prefer_dark_mode: Some(false),
                     },
                     tex_allocator: &mut egui_rpass,
                     output: &mut app_output,
