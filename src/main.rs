@@ -91,7 +91,7 @@ fn main() {
     )));
 
     // Makes GUI instance
-    let mut gui = GUI::new();
+    let mut gui = GUI::default();
 
     let start_time = Instant::now();
     let mut previous_frame_time = None;
