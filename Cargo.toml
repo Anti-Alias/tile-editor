@@ -13,3 +13,11 @@ log = "0.4"
 wgpu = "0.10"
 pollster = "0.2"
 bytemuck = { version = "1.4", features = [ "derive" ] }
+egui = "0.14.2"
+egui_wgpu_backend = "0.12"
+egui_winit_platform = "0.10.0"
+egui_demo_lib = "0.14"
+
+chrono = "0.4"
+futures-lite = "1.12"
+epi = "0.14"
