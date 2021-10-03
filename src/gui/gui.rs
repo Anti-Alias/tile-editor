@@ -1,32 +1,246 @@
-use egui::{CtxRef, Vec2, Rgba, Align, TopBottomPanel, CentralPanel, SidePanel, Visuals, Style, TextStyle, Color32, Stroke, Widget};
+use egui::{CtxRef, Vec2, Rgba, Align, TopBottomPanel, CentralPanel, SidePanel, Visuals, Style, TextStyle, Color32, Stroke, Widget, Ui};
 use egui_wgpu_backend::epi::{Frame, Storage};
 use std::time::Duration;
-use egui::style::{Widgets, Selection, WidgetVisuals};
+use egui::style::{Widgets, WidgetVisuals, Selection};
 use egui::epaint::Shadow;
 use egui::WidgetType::Label;
 use crate::gui::Editor;
 
-enum EditorType {
-    MapEditor,
-    VoxelEditor
-}
 
+/// Main GUI 'n chewy
 pub struct GUI {
     /// All editors available
     editors: Vec<Editor>,
 
     /// Index of selected editor
-    editor_index: i32
+    editor_index: usize,
+
+    /// Menu flags
+    window_flags: MenuFlags,
+
+    /// Selections from menus, checkboxes, etc
+    inputs: GUIInputs
+}
+
+impl GUI {
+
+    fn current_editor(&self) -> Option<&Editor> {
+        if (0..self.editors.len()).contains(&self.editor_index) {
+            Some(&self.editors[self.editor_index])
+        }
+        else {
+            None
+        }
+    }
+
+    fn light() -> Style {
+        let mut vis = Visuals {
+            dark_mode: false,
+            widgets: light_widget_style(),
+            selection: Selection {
+                bg_fill: Color32::from_rgb(144, 209, 255),
+                stroke: Stroke::new(1.0, Color32::from_rgb(0, 83, 125)),
+            },
+            hyperlink_color: Color32::from_rgb(0, 155, 255),
+            faint_bg_color: Color32::from_gray(240),
+            extreme_bg_color: Color32::from_gray(250),
+            code_bg_color: Color32::from_gray(200),
+            window_shadow: Shadow::big_light(),
+            popup_shadow: Shadow::small_light(),
+            ..Visuals::dark()
+        };
+        Style {
+            body_text_style: TextStyle::Monospace,
+            override_text_style: Some(TextStyle::Monospace),
+            wrap: None,
+            spacing: Default::default(),
+            interaction: Default::default(),
+            visuals: vis,
+            animation_time: 0.0,
+            debug: Default::default()
+        }
+    }
+
+    fn show_new_map_menu(&mut self, ctx: &CtxRef) {
+        let opened = &mut self.window_flags.new_map_opened;
+        let input = &mut self.inputs.new_map_input.data;
+        let ready = &mut self.inputs.new_map_input.is_ready;
+        egui::Window::new("New Map")
+            .show(ctx, move |ui| {
+                ui.label("Name");
+                ui.text_edit_singleline(input);
+                ui.horizontal(|ui| {
+                    if ui.button("Create").clicked() {
+                        *ready = true;
+                        *opened = false;
+                    }
+                    if ui.button("Cancel").clicked() {
+                        *opened = false;
+                    }
+                });
+            });
+    }
+
+    fn show_windows(&mut self, ctx: &CtxRef) {
+
+        // "New Map" Window
+        if self.window_flags.new_map_opened {
+            self.show_new_map_menu(ctx);
+        }
+    }
+
+    fn handle_inputs(&mut self) {
+
+        // Handles new map
+        if let Some(filename) = self.inputs.new_map_input.consume() {
+            let filename = filename.trim();
+            if !filename.is_empty() {
+                self.editors.push(Editor {
+                    name: filename.to_owned(),
+                    content: filename.to_owned()
+                })
+            }
+        }
+    }
+
+    pub fn update(&mut self, ctx: &CtxRef) {
+        ctx.set_style(Self::light());
+
+        // Top panel
+        TopBottomPanel::top("top").show(ctx, |ui| {
+
+            // Menu bar
+            egui::menu::bar(ui, |ui|{
+                egui::menu::menu(ui, "File", |ui|{
+                    if ui.button("New Map").clicked() {
+                        self.window_flags.new_map_opened = true;
+                    }
+                    if ui.button("Open Map").clicked() {
+                        // todo
+                    }
+                    if ui.button("New Voxel Set").clicked() {
+                        // todo
+                    }
+                    if ui.button("Open Voxel Set").clicked() {
+                        // todo
+                    }
+                });
+                egui::menu::menu(ui, "Options", |ui|{
+                    ui.button("No Options");
+                });
+                egui::menu::menu(ui, "Help", |ui|{
+                    ui.button("Nah, dude");
+                });
+            });
+
+            // Tab selector
+            ui.horizontal(|ui| {
+                for (i, editor) in self.editors.iter().enumerate() {
+                    if ui.button(&editor.name).clicked() {
+                        self.editor_index = i;
+                    }
+                }
+            });
+        });
+
+        // Bottom panel
+        TopBottomPanel::bottom("bottom").show(ctx, |ui| {
+            ui.label("Bottom");
+        });
+
+        // Left panel
+        SidePanel::left("left").resizable(false).show(ctx, |ui| {
+            ui.label("Left");
+        });
+
+        // Right panel
+        SidePanel::right("right").resizable(false).show(ctx, |ui| {
+            ui.label("Right");
+        });
+
+        // Content panel
+        CentralPanel::default().show(ctx, |ui|{
+            if let Some(current_editor) = self.current_editor() {
+                current_editor.ui(ui);
+            }
+        });
+
+        // Shows menus that are opened
+        self.show_windows(ctx);
+
+        // Handles selections
+        self.handle_inputs();
+    }
 }
 
 impl Default for GUI {
     fn default() -> Self {
         Self {
-            editors: vec![
-                Editor::new("Editor 1", "Editor 1 Content"),
-                Editor::new("Editor 2", "Editor 2 Content")
-            ],
-            editor_index: 0
+            editors: vec![],
+            editor_index: 0,
+            window_flags: MenuFlags::default(),
+            inputs: GUIInputs::default()
+        }
+    }
+}
+
+/// Stores flags regarding the "opened" status of menus in `GUI`
+struct MenuFlags {
+    new_map_opened: bool
+}
+
+impl Default for MenuFlags {
+    fn default() -> Self {
+        Self {
+            new_map_opened: false
+        }
+    }
+}
+
+/// Represents input to be filled out.
+/// Should only be consumed when `is_ready` is set to true.
+struct Input<T: Default> {
+    pub is_ready: bool,
+    pub data: T
+}
+
+impl<T: Default> Input<T> {
+
+
+    pub fn set(&mut self, data: T) {
+        self.data = data;
+        self.is_ready = true;
+    }
+
+    /// Consumes the input, setting the `is_ready` to false if
+    pub fn consume(&mut self) -> Option<&T> {
+        if self.is_ready {
+            self.is_ready = false;
+            Some(&self.data)
+        }
+        else {
+            None
+        }
+    }
+}
+
+impl<T: Default> Default for Input<T> {
+    fn default() -> Self {
+        Input { is_ready: false, data: Default::default() }
+    }
+}
+
+/// A set of inputs
+struct GUIInputs {
+
+    /// Selection for a new map.
+    new_map_input: Input<String>
+}
+
+impl Default for GUIInputs {
+    fn default() -> Self {
+        Self {
+            new_map_input: Default::default()
         }
     }
 }
@@ -68,102 +282,5 @@ pub fn light_widget_style() -> Widgets {
             corner_radius: 2.0,
             expansion: 0.0,
         },
-    }
-}
-
-impl GUI {
-
-    fn current_editor(&self) -> Option<&Editor> {
-        if (0..=1).contains(&self.editor_index) {
-            Some(&self.editors[self.editor_index as usize])
-        }
-        else {
-            None
-        }
-    }
-
-    fn light() -> Style {
-        let mut vis = Visuals {
-            dark_mode: false,
-            widgets: light_widget_style(),
-            selection: Selection {
-                bg_fill: Color32::from_rgb(144, 209, 255),
-                stroke: Stroke::new(1.0, Color32::from_rgb(0, 83, 125)),
-            },
-            hyperlink_color: Color32::from_rgb(0, 155, 255),
-            faint_bg_color: Color32::from_gray(240),
-            extreme_bg_color: Color32::from_gray(250),
-            code_bg_color: Color32::from_gray(200),
-            window_shadow: Shadow::big_light(),
-            popup_shadow: Shadow::small_light(),
-            ..Visuals::dark()
-        };
-        Style {
-            body_text_style: TextStyle::Monospace,
-            override_text_style: Some(TextStyle::Monospace),
-            wrap: None,
-            spacing: Default::default(),
-            interaction: Default::default(),
-            visuals: vis,
-            animation_time: 0.0,
-            debug: Default::default()
-        }
-    }
-
-    pub fn update(&mut self, ctx: &CtxRef) {
-        ctx.set_style(Self::light());
-
-        // Top panel
-        TopBottomPanel::top("top").show(ctx, |ui| {
-
-            // Menu bar
-            egui::menu::bar(ui, |ui|{
-                egui::menu::menu(ui, "File", |ui|{
-                    if ui.button("New").changed() {
-                        println!("New clicked!");
-                    }
-                    if ui.button("Open").clicked() {
-                        println!("Open clicked!");
-                    }
-                });
-                egui::menu::menu(ui, "Options", |ui|{
-                    ui.button("No Options");
-                });
-                egui::menu::menu(ui, "Help", |ui|{
-                    ui.button("Nah, dude");
-                });
-            });
-
-            // Tab selector
-            ui.horizontal(|ui| {
-                for (i, editor) in self.editors.iter().enumerate() {
-                    if ui.button(&editor.name).clicked() {
-                        self.editor_index = i as i32;
-                    }
-                }
-            });
-        });
-
-        // Bottom panel
-        TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            ui.label("Bottom");
-        });
-
-        // Left panel
-        SidePanel::left("left").resizable(false).show(ctx, |ui| {
-            ui.label("Left");
-        });
-
-        // Right panel
-        SidePanel::right("right").resizable(false).show(ctx, |ui| {
-            ui.label("Right");
-        });
-
-        // Content panel
-        CentralPanel::default().show(ctx, |ui|{
-            if let Some(current_editor) = self.current_editor() {
-                current_editor.ui(ui);
-            }
-        });
     }
 }
