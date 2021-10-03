@@ -64,9 +64,9 @@ pub fn light_widget_style() -> Widgets {
     }
 }
 
-impl epi::App for GUI {
+impl GUI {
 
-    fn update(&mut self, ctx: &CtxRef, frame: &mut Frame<'_>) {
+    pub fn update(&mut self, ctx: &CtxRef) {
         let mut vis = Visuals {
             dark_mode: false,
             widgets: light_widget_style(),
@@ -122,10 +122,6 @@ impl epi::App for GUI {
         CentralPanel::default().show(ctx, |ui|{
             ui.label("Center");
         });
-    }
-
-    fn name(&self) -> &str {
-        "egui template"
     }
 }
 

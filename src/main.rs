@@ -14,21 +14,10 @@ use tile_editor::gui::GUI;
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
 
-enum Event {
-    RequestRedraw
-}
-
-struct ExampleRepaintSignal(std::sync::Mutex<winit::event_loop::EventLoopProxy<Event>>);
-impl epi::RepaintSignal for ExampleRepaintSignal {
-    fn request_repaint(&self) {
-        self.0.lock().unwrap().send_event(Event::RequestRedraw).ok();
-    }
-}
-
 fn main() {
 
     // Creates winit event loop and window
-    let event_loop = winit::event_loop::EventLoop::with_user_event();
+    let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .with_decorations(true)
         .with_resizable(true)
@@ -86,9 +75,6 @@ fn main() {
 
     // We use the egui_wgpu_backend crate as the render backend.
     let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
-    let repaint_signal = std::sync::Arc::new(ExampleRepaintSignal(std::sync::Mutex::new(
-        event_loop.create_proxy(),
-    )));
 
     // Makes GUI instance
     let mut gui = GUI::default();
@@ -119,20 +105,7 @@ fn main() {
                 platform.begin_frame();                                     // Begins frame (???)
 
                 // Draw GUI to frame
-                let mut app_output = epi::backend::AppOutput::default();
-                let mut frame = epi::backend::FrameBuilder {
-                    info: epi::IntegrationInfo {
-                        web_info: None,
-                        cpu_usage: previous_frame_time,
-                        seconds_since_midnight: Some(seconds_since_midnight()),
-                        native_pixels_per_point: Some(window.scale_factor() as _),
-                        prefer_dark_mode: Some(false),
-                    },
-                    tex_allocator: &mut egui_rpass,
-                    output: &mut app_output,
-                    repaint_signal: repaint_signal.clone(),
-                }.build();
-                gui.update(&platform.context(), &mut frame);
+                gui.update(&platform.context());
 
                 // End EGUI frame
                 let (_output, paint_commands) = platform.end_frame(Some(&window));
