@@ -131,8 +131,7 @@ fn main() {
                     tex_allocator: &mut egui_rpass,
                     output: &mut app_output,
                     repaint_signal: repaint_signal.clone(),
-                }
-                .build();
+                }.build();
                 gui.update(&platform.context(), &mut frame);
 
                 // End EGUI frame
