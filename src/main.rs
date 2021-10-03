@@ -9,7 +9,7 @@ use epi::*;
 use futures_lite::future::block_on;
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
-use tile_editor::GUI;
+use tile_editor::gui::GUI;
 
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
