@@ -4,13 +4,30 @@ use std::time::Duration;
 use egui::style::{Widgets, Selection, WidgetVisuals};
 use egui::epaint::Shadow;
 use egui::WidgetType::Label;
+use crate::gui::Editor;
+
+enum EditorType {
+    MapEditor,
+    VoxelEditor
+}
 
 pub struct GUI {
+    /// All editors available
+    editors: Vec<Editor>,
+
+    /// Index of selected editor
+    editor_index: i32
 }
 
 impl Default for GUI {
     fn default() -> Self {
-        Self {}
+        Self {
+            editors: vec![
+                Editor::new("Editor 1", "Editor 1 Content"),
+                Editor::new("Editor 2", "Editor 2 Content")
+            ],
+            editor_index: 0
+        }
     }
 }
 
@@ -56,7 +73,16 @@ pub fn light_widget_style() -> Widgets {
 
 impl GUI {
 
-    pub fn update(&mut self, ctx: &CtxRef) {
+    fn current_editor(&self) -> Option<&Editor> {
+        if (0..=1).contains(&self.editor_index) {
+            Some(&self.editors[self.editor_index as usize])
+        }
+        else {
+            None
+        }
+    }
+
+    fn light() -> Style {
         let mut vis = Visuals {
             dark_mode: false,
             widgets: light_widget_style(),
@@ -72,7 +98,7 @@ impl GUI {
             popup_shadow: Shadow::small_light(),
             ..Visuals::dark()
         };
-        ctx.set_style(Style {
+        Style {
             body_text_style: TextStyle::Monospace,
             override_text_style: Some(TextStyle::Monospace),
             wrap: None,
@@ -81,8 +107,16 @@ impl GUI {
             visuals: vis,
             animation_time: 0.0,
             debug: Default::default()
-        });
+        }
+    }
+
+    pub fn update(&mut self, ctx: &CtxRef) {
+        ctx.set_style(Self::light());
+
+        // Top panel
         TopBottomPanel::top("top").show(ctx, |ui| {
+
+            // Menu bar
             egui::menu::bar(ui, |ui|{
                 egui::menu::menu(ui, "File", |ui|{
                     if ui.button("New").changed() {
@@ -99,18 +133,37 @@ impl GUI {
                     ui.button("Nah, dude");
                 });
             });
+
+            // Tab selector
+            ui.horizontal(|ui| {
+                for (i, editor) in self.editors.iter().enumerate() {
+                    if ui.button(&editor.name).clicked() {
+                        self.editor_index = i as i32;
+                    }
+                }
+            });
         });
+
+        // Bottom panel
         TopBottomPanel::bottom("bottom").show(ctx, |ui| {
             ui.label("Bottom");
         });
+
+        // Left panel
         SidePanel::left("left").resizable(false).show(ctx, |ui| {
             ui.label("Left");
         });
+
+        // Right panel
         SidePanel::right("right").resizable(false).show(ctx, |ui| {
             ui.label("Right");
         });
+
+        // Content panel
         CentralPanel::default().show(ctx, |ui|{
-            ui.label("Center");
+            if let Some(current_editor) = self.current_editor() {
+                current_editor.ui(ui);
+            }
         });
     }
 }

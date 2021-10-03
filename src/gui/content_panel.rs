@@ -1,17 +1,18 @@
 use egui::{Widget, Ui, Response};
 
-struct ContentPanel<'a> {
-    pub text: &'a str
+pub struct Editor {
+    pub name: String,
+    pub content: String
 }
 
-impl<'a> ContentPanel<'a> {
-    fn new(text: &str) -> ContentPanel {
-        ContentPanel { text }
+impl Editor {
+    pub fn new(name: &str, content: &str) -> Editor {
+        Editor {
+            name: name.to_owned(),
+            content: content.to_owned()
+        }
     }
-}
-
-impl<'a> Widget for ContentPanel<'a> {
-    fn ui(self, ui: &mut Ui) -> Response {
-        ui.label(self.text)
+    pub fn ui(&self, ui: &mut Ui) -> Response {
+        ui.label(self.content.as_str())
     }
 }
