@@ -106,6 +106,9 @@ impl GUI {
     pub fn update(&mut self, ctx: &CtxRef) {
         ctx.set_style(Self::light());
 
+        // Shows menus that are opened
+        self.show_windows(ctx);
+
         // Top panel
         TopBottomPanel::top("top").show(ctx, |ui| {
 
@@ -164,9 +167,6 @@ impl GUI {
                 current_editor.ui(ui);
             }
         });
-
-        // Shows menus that are opened
-        self.show_windows(ctx);
 
         // Handles selections
         self.handle_inputs();
