@@ -16,10 +16,6 @@ struct Mesh {
     pub color_tex: Texture
 }
 
-impl Mesh {
-
-}
-
 trait Vertex {
     fn layout() -> VertexBufferLayout<'static>;
 }
