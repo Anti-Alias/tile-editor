@@ -9,7 +9,7 @@ use epi::*;
 use futures_lite::future::block_on;
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
-use tile_editor::gui::GUI;
+use tile_editor::gui::{GUI, Editor};
 
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
@@ -77,7 +77,7 @@ fn main() {
     let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
 
     // Makes GUI instance
-    let mut gui = GUI::default();
+    let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
 
     let start_time = Instant::now();
     let mut previous_frame_time = None;

@@ -24,6 +24,13 @@ pub struct GUI {
 
 impl GUI {
 
+    pub fn new(starting_editor: Editor) -> GUI {
+        GUI {
+            editors: vec![starting_editor],
+            ..Default::default()
+        }
+    }
+
     fn current_editor(&self) -> Option<&Editor> {
         if (0..self.editors.len()).contains(&self.editor_index) {
             Some(&self.editors[self.editor_index])
@@ -33,7 +40,7 @@ impl GUI {
         }
     }
 
-    fn light() -> Style {
+    fn light_style() -> Style {
         let mut vis = Visuals {
             dark_mode: false,
             widgets: light_widget_style(),
@@ -95,10 +102,11 @@ impl GUI {
         if let Some(filename) = self.inputs.new_map_input.consume() {
             let filename = filename.trim();
             if !filename.is_empty() {
+                self.editor_index = self.editors.len();
                 self.editors.push(Editor {
                     name: filename.to_owned(),
                     content: filename.to_owned()
-                })
+                });
             }
         }
     }
@@ -139,9 +147,11 @@ impl GUI {
     }
 
     pub fn update(&mut self, ctx: &CtxRef) {
-        ctx.set_style(Self::light());
 
-        // Shows menus that are opened
+        // Use light style in subsequent draw calls
+        //ctx.set_style(Self::light_style());
+
+        // Shows menus hovering over UI
         self.show_windows(ctx);
 
         // Top panel
@@ -150,27 +160,20 @@ impl GUI {
             self.show_tabs(ui);     // Tabs
         });
 
-        // Bottom panel
-        TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            ui.label("Bottom");
-        });
-
-        // Left panel
-        SidePanel::left("left").resizable(false).show(ctx, |ui| {
-            ui.label("Left");
-        });
-
-        // Right panel
-        SidePanel::right("right").resizable(false).show(ctx, |ui| {
-            ui.label("Right");
-        });
-
-        // Content panel
-        CentralPanel::default().show(ctx, |ui|{
-            if let Some(current_editor) = self.current_editor() {
-                current_editor.ui(ui);
-            }
-        });
+        // Editor panels
+        if let Some(editor) = self.current_editor() {
+            editor.left_panel(ctx);     // Left panel
+            editor.right_panel(ctx);    // Right panel
+            editor.bottom_panel(ctx);   // Bottom panel
+            editor.content_panel(ctx);  // Content panel
+        }
+        else {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                ui.centered_and_justified(|ui| {
+                    ui.label("Create a new map or open an existing one!")
+                });
+            });
+        }
 
         // Handles selections
         self.handle_inputs();

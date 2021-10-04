@@ -1,5 +1,5 @@
 mod gui;
-mod content_panel;
+mod editor;
 
 pub use gui::*;
-pub use content_panel::*;
+pub use editor::*;
