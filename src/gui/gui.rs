@@ -103,6 +103,41 @@ impl GUI {
         }
     }
 
+    fn show_menu_bar(&mut self, ui: &mut Ui) {
+        egui::menu::bar(ui, |ui|{
+            egui::menu::menu(ui, "File", |ui|{
+                if ui.button("New Map").clicked() {
+                    self.window_flags.new_map_opened = true;
+                }
+                if ui.button("Open Map").clicked() {
+                    // todo
+                }
+                if ui.button("New Voxel Set").clicked() {
+                    // todo
+                }
+                if ui.button("Open Voxel Set").clicked() {
+                    // todo
+                }
+            });
+            egui::menu::menu(ui, "Options", |ui|{
+                ui.button("No Options");
+            });
+            egui::menu::menu(ui, "Help", |ui|{
+                ui.button("Nah, dude");
+            });
+        });
+    }
+
+    fn show_tabs(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            for (i, editor) in self.editors.iter().enumerate() {
+                if ui.button(&editor.name).clicked() {
+                    self.editor_index = i;
+                }
+            }
+        });
+    }
+
     pub fn update(&mut self, ctx: &CtxRef) {
         ctx.set_style(Self::light());
 
@@ -111,39 +146,8 @@ impl GUI {
 
         // Top panel
         TopBottomPanel::top("top").show(ctx, |ui| {
-
-            // Menu bar
-            egui::menu::bar(ui, |ui|{
-                egui::menu::menu(ui, "File", |ui|{
-                    if ui.button("New Map").clicked() {
-                        self.window_flags.new_map_opened = true;
-                    }
-                    if ui.button("Open Map").clicked() {
-                        // todo
-                    }
-                    if ui.button("New Voxel Set").clicked() {
-                        // todo
-                    }
-                    if ui.button("Open Voxel Set").clicked() {
-                        // todo
-                    }
-                });
-                egui::menu::menu(ui, "Options", |ui|{
-                    ui.button("No Options");
-                });
-                egui::menu::menu(ui, "Help", |ui|{
-                    ui.button("Nah, dude");
-                });
-            });
-
-            // Tab selector
-            ui.horizontal(|ui| {
-                for (i, editor) in self.editors.iter().enumerate() {
-                    if ui.button(&editor.name).clicked() {
-                        self.editor_index = i;
-                    }
-                }
-            });
+            self.show_menu_bar(ui); // Menu bar
+            self.show_tabs(ui);     // Tabs
         });
 
         // Bottom panel
