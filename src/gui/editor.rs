@@ -33,8 +33,10 @@ impl Editor {
     }
 
     pub fn content_panel(&self, ctx: &CtxRef) {
+        /*
         CentralPanel::default().show(ctx, |ui|{
             ui.label(self.content.as_str())
         });
+         */
     }
 }
