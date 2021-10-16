@@ -1,4 +1,4 @@
-use tile_editor::voxel::{VoxelMap, Coords, Selection, RawChunk, Size, Slot};
+use tile_editor::voxel::{VoxelMap, Coords, Selection, Size, Slot};
 
 #[test]
 fn test_slot_iterator() {

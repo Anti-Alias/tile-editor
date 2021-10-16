@@ -4,7 +4,7 @@ use crate::voxel::{Coords, Layer, Selection, Size, Slot};
 // -------------------------------------------------------------------------
 /// Raw Chunk in a `VoxelMap`.
 /// Does not store position or size information.
-pub struct RawChunk {
+pub(crate) struct RawChunk {
     layers: Vec<Layer>
 }
 
@@ -23,7 +23,7 @@ pub(crate) struct Chunk<'map> {
 
 impl<'map> Chunk<'map> {
 
-    pub(crate) fn slot_at(&mut self, coords: Coords) -> Slot<'map> {
+    pub fn slot_at(&mut self, coords: Coords) -> Slot<'map> {
         unsafe {
             let raw = self.raw as *mut RawChunk;
             Slot {
@@ -38,7 +38,7 @@ impl<'map> Chunk<'map> {
     }
 
     // Selection in global voxels
-    pub(crate) fn selection(&self) -> Selection {
+    pub fn selection(&self) -> Selection {
         let src = Coords {
             x: self.coords.x * self.size.width as i32,
             y: self.coords.y * self.size.height as i32,

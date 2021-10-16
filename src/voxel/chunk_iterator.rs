@@ -2,7 +2,7 @@ use crate::voxel::{Chunk, Coords, RawChunk, Selection, VoxelMap};
 
 /// Iterator over `Chunk`s in a `VoxelMap`
 pub(crate) struct ChunkIterator<'map> {
-    pub(crate) vmap: &'map mut VoxelMap,
+    pub vmap: &'map mut VoxelMap,
     selection: Selection,
     current: Coords
 }

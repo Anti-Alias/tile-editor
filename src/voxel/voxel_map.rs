@@ -15,7 +15,7 @@ impl VoxelMap {
         }
     }
 
-    pub fn chunk_at(&mut self, chunk_coords: Coords) -> &mut RawChunk {
+    pub(crate) fn chunk_at(&mut self, chunk_coords: Coords) -> &mut RawChunk {
         self.chunks.entry(chunk_coords).or_insert(RawChunk::new())
     }
 
