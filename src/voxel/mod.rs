@@ -1,5 +1,21 @@
 mod voxel;
-mod map;
+mod voxel_map;
+mod coords;
+mod slot;
+mod chunk;
+mod layer;
+mod chunk_iterator;
+mod slot_iterator;
+mod selection;
+mod size;
 
 pub use voxel::*;
-pub use map::*;
+pub use voxel_map::*;
+pub use coords::*;
+pub use slot::*;
+pub use chunk::*;
+pub use layer::*;
+pub use chunk_iterator::*;
+pub use slot_iterator::*;
+pub use selection::*;
+pub use size::*;

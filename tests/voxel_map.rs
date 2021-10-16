@@ -1,21 +1,4 @@
-use tile_editor::voxel::{VoxelMap, Coords, Selection, RawChunk, Chunk, Size, Slot};
-
-#[test]
-fn test_chunk_iterator() {
-    let mut map = VoxelMap::new(Size::new(32, 32, 32));
-    let chunks = map
-        .select_chunks(Selection::new(0, 0, 0, 1, 1, 1))
-        .collect::<Vec<Chunk>>();
-    assert_eq!(8, chunks.len());
-    let chunks = map
-        .select_chunks(Selection::new(1, 1, 1, 2, 2, 2))
-        .collect::<Vec<Chunk>>();
-    assert_eq!(8, chunks.len());
-    let chunks = map
-        .select_chunks(Selection::new(-3, -3, -3, -1, -2, -2))
-        .collect::<Vec<Chunk>>();
-    assert_eq!(12, chunks.len());
-}
+use tile_editor::voxel::{VoxelMap, Coords, Selection, RawChunk, Size, Slot};
 
 #[test]
 fn test_slot_iterator() {
