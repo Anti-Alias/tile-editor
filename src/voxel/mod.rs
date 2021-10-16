@@ -4,8 +4,6 @@ mod coords;
 mod slot;
 mod chunk;
 mod layer;
-mod chunk_iterator;
-mod slot_iterator;
 mod selection;
 mod size;
 
@@ -15,7 +13,5 @@ pub use coords::*;
 pub use slot::*;
 pub use chunk::*;
 pub use layer::*;
-pub use chunk_iterator::*;
-pub use slot_iterator::*;
 pub use selection::*;
 pub use size::*;

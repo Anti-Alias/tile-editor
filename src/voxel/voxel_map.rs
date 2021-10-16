@@ -15,12 +15,27 @@ impl VoxelMap {
         }
     }
 
-    pub(crate) fn chunk_at(&mut self, chunk_coords: Coords) -> &mut RawChunk {
-        self.chunks.entry(chunk_coords).or_insert(RawChunk::new())
-    }
-
-    pub(crate) fn select_chunks(&mut self, selection: Selection) -> impl Iterator<Item=Chunk> {
-        self._select_chunks(selection)
+    pub fn slot_at(&mut self, coords: Coords) -> Slot {
+        let chunk_size = self.chunk_size;
+        let chunk_coords = self.global_to_chunk_coords(coords);
+        let global_chunk_coords = Coords {
+            x: chunk_coords.x * chunk_size.width as i32,
+            y: chunk_coords.y * chunk_size.height as i32,
+            z: chunk_coords.z * chunk_size.depth as i32
+        };
+        let raw_chunk = self.raw_chunk_at(chunk_coords);
+        Slot {
+            relative_coords: Coords {
+                x: coords.x - global_chunk_coords.x,
+                y: coords.y - global_chunk_coords.y,
+                z: coords.z - global_chunk_coords.z
+            },
+            chunk: Chunk {
+                coords: chunk_coords,
+                size: chunk_size,
+                raw: raw_chunk
+            }
+        }
     }
 
     pub fn select_slots(&mut self, selection: Selection) -> impl Iterator<Item=Slot> {
@@ -29,26 +44,34 @@ impl VoxelMap {
         SlotIterator::new(chunk_iter, selection)
     }
 
+    pub(crate) fn raw_chunk_at(&mut self, chunk_coords: Coords) -> &mut RawChunk {
+        self.chunks.entry(chunk_coords).or_insert(RawChunk::new())
+    }
+
+    pub(crate) fn select_chunks(&mut self, selection: Selection) -> impl Iterator<Item=Chunk> {
+        self._select_chunks(selection)
+    }
+
     fn _select_chunks(&mut self, selection: Selection) -> ChunkIterator {
         ChunkIterator::new(self, selection)
     }
 
     fn to_chunk_selection(&self, global_selection: Selection) -> Selection {
         Selection {
-            src: self.to_chunk_coords(global_selection.src),
-            dest: self.to_chunk_coords(global_selection.dest)
+            src: self.global_to_chunk_coords(global_selection.src),
+            dest: self.global_to_chunk_coords(global_selection.dest)
         }
     }
 
-    fn to_chunk_coords(&self, slot_coords: Coords) -> Coords {
+    fn global_to_chunk_coords(&self, slot_coords: Coords) -> Coords {
         Coords {
-            x: Self::to_chunk_coord(slot_coords.x, self.chunk_size.width as i32),
-            y: Self::to_chunk_coord(slot_coords.y, self.chunk_size.height as i32),
-            z: Self::to_chunk_coord(slot_coords.z, self.chunk_size.depth as i32),
+            x: Self::num_to_chunk_coord(slot_coords.x, self.chunk_size.width as i32),
+            y: Self::num_to_chunk_coord(slot_coords.y, self.chunk_size.height as i32),
+            z: Self::num_to_chunk_coord(slot_coords.z, self.chunk_size.depth as i32),
         }
     }
 
-    fn to_chunk_coord(a: i32, chunk_size: i32) -> i32 {
+    fn num_to_chunk_coord(a: i32, chunk_size: i32) -> i32 {
         if a >= 0 {
             a / (chunk_size as i32)
         }
