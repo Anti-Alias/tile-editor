@@ -2,7 +2,6 @@ use std::cmp::{max, min, Ordering};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::{Debug, Formatter};
-use std::ops::{Add, Sub, Mul, Div};
 use crate::voxel::Voxel;
 
 /// A model struct storing voxel data
@@ -355,49 +354,6 @@ impl Coords {
     }
 }
 
-impl Add for Coords {
-    type Output = Coords;
-    fn add(self, rhs: Self) -> Self::Output {
-        Self::Output {
-            x: self.x + rhs.x,
-            y: self.y + rhs.y,
-            z: self.z + rhs.z
-        }
-    }
-}
-
-impl Sub for Coords {
-    type Output = Coords;
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self::Output {
-            x: self.x - rhs.x,
-            y: self.y - rhs.y,
-            z: self.z - rhs.z
-        }
-    }
-}
-
-impl Mul for Coords {
-    type Output = Self;
-    fn mul(self, rhs: Self) -> Self::Output {
-        Self::Output {
-            x: self.x * rhs.x,
-            y: self.y * rhs.y,
-            z: self.z * rhs.z
-        }
-    }
-}
-
-impl Div for Coords {
-    type Output = Coords;
-    fn div(self, rhs: Self) -> Self::Output {
-        Self::Output {
-            x: self.x / rhs.x,
-            y: self.y / rhs.y,
-            z: self.z / rhs.z
-        }
-    }
-}
 
 // -------------------------------------------------------------------------
 /// Size of something
