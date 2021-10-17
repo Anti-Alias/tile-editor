@@ -15,7 +15,7 @@ impl VoxelMap {
         }
     }
 
-    pub fn slot_at(&mut self, coords: Coords) -> Slot {
+    pub fn slot_at(&mut self, coords: &Coords) -> Slot {
         let chunk_size = self.chunk_size;
         let chunk_coords = self.global_to_chunk_coords(coords);
         let global_chunk_coords = Coords {
@@ -40,7 +40,7 @@ impl VoxelMap {
 
     pub fn select_slots(&mut self, selection: Selection) -> impl Iterator<Item=Slot> {
         let chunk_sel = self.to_chunk_selection(selection);
-        let mut chunk_iter = self._select_chunks(chunk_sel);
+        let chunk_iter = self._select_chunks(chunk_sel);
         SlotIterator::new(chunk_iter, selection)
     }
 
@@ -58,12 +58,12 @@ impl VoxelMap {
 
     fn to_chunk_selection(&self, global_selection: Selection) -> Selection {
         Selection {
-            src: self.global_to_chunk_coords(global_selection.src),
-            dest: self.global_to_chunk_coords(global_selection.dest)
+            src: self.global_to_chunk_coords(&global_selection.src),
+            dest: self.global_to_chunk_coords(&global_selection.dest)
         }
     }
 
-    fn global_to_chunk_coords(&self, slot_coords: Coords) -> Coords {
+    fn global_to_chunk_coords(&self, slot_coords: &Coords) -> Coords {
         Coords {
             x: Self::num_to_chunk_coord(slot_coords.x, self.chunk_size.width as i32),
             y: Self::num_to_chunk_coord(slot_coords.y, self.chunk_size.height as i32),

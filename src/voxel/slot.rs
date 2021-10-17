@@ -1,4 +1,4 @@
-use crate::voxel::{Chunk, ChunkIterator, Coords, Selection};
+use crate::voxel::{Chunk, ChunkIterator, Coords, Selection, VoxelId};
 
 /// Represents a slot in a `VoxelMap` which can store 0 or more `Voxel`s
 #[derive(Debug)]
@@ -17,6 +17,14 @@ impl<'map> Slot<'map> {
             y: chunk_coords.y * chunk_size.height as i32 + rel_coords.y,
             z: chunk_coords.z * chunk_size.depth as i32 + rel_coords.z,
         }
+    }
+
+    pub fn get(&mut self, idx: usize) -> VoxelId {
+        self.chunk.get(&self.relative_coords, idx)
+    }
+
+    pub fn set(&mut self, idx: usize, id: VoxelId) {
+        self.chunk.set(&self.relative_coords, idx, id);
     }
 }
 

@@ -1,5 +1,5 @@
 use std::fmt::{Debug, Formatter};
-use crate::voxel::{Coords, Layer, Selection, Size, Slot, VoxelMap};
+use crate::voxel::{Layer, Selection, Size, Slot, Coords, VoxelId, VoxelMap};
 
 // -------------------------------------------------------------------------
 /// Raw Chunk in a `VoxelMap`.
@@ -50,6 +50,44 @@ impl<'map> Chunk<'map> {
                 x: src.x + self.size.width as i32 - 1,
                 y: src.y + self.size.height as i32 - 1,
                 z: src.z + self.size.depth as i32 - 1
+            }
+        }
+    }
+
+    pub fn get(&mut self, coords: &Coords, layer_idx: usize) -> VoxelId {
+        let laylen = self.raw.layers.len();
+        if layer_idx >= laylen {
+            VoxelId::Empty
+        }
+        else {
+            let idx = self.idx(coords);
+            let layer = &self.raw.layers[layer_idx];
+            layer.0[idx]
+        }
+    }
+
+    // Adds a voxel to this chunk at the coordinates specified
+    pub fn set(&mut self, coords: &Coords, layer_idx: usize, id: VoxelId) {
+        self.grow(layer_idx);
+        let idx = self.idx(coords);
+        let layer = &mut self.raw.layers[layer_idx];
+        layer.0[idx] = id;
+    }
+
+    fn idx(&self, coords: &Coords) -> usize {
+        let size = &self.size;
+        (coords.z as u32 * size.width*size.height +
+        coords.y as u32 * size.width +
+        coords.x as u32) as usize
+    }
+
+    fn grow(&mut self, layer_idx: usize) {
+        let laylen = self.raw.layers.len();
+        if layer_idx >= laylen {
+            for _ in laylen..=layer_idx {
+                let vec = vec![VoxelId::Empty; (self.size.width * self.size.height * self.size.depth) as usize];
+                let layer = Layer(vec);
+                self.raw.layers.push(layer);
             }
         }
     }

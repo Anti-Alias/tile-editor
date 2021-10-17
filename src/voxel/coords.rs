@@ -11,3 +11,28 @@ impl Coords {
         Self { x, y, z }
     }
 }
+
+/// Unsigned coordinates
+pub struct UCoords {
+    pub x: u32,
+    pub y: u32,
+    pub z: u32
+}
+
+impl UCoords {
+    pub fn new(x: u32, y: u32, z: u32) -> Self {
+        Self { x, y, z }
+    }
+}
+
+/*
+impl From<Coords> for Coords {
+    fn from(coords: Coords) -> Self {
+        Coords {
+            x: coords.x,
+            y: coords.y,
+            z: coords.z
+        }
+    }
+}
+ */

@@ -1,4 +1,4 @@
-use crate::voxel::Voxel;
+use crate::voxel::{Voxel, VoxelId};
 
 /// Layer in a `RawChunk`
-pub(crate) struct Layer(Vec<Voxel>);
+pub(crate) struct Layer(pub Vec<VoxelId>);
