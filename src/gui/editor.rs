@@ -32,7 +32,7 @@ impl Editor {
         });
     }
 
-    pub fn content_panel(&self, ctx: &CtxRef) {
+    pub fn content_panel(&self, _ctx: &CtxRef) {
         /*
         CentralPanel::default().show(ctx, |ui|{
             ui.label(self.content.as_str())

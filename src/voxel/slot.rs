@@ -41,7 +41,7 @@ impl<'map> SlotIterator<'map> {
     pub fn new(mut chunk_iter: ChunkIterator<'map>, global_selection: Selection) -> Self {
         let current_chunk = chunk_iter.next().unwrap();
         let relative_selection = Self::relative_intersection(&global_selection, &current_chunk);
-        let mut iter = Self {
+        let iter = Self {
             chunk_iter,
             current_chunk,
             global_selection,

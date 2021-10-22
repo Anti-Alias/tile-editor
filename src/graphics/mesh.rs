@@ -1,5 +1,5 @@
-use wgpu::{Buffer, VertexBufferLayout};
-use std::rc::Rc;
+use wgpu::{Buffer};
+
 
 /// Represents an indexed set of vertices
 pub struct Mesh {

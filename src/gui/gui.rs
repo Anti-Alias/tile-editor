@@ -38,7 +38,7 @@ impl GUI {
     }
 
     fn light_style() -> Style {
-        let mut vis = Visuals {
+        let vis = Visuals {
             dark_mode: false,
             widgets: light_widget_style(),
             selection: Selection {

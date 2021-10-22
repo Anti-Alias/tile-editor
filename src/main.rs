@@ -6,11 +6,11 @@ use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
-use wgpu::{Adapter, Device, Instance, Queue, Surface};
+
 use winit::event::Event::*;
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::Window;
-use winit::window;
+use winit::event_loop::{ControlFlow};
+
+
 use tile_editor::graphics::Renderer;
 use tile_editor::gui::{GUI, Editor};
 

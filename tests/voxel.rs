@@ -1,4 +1,4 @@
-use tile_editor::voxel::{VoxelMap, Coords, Selection, Size, Slot, VoxelId};
+use tile_editor::voxel::{VoxelMap, Coords, Selection, Size, VoxelId};
 
 #[test]
 fn slot_iterator() {
