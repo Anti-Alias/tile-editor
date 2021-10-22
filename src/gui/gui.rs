@@ -1,9 +1,6 @@
-use egui::{CtxRef, Vec2, Rgba, Align, TopBottomPanel, CentralPanel, SidePanel, Visuals, Style, TextStyle, Color32, Stroke, Widget, Ui};
-use egui_wgpu_backend::epi::{Frame, Storage};
-use std::time::Duration;
+use egui::{CtxRef, TopBottomPanel, Visuals, Style, TextStyle, Color32, Stroke, Ui};
 use egui::style::{Widgets, WidgetVisuals, Selection};
 use egui::epaint::Shadow;
-use egui::WidgetType::Label;
 use crate::gui::Editor;
 
 

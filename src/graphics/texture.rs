@@ -3,12 +3,11 @@ use std::rc::Rc;
 use image::{DynamicImage, ImageResult, ImageError, GenericImageView};
 use std::num::NonZeroU32;
 
-/// Struct with a wgpu Texture handle, a TextureView handle and a SamplerS handle.
-#[derive(Clone)]
+/// Struct with a wgpu Texture handle, a TextureView handle and a Sampler handle.
 pub struct Texture {
-    pub texture: Rc<wgpu::Texture>,
-    pub view: Rc<TextureView>,
-    pub sampler: Rc<Sampler>,
+    pub texture: wgpu::Texture,
+    pub view: TextureView,
+    pub sampler: Sampler,
 }
 
 impl Texture {
@@ -36,7 +35,7 @@ impl Texture {
         let dimensions = image.dimensions();
 
         // Raw texture
-        let tex = device.create_texture(&TextureDescriptor{
+        let texture = device.create_texture(&TextureDescriptor{
             label,
             size: Extent3d {
                 width: dimensions.0,
@@ -53,7 +52,7 @@ impl Texture {
         // Writes data to texture
         queue.write_texture(
             ImageCopyTexture {
-                texture: &tex,
+                texture: &texture,
                 mip_level: 0,
                 origin: Default::default(),
                 aspect: Default::default()
@@ -68,40 +67,12 @@ impl Texture {
         );
 
         // Texture view
-        let view = tex.create_view(&TextureViewDescriptor::default());
+        let view = texture.create_view(&TextureViewDescriptor::default());
 
         // Sampler
         let sampler = device.create_sampler(&SamplerDescriptor { ..Default::default() });
 
         // Done
-        Texture {
-            texture: Rc::new(tex),
-            view: Rc::new(view),
-            sampler: Rc::new(sampler)
-        }
-    }
-
-    fn create_with_texture(&self, texture: wgpu::Texture) -> Self {
-        Self {
-            texture: Rc::new(texture),
-            view: self.view.clone(),
-            sampler: self.sampler.clone()
-        }
-    }
-
-    fn create_with_sampler(&self, sampler: Sampler) -> Self {
-        Self {
-            texture: self.texture.clone(),
-            view: self.view.clone(),
-            sampler: Rc::new(sampler)
-        }
-    }
-
-    fn create_with_view(&self, view: TextureView) -> Self {
-        Self {
-            texture: self.texture.clone(),
-            view: Rc::new(view),
-            sampler: self.sampler.clone()
-        }
+        Texture { texture, view, sampler }
     }
 }

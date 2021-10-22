@@ -11,26 +11,15 @@ use winit::event::Event::*;
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::Window;
 use winit::window;
+use tile_editor::graphics::Renderer;
 use tile_editor::gui::{GUI, Editor};
 
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
 
 // Creates winit window and event loop
-fn create_winit() -> (EventLoop<()>, Window) {
-    let event_loop = winit::event_loop::EventLoop::new();
-    let window = winit::window::WindowBuilder::new()
-        .with_decorations(true)
-        .with_resizable(true)
-        .with_transparent(false)
-        .with_title("Tile Editor")
-        .with_inner_size(winit::dpi::PhysicalSize {
-            width: INITIAL_WIDTH,
-            height: INITIAL_HEIGHT,
-        })
-        .build(&event_loop)
-        .unwrap();
-    (event_loop, window)
+fn draw_egui() {
+
 }
 
 fn main() {
@@ -77,7 +66,11 @@ fn main() {
     };
     surface.configure(&device, &surface_config);
 
-    // We use the egui_winit_platform crate as the platform.
+    // Sets up voxel renderer
+    let mut renderer = Renderer::new();
+
+    // Sets up EGUI
+    let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
     let mut platform = Platform::new(PlatformDescriptor {
         physical_width: size.width as u32,
         physical_height: size.height as u32,
@@ -85,15 +78,11 @@ fn main() {
         font_definitions: FontDefinitions::default(),
         style: Default::default(),
     });
-
-    // We use the egui_wgpu_backend crate as the render backend.
     let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
-
-    // Makes GUI instance
-    let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
-
     let start_time = Instant::now();
     let mut previous_frame_time = None;
+
+    // Main loop
     event_loop.run(move |event, _, control_flow| {
 
         // Pass the winit events to the platform integration.
@@ -112,21 +101,18 @@ fn main() {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                // Begin EGUI frame
+                // Draws with renderer
+                renderer.render();
+
+                // Updates/draws EGUI
                 let egui_start = Instant::now();
-                platform.update_time(start_time.elapsed().as_secs_f64());   // Tells platform start time
-                platform.begin_frame();                                     // Begins frame (???)
-
-                // Draw GUI to frame
+                platform.update_time(start_time.elapsed().as_secs_f64());
+                platform.begin_frame();
                 gui.update(&platform.context());
-
-                // End EGUI frame
                 let (_output, paint_commands) = platform.end_frame(Some(&window));
                 let paint_jobs = platform.context().tessellate(paint_commands);
                 let frame_time = (Instant::now() - egui_start).as_secs_f64() as f32;
                 previous_frame_time = Some(frame_time);
-
-                // Encode frame draws to render pass
                 let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
                 let screen_descriptor = ScreenDescriptor {
                     physical_width: surface_config.width,
