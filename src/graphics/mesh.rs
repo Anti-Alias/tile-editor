@@ -1,19 +1,17 @@
 use wgpu::{Buffer, VertexBufferLayout};
 use std::rc::Rc;
-use crate::Texture;
 
 /// Represents an indexed set of vertices
-#[derive(Clone)]
 struct Mesh {
 
     /// Vertex data
-    pub vertices: Rc<Buffer>,
+    pub vertices: Buffer,
 
     /// Index data
-    pub indices: Rc<Buffer>,
+    pub indices: Buffer,
 
     /// Color texture for mesh
-    pub color_tex: Texture
+    pub material: usize
 }
 
 trait Vertex {

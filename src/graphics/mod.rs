@@ -1,9 +1,9 @@
 mod mesh;
-mod renderer;
+mod model;
 mod texture;
 mod vertex;
 
 pub use mesh::*;
-pub use renderer::*;
+pub use model::*;
 pub use texture::*;
 pub use vertex::*;
