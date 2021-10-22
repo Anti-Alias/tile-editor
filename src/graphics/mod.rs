@@ -5,6 +5,9 @@ mod vertex;
 mod material;
 mod renderer;
 mod voxel_map_graphics;
+mod shader_features;
+mod shader_provider;
+mod pipeline_provider;
 
 pub use mesh::*;
 pub use model::*;
@@ -13,3 +16,6 @@ pub use vertex::*;
 pub use material::*;
 pub use renderer::*;
 pub use voxel_map_graphics::*;
+pub use shader_features::*;
+pub use shader_provider::*;
+pub use pipeline_provider::*;

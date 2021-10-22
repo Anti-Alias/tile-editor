@@ -1,5 +1,6 @@
-use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline};
-use crate::graphics::{Material, Mesh};
+use std::collections::HashMap;
+use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule};
+use crate::graphics::{Material, Mesh, ShaderFeatures};
 
 pub struct Model {
     pub mesh: Mesh,
@@ -7,20 +8,25 @@ pub struct Model {
 }
 
 pub struct ModelRenderer {
-
+    pipeline: RenderPipeline,
+    shaders: HashMap<u64, ShaderModule>
 }
 
 impl ModelRenderer {
     pub fn new(device: &Device) -> Self {
-
-        let pipeline = Self::create_render_pipeline(device);
+        let shaders = todo!();
         ModelRenderer {
-
+            pipeline: Self::create_render_pipeline(device),
+            shaders
         }
     }
 
-    fn create_pipeline_layout() -> PipelineLayout {
-        todo!()
+    fn create_pipeline_layout(device: &Device) -> PipelineLayout {
+        device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            label: Some("Model Pipeline Layout"),
+            bind_group_layouts: &[],
+            push_constant_ranges: &[]
+        })
     }
 
     fn create_vertex_state<'a>() -> VertexState<'a> {
@@ -44,20 +50,20 @@ impl ModelRenderer {
     }
 
     fn create_render_pipeline(device: &Device) -> RenderPipeline {
-        let layout = Self::create_pipeline_layout();
+        let layout = Self::create_pipeline_layout(device);
         let vertex = Self::create_vertex_state();
+        let fragment = Some(Self::create_fragment_state());
         let primitive = Self::create_primitive_state();
         let depth_stencil = Some(Self::create_depth_stencil_state());
         let multisample = Self::create_multisample_state();
-        let fragment = Some(Self::create_fragment_state());
         let desc = RenderPipelineDescriptor {
             label: Some("Model Render Pipeline"),
             layout: Some(&layout),
             vertex,
+            fragment,
             primitive,
             depth_stencil,
             multisample,
-            fragment
         };
         device.create_render_pipeline(&desc)
     }

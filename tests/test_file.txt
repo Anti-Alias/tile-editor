@@ -1,0 +1,7 @@
+#ifdef DIFFUSE
+diffuse is here!
+#endif
+#ifdef NORMAL
+normal is here!
+#endif
+content
