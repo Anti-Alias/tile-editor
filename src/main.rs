@@ -34,8 +34,22 @@ fn create_winit() -> (EventLoop<()>, Window) {
 }
 
 fn main() {
-    let (event_loop, window) = create_winit();                      // Creates winit window and event loop
 
+    // Creates WINIT window and event loop
+    let event_loop = winit::event_loop::EventLoop::new();
+    let window = winit::window::WindowBuilder::new()
+        .with_decorations(true)
+        .with_resizable(true)
+        .with_transparent(false)
+        .with_title("Tile Editor")
+        .with_inner_size(winit::dpi::PhysicalSize {
+            width: INITIAL_WIDTH,
+            height: INITIAL_HEIGHT,
+        })
+        .build(&event_loop)
+        .unwrap();
+
+    // Creates WGPU instance and friends
     let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
     let surface = unsafe { instance.create_surface(&window) };
     let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -51,7 +65,7 @@ fn main() {
         None,
     )).unwrap();
 
-    // Configures surface
+    // Applies initial WGPU surface configuration
     let size = window.inner_size();
     let surface_format = surface.get_preferred_format(&adapter).unwrap();
     let mut surface_config = wgpu::SurfaceConfiguration {
