@@ -17,11 +17,6 @@ use tile_editor::gui::{GUI, Editor};
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
 
-// Creates winit window and event loop
-fn draw_egui() {
-
-}
-
 fn main() {
 
     // Creates WINIT window and event loop
@@ -80,7 +75,6 @@ fn main() {
     });
     let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
     let start_time = Instant::now();
-    let mut previous_frame_time = None;
 
     // Main loop
     event_loop.run(move |event, _, control_flow| {
@@ -105,14 +99,11 @@ fn main() {
                 renderer.render();
 
                 // Updates/draws EGUI
-                let egui_start = Instant::now();
                 platform.update_time(start_time.elapsed().as_secs_f64());
                 platform.begin_frame();
                 gui.update(&platform.context());
                 let (_output, paint_commands) = platform.end_frame(Some(&window));
                 let paint_jobs = platform.context().tessellate(paint_commands);
-                let frame_time = (Instant::now() - egui_start).as_secs_f64() as f32;
-                previous_frame_time = Some(frame_time);
                 let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
                 let screen_descriptor = ScreenDescriptor {
                     physical_width: surface_config.width,

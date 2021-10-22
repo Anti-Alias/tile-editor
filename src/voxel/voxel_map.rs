@@ -40,7 +40,7 @@ impl VoxelMap {
 
     pub fn select_slots(&mut self, selection: Selection) -> impl Iterator<Item=Slot> {
         let chunk_sel = self.to_chunk_selection(selection);
-        let chunk_iter = self._select_chunks(chunk_sel);
+        let chunk_iter = self.select_chunks(chunk_sel);
         SlotIterator::new(chunk_iter, selection)
     }
 
@@ -48,11 +48,7 @@ impl VoxelMap {
         self.chunks.entry(chunk_coords).or_insert(RawChunk::new())
     }
 
-    pub(crate) fn select_chunks(&mut self, selection: Selection) -> impl Iterator<Item=Chunk> {
-        self._select_chunks(selection)
-    }
-
-    fn _select_chunks(&mut self, selection: Selection) -> ChunkIterator {
+    fn select_chunks(&mut self, selection: Selection) -> ChunkIterator {
         ChunkIterator::new(self, selection)
     }
 

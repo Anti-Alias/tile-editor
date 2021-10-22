@@ -7,11 +7,11 @@ mod layer;
 mod selection;
 mod size;
 
+use chunk::*;
+use layer::*;
 pub use voxel::*;
 pub use voxel_map::*;
 pub use coords::*;
 pub use slot::*;
-pub use chunk::*;
-pub use layer::*;
 pub use selection::*;
 pub use size::*;

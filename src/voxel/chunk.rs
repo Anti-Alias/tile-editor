@@ -95,7 +95,7 @@ impl<'map> Chunk<'map> {
 
 impl<'map> Debug for Chunk<'map> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "Chunk {{ coords: {:?}, size: {:?} }}", self.coords, self.size);
+        write!(f, "Chunk {{ coords: {:?}, size: {:?} }}", self.coords, self.size)?;
         Result::Ok(())
     }
 }

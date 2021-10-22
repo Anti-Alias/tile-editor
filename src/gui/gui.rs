@@ -1,6 +1,6 @@
-use egui::{CtxRef, TopBottomPanel, Visuals, Style, TextStyle, Color32, Stroke, Ui};
-use egui::style::{Widgets, WidgetVisuals, Selection};
-use egui::epaint::Shadow;
+use egui::{CtxRef, TopBottomPanel, Color32, Stroke, Ui};
+use egui::style::{Widgets, WidgetVisuals};
+
 use crate::gui::Editor;
 
 
@@ -37,6 +37,7 @@ impl GUI {
         }
     }
 
+    /*
     fn light_style() -> Style {
         let vis = Visuals {
             dark_mode: false,
@@ -64,6 +65,7 @@ impl GUI {
             debug: Default::default()
         }
     }
+     */
 
     fn show_new_map_menu(&mut self, ctx: &CtxRef) {
         let opened = &mut self.window_flags.new_map_opened;
@@ -209,12 +211,6 @@ struct Input<T: Default> {
 }
 
 impl<T: Default> Input<T> {
-
-
-    pub fn set(&mut self, data: T) {
-        self.data = data;
-        self.is_ready = true;
-    }
 
     /// Consumes the input, setting the `is_ready` to false if
     pub fn consume(&mut self) -> Option<&T> {
