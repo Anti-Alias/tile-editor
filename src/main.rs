@@ -1,22 +1,23 @@
 use std::iter;
 use std::time::Instant;
-
 use chrono::Timelike;
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
+use wgpu::{Adapter, Device, Instance, Queue, Surface};
 use winit::event::Event::*;
-use winit::event_loop::ControlFlow;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::Window;
+use winit::window;
 use tile_editor::gui::{GUI, Editor};
 
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
 
-fn main() {
-
-    // Creates winit event loop and window
+// Creates winit window and event loop
+fn create_winit() -> (EventLoop<()>, Window) {
     let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::WindowBuilder::new()
         .with_decorations(true)
@@ -29,19 +30,18 @@ fn main() {
         })
         .build(&event_loop)
         .unwrap();
+    (event_loop, window)
+}
 
-    // Creates WPU instance and gets surface
+fn main() {
+    let (event_loop, window) = create_winit();                      // Creates winit window and event loop
+
     let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
     let surface = unsafe { instance.create_surface(&window) };
-
-    // Selects GPU adapter (physical device)
     let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::HighPerformance,
         compatible_surface: Some(&surface),
-    }))
-    .unwrap();
-
-    // Selects device (logical device) and queue
+    })).unwrap();
     let (mut device, mut queue) = block_on(adapter.request_device(
         &wgpu::DeviceDescriptor {
             features: wgpu::Features::default(),
@@ -49,8 +49,7 @@ fn main() {
             label: None,
         },
         None,
-    ))
-    .unwrap();
+    )).unwrap();
 
     // Configures surface
     let size = window.inner_size();

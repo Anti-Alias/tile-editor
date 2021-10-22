@@ -1,6 +1,11 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::{VertexBufferLayout, BufferAddress, VertexStepMode, VertexAttribute, VertexFormat};
 
+/// Describes a vertex layout
+pub trait Vertex {
+    fn layout<'a>() -> VertexBufferLayout<'a>;
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Vector3 {
@@ -23,10 +28,6 @@ pub struct RGBA {
     pub g: f32,
     pub b: f32,
     pub a: f32
-}
-
-pub trait Vertex {
-    fn layout<'a>() -> VertexBufferLayout<'a>;
 }
 
 #[repr(C)]

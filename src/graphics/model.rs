@@ -1,3 +1,6 @@
+use crate::graphics::{Material, Mesh};
+
 pub struct Model {
-    //sdfspub mesh: Mesh
+    mesh: Mesh,
+    materials: Vec<Material>
 }
