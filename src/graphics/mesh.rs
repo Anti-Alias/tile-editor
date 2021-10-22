@@ -3,7 +3,6 @@ use wgpu::{Buffer};
 
 /// Represents an indexed set of vertices
 pub struct Mesh {
-
     /// Vertex data
     pub vertices: Buffer,
 
