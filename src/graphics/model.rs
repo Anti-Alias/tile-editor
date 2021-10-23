@@ -1,12 +1,13 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, Color, RenderPassDepthStencilAttachment, IndexFormat, Queue};
+use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, Color, RenderPassDepthStencilAttachment, IndexFormat, Queue, RenderPass};
 use crate::graphics::{Material, Mesh, PipelineProvider, ShaderFeatures, ShaderProvider};
 
+// Helpful local constants
 const VERTEX_BUFFER_SLOT: u32 = 0;
-const COLOR_TEX_BIND_GROUP: u32 = 0;
+const INSTANCE_BUFFER_SLOT: u32 = 1;
+const DIFFUSE_TEX_BIND_GROUP: u32 = 0;
 const NORMAL_TEX_BIND_GROUP: u32 = 1;
-
 
 /// Represents a set of meshes associated with materials
 /// Meshes and materials can only be rendered if their indices are placed in the associations vector
@@ -27,7 +28,7 @@ impl Model {
 }
 
 
-/// Represents render targets that a `ModelRenderer` can render to
+/// Represents a set render targets that a `ModelRenderer` can render to
 pub struct ModelFrameBuffer {
     color: TextureView,
     depth_stencil: TextureView
@@ -38,7 +39,12 @@ pub struct ModelFrameBuffer {
 pub struct ModelRenderer;
 impl ModelRenderer {
 
-    /// Renders a model
+    /// Renders a `Model`
+    /// * `model` - Model to render
+    /// * `device` - Device used to create encoder
+    /// * `queue` - Location to encode draw commands
+    /// * `fbo` - Location to draw to
+    /// * `pipeline_provider` Provider of `RenderPipeline` objects
     pub fn render(
         &self,
         model: &Model,
@@ -47,25 +53,34 @@ impl ModelRenderer {
         fbo: &ModelFrameBuffer,
         pipeline_provider: &mut PipelineProvider
     ) {
-        for (mesh, material) in model.iter() {
-            self.render_mesh(mesh, material, device, queue, fbo, pipeline_provider)
-        }
+        // Creates encoder
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("ModelRenderer encoder")
+        });
+
+        // Adds render commands to encoder
+        self.render_to_encoder(model, &mut encoder, fbo, pipeline_provider);
+
+        // Gets commands and writes them to queue
+        let commands = encoder.finish();
+        queue.submit(std::iter::once(commands));
     }
 
-    fn render_mesh(
+    /// Renders a `Model` using an existing `CommandEncoder`
+    /// * `model` - Model to render
+    /// * `encoder` - Command encoder to write commands to
+    /// * `queue` - Location to encode draw commands
+    /// * `fbo` - Location to draw to
+    /// * `pipeline_provider` Provider of `RenderPipeline` objects
+    pub fn render_to_encoder(
         &self,
-        mesh: &Mesh,
-        material: &Material,
-        device: &Device,
-        queue: &Queue,
+        model: &Model,
+        encoder: &mut CommandEncoder,
         fbo: &ModelFrameBuffer,
         pipeline_provider: &mut PipelineProvider
     ) {
 
-        // Acquires pipeline
-        let pipeline = pipeline_provider.provide(device);
-
-        // Sets attachments
+        // Creates attachments
         let color_attachments = &[
             RenderPassColorAttachment {
                 view: &fbo.color,
@@ -85,24 +100,31 @@ impl ModelRenderer {
             stencil_ops: None
         };
 
-        // Encodes render pass
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
-            label: Some("Model Renderer Encoder")
+        // Begins render pass with attachments
+        let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some("Model Renderer Render Pass"),
+            color_attachments,
+            depth_stencil_attachment: Some(depth_stencil_attachment)
         });
-        {
-            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("Model Renderer Render Pass"),
-                color_attachments,
-                depth_stencil_attachment: Some(depth_stencil_attachment)
-            });
+
+        // Draws all meshes within the model using render pass
+        self.render_meshes(model, &mut render_pass, pipeline_provider);
+    }
+
+    fn render_meshes<'a>(
+        &self,
+        model: &'a Model,
+        render_pass: &mut RenderPass<'a>,
+        pipeline_provider: &'a mut PipelineProvider
+    ) {
+        for (mesh, material) in model.iter() {
+            let features = ShaderFeatures { material_flags: material.flags() };
+            let pipeline: &RenderPipeline = pipeline_provider
+                .provide(&features)
+                .expect("Missing pipeline with features specified");
+            render_pass.set_pipeline(pipeline);
             render_pass.set_vertex_buffer(VERTEX_BUFFER_SLOT, mesh.vertices.slice(..));
             render_pass.set_index_buffer(mesh.indices.slice(..), mesh.index_format);
-            render_pass.set_pipeline(pipeline);
-            render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
         }
-
-        // Submits commands
-        let cmd_buffer = encoder.finish();
-        queue.submit(std::iter::once(cmd_buffer));
     }
 }
