@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use crate::graphics::Texture;
 
 pub struct Material {

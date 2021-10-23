@@ -1,14 +1,10 @@
-use wgpu::{Buffer};
+use wgpu::{Buffer, IndexFormat};
 
 
 /// Represents an indexed set of vertices
 pub struct Mesh {
-    /// Vertex data
     pub vertices: Buffer,
-
-    /// Index data
     pub indices: Buffer,
-
-    /// Color texture for mesh
-    pub material: usize
+    pub num_indices: u32,
+    pub index_format: IndexFormat
 }

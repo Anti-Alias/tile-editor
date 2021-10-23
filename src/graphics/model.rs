@@ -1,70 +1,108 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
-use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule};
-use crate::graphics::{Material, Mesh, ShaderFeatures};
+use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, Color, RenderPassDepthStencilAttachment, IndexFormat, Queue};
+use crate::graphics::{Material, Mesh, PipelineProvider, ShaderFeatures, ShaderProvider};
 
+const VERTEX_BUFFER_SLOT: u32 = 0;
+const COLOR_TEX_BIND_GROUP: u32 = 0;
+const NORMAL_TEX_BIND_GROUP: u32 = 1;
+
+
+/// Represents a set of meshes associated with materials
+/// Meshes and materials can only be rendered if their indices are placed in the associations vector
 pub struct Model {
-    pub mesh: Mesh,
-    pub materials: Vec<Material>
+    meshes: Vec<Mesh>,
+    materials: Vec<Material>,
+    associations: Vec<(usize, usize)>
 }
 
-pub struct ModelRenderer {
-    pipeline: RenderPipeline,
-    shaders: HashMap<u64, ShaderModule>
+impl Model {
+    fn iter(&self) -> impl Iterator<Item=(&Mesh, &Material)> {
+        self.associations.iter().map(move |association| {
+            let mesh_idx = association.0;
+            let mat_idx = association.1;
+            (&self.meshes[mesh_idx], &self.materials[mat_idx])
+        })
+    }
 }
 
+
+/// Represents render targets that a `ModelRenderer` can render to
+pub struct ModelFrameBuffer {
+    color: TextureView,
+    depth_stencil: TextureView
+}
+
+
+/// Renderer of a `Model`
+pub struct ModelRenderer;
 impl ModelRenderer {
-    pub fn new(device: &Device) -> Self {
-        let shaders = todo!();
-        ModelRenderer {
-            pipeline: Self::create_render_pipeline(device),
-            shaders
+
+    /// Renders a model
+    pub fn render(
+        &self,
+        model: &Model,
+        device: &Device,
+        queue: &Queue,
+        fbo: &ModelFrameBuffer,
+        pipeline_provider: &mut PipelineProvider
+    ) {
+        for (mesh, material) in model.iter() {
+            self.render_mesh(mesh, material, device, queue, fbo, pipeline_provider)
         }
     }
 
-    fn create_pipeline_layout(device: &Device) -> PipelineLayout {
-        device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: Some("Model Pipeline Layout"),
-            bind_group_layouts: &[],
-            push_constant_ranges: &[]
-        })
-    }
+    fn render_mesh(
+        &self,
+        mesh: &Mesh,
+        material: &Material,
+        device: &Device,
+        queue: &Queue,
+        fbo: &ModelFrameBuffer,
+        pipeline_provider: &mut PipelineProvider
+    ) {
 
-    fn create_vertex_state<'a>() -> VertexState<'a> {
-        todo!()
-    }
+        // Acquires pipeline
+        let pipeline = pipeline_provider.provide(device);
 
-    fn create_primitive_state() -> PrimitiveState {
-        todo!()
-    }
-
-    fn create_depth_stencil_state() -> DepthStencilState {
-        todo!()
-    }
-
-    fn create_multisample_state() -> MultisampleState {
-        todo!()
-    }
-
-    fn create_fragment_state<'a>() -> FragmentState<'a> {
-        todo!()
-    }
-
-    fn create_render_pipeline(device: &Device) -> RenderPipeline {
-        let layout = Self::create_pipeline_layout(device);
-        let vertex = Self::create_vertex_state();
-        let fragment = Some(Self::create_fragment_state());
-        let primitive = Self::create_primitive_state();
-        let depth_stencil = Some(Self::create_depth_stencil_state());
-        let multisample = Self::create_multisample_state();
-        let desc = RenderPipelineDescriptor {
-            label: Some("Model Render Pipeline"),
-            layout: Some(&layout),
-            vertex,
-            fragment,
-            primitive,
-            depth_stencil,
-            multisample,
+        // Sets attachments
+        let color_attachments = &[
+            RenderPassColorAttachment {
+                view: &fbo.color,
+                resolve_target: None,
+                ops: Operations {
+                    load: LoadOp::Clear(Color::BLACK),
+                    store: true
+                }
+            }
+        ];
+        let depth_stencil_attachment = RenderPassDepthStencilAttachment {
+            view: &fbo.depth_stencil,
+            depth_ops: Some(Operations {
+                load: LoadOp::Clear(1.0),
+                store: true
+            }),
+            stencil_ops: None
         };
-        device.create_render_pipeline(&desc)
+
+        // Encodes render pass
+        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
+            label: Some("Model Renderer Encoder")
+        });
+        {
+            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("Model Renderer Render Pass"),
+                color_attachments,
+                depth_stencil_attachment: Some(depth_stencil_attachment)
+            });
+            render_pass.set_vertex_buffer(VERTEX_BUFFER_SLOT, mesh.vertices.slice(..));
+            render_pass.set_index_buffer(mesh.indices.slice(..), mesh.index_format);
+            render_pass.set_pipeline(pipeline);
+            render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
+        }
+
+        // Submits commands
+        let cmd_buffer = encoder.finish();
+        queue.submit(std::iter::once(cmd_buffer));
     }
 }

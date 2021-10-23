@@ -4,12 +4,12 @@ use wgpu::{Device, ShaderModule, ShaderModuleDescriptor, ShaderSource};
 use crate::graphics::{Material, ShaderFeatures};
 
 /// Provides shader variants based on
-pub struct ShaderModuleProvider {
+pub struct ShaderProvider {
     source: String,                                 // Non-preprocessed source code
     modules: HashMap<ShaderFeatures, ShaderModule>  // Preprocessed variants of `source` that are created as needed
 }
 
-impl ShaderModuleProvider {
+impl ShaderProvider {
 
     pub fn new(source: String) -> Self {
         Self {
@@ -19,7 +19,7 @@ impl ShaderModuleProvider {
     }
 
     /// Gets cached shader module, or creates it based on features provided
-    pub fn get(&mut self, device: &Device, features: &ShaderFeatures) -> &mut ShaderModule {
+    pub fn provide(&mut self, device: &Device, features: &ShaderFeatures) -> &mut ShaderModule {
         let modules = &mut self.modules;
         let source = &self.source;
         modules.entry(*features).or_insert_with(|| {
