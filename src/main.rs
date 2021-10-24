@@ -68,7 +68,7 @@ fn main() {
     // Sets up model renderer and model
     let mut renderer = ModelRenderer::new(surface_config.format);
     let model = Model {
-        meshes: vec![Mesh::cube(&device, Color::WHITE)],
+        meshes: vec![Mesh::triangle(&device, Color::WHITE)],
         materials: vec![Material::empty()],
         associations: vec![(0, 0)]
     };
@@ -138,7 +138,9 @@ fn main() {
                 ).unwrap();
 
                 // Submit the commands.
-                queue.submit(iter::once(encoder.finish()));
+                //queue.submit(iter::once(encoder.finish()));
+
+                // Done with current loop
                 *control_flow = ControlFlow::Poll;
             }
             MainEventsCleared => {
