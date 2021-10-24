@@ -1,7 +1,13 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::{Device, ShaderModule, ShaderModuleDescriptor, ShaderSource};
-use crate::graphics::{Material, ShaderFeatures};
+use crate::graphics::{Material};
+
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub struct ShaderFeatures {
+    pub material_flags: u64 // See material.rs for flag bits
+}
+
 
 /// Provides shader variants derived from an 'ubershader'
 /// Which variant is provided depends on the features given
