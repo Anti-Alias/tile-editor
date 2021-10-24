@@ -14,34 +14,14 @@ struct ModelVertexOutput {
 };
 
 [[stage(vertex)]]
-fn main(
-    [[builtin(vertex_index)]] vertex_index: u32,
-    input: ModelVertex
-) -> ModelVertexOutput {
-    let color = vec4<f32>(1.0, 1.0, 1.0, 1.0);
-    let x = f32(1 - i32(vertex_index)) * 0.5;
-    let y = f32(i32(vertex_index & 1u) * 2 - 1) * 0.5;
-    let out = ModelVertexOutput(
-        vec4<f32>(x, y, 0.0, 1.0),
-        vec3<f32>(1.0, 1.0, 1.0),
-        vec4<f32>(1.0, 1.0, 1.0, 1.0),
-        vec2<f32>(0.0, 0.0)
-    );
-    return out;
+fn main(input: ModelVertex) -> ModelVertexOutput {
+    return ModelVertexOutput(
+       vec4<f32>(input.position, 1.0),
+       input.normal,
+       input.color,
+       input.uv
+   );
 }
-
-[[stage(vertex)]]
-fn main_old(input: ModelVertex) -> ModelVertexOutput {
-    let position = input.position + vec3<f32>(0.0, 0.0, -10.0);
-    let out = ModelVertexOutput(
-        vec4<f32>(position, 1.0),
-        input.normal,
-        input.color,
-        input.uv
-    );
-    return out;
-}
-
 
 
 // ----------------- Fragment -----------------
@@ -50,13 +30,6 @@ struct ColorTargetOutput {
 };
 
 [[stage(fragment)]]
-fn main_old(in: ModelVertexOutput) -> ColorTargetOutput {
-    //return ColorTargetOutput(in.color);
-    return ColorTargetOutput(vec4<f32>(1.0, 1.0, 1.0, 1.0));
-}
-
-[[stage(fragment)]]
 fn main(in: ModelVertexOutput) -> ColorTargetOutput {
-    //return ColorTargetOutput(in.color);
-    return ColorTargetOutput(vec4<f32>(1.0, 1.0, 1.0, 1.0));
+    return ColorTargetOutput(in.color);
 }

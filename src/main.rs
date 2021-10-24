@@ -68,7 +68,7 @@ fn main() {
     // Sets up model renderer and model
     let mut renderer = ModelRenderer::new(surface_config.format);
     let model = Model {
-        meshes: vec![Mesh::triangle(&device, Color::WHITE)],
+        meshes: vec![Mesh::cube(&device, Color::RED)],
         materials: vec![Material::empty()],
         associations: vec![(0, 0)]
     };

@@ -102,7 +102,7 @@ impl ModelRenderer {
                 view: &fbo.color,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(wgpu::Color::BLACK),
+                    load: LoadOp::Clear(wgpu::Color {r: 0.5, g: 0.5, b: 0.5, a: 1.0}),
                     store: true
                 }
             }
