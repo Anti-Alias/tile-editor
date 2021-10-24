@@ -1,6 +1,7 @@
+use cgmath::{Vector2, Vector3};
 use wgpu::{Buffer, BufferUsages, Device, IndexFormat};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use crate::graphics::{ModelVertex, RGBA, Vector2, Vector3};
+use crate::graphics::{ModelVertex, Color};
 
 
 /// Represents an indexed set of vertices
@@ -11,56 +12,57 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    fn cube(device: &Device, color: RGBA) -> Mesh {
+    pub fn cube(device: &Device, color: Color) -> Mesh {
         // Vertices (right-handed)
+        let rgba = color.rgba();
         let v = &[
             ModelVertex {                               // bottom/left/near
-                position: Vector3::new(-0.5, -0.5, 0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [-0.5, -0.5, 0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
             ModelVertex {                               // bottom/right/near
-                position: Vector3::new(0.5, -0.5, 0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [0.5, -0.5, 0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
             ModelVertex {                               // top/right/near
-                position: Vector3::new(0.5, 0.5, 0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [0.5, 0.5, 0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
             ModelVertex {                               // top/left/near
-                position: Vector3::new(-0.5, 0.5, 0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [-0.5, 0.5, 0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
             ModelVertex {                               // bottom/left/far
-                position: Vector3::new(-0.5, -0.5, -0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [-0.5, -0.5, -0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
             ModelVertex {                               // bottom/right/far
-                position: Vector3::new(0.5, -0.5, -0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [0.5, -0.5, -0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
             ModelVertex {                               // top/right/far
-                position: Vector3::new(0.5, 0.5, -0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [0.5, 0.5, -0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
             ModelVertex {                               // top/left/far
-                position: Vector3::new(-0.5, 0.5, -0.5),
-                normal: Vector3::new(0.0, 0.0, 1.0),
-                color,
-                uv: Vector2::new(0.0, 0.0)
+                position: [-0.5, 0.5, -0.5],
+                normal: [0.0, 0.0, 1.0],
+                color: rgba,
+                uv: [0.0, 0.0]
             },
         ];
 

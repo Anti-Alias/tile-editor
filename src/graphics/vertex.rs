@@ -8,53 +8,36 @@ pub trait Vertex {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct Vector3 {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32
-}
-
-impl Vector3 {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
-        Self { x, y, z }
-    }
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct Vector2 {
-    pub x: f32,
-    pub y: f32
-}
-
-impl Vector2 {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self { x, y }
-    }
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
-pub struct RGBA {
+pub struct Color {
     pub r: f32,
     pub g: f32,
     pub b: f32,
     pub a: f32
 }
 
-impl RGBA {
+impl Color {
+    pub const WHITE: Color = Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Self { r, g, b, a }
+    }
+    pub fn rgb(&self) -> [f32; 3] {
+        [self.r, self.g, self.b]
+    }
+    pub fn rgba(&self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
+    }
+    pub fn argb(&self) -> [f32; 4] {
+        [self.a, self.r, self.g, self.b]
     }
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct ModelVertex {
-    pub position: Vector3,
-    pub normal: Vector3,
-    pub color: RGBA,
-    pub uv: Vector2
+    pub position: [f32; 3],
+    pub normal: [f32; 3],
+    pub color: [f32; 4],
+    pub uv: [f32; 2]
 }
 
 impl Vertex for ModelVertex {

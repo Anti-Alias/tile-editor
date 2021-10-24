@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, Color, RenderPassDepthStencilAttachment, IndexFormat, Queue, RenderPass};
-use crate::graphics::{Material, Mesh, PipelineProvider, RGBA, ShaderFeatures, ShaderProvider, Vector3};
+use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, RenderPassDepthStencilAttachment, IndexFormat, Queue, RenderPass, TextureFormat};
+use crate::graphics::{Material, Mesh, PipelineProvider, Color, ShaderFeatures, ShaderProvider, PipelineFeatures};
 
 // Helpful local constants
 const VERTEX_BUFFER_SLOT: u32 = 0;
@@ -12,9 +12,9 @@ const NORMAL_TEX_BIND_GROUP: u32 = 1;
 /// Represents a set of meshes associated with materials
 /// Meshes and materials can only be rendered if their indices are placed in the associations vector
 pub struct Model {
-    meshes: Vec<Mesh>,
-    materials: Vec<Material>,
-    associations: Vec<(usize, usize)>
+    pub meshes: Vec<Mesh>,
+    pub materials: Vec<Material>,
+    pub associations: Vec<(usize, usize)>
 }
 
 impl Model {
@@ -29,15 +29,33 @@ impl Model {
 
 
 /// Represents a set render targets that a `ModelRenderer` can render to
-pub struct ModelFrameBuffer {
-    color: TextureView,
-    depth_stencil: TextureView
+pub struct ModelFrameBuffer<'a> {
+    pub color: &'a TextureView,
+    pub depth_stencil: &'a TextureView
 }
 
-
 /// Renderer of a `Model`
-pub struct ModelRenderer;
+pub struct ModelRenderer {
+    shader_provider: ShaderProvider,        // Provider of shaders derived from an ubershader/material features
+    pipeline_provider: PipelineProvider,    // Provider of pipelines derived from material features
+    color_format: TextureFormat             // Expected format of texture view being drawn to
+}
 impl ModelRenderer {
+
+    /// Creates a `ModelRenderer` with a default shader
+    pub fn new(color_format: TextureFormat) -> ModelRenderer {
+        let shader_source = String::from(include_str!("model_ubershader.wgsl"));
+        Self::create_from_shader(shader_source, color_format)
+    }
+
+    /// Creates a `ModelRenderer` with the specified shader
+    pub fn create_from_shader(shader_source: String, color_format: TextureFormat) -> ModelRenderer {
+        ModelRenderer {
+            shader_provider: ShaderProvider::new(shader_source),
+            pipeline_provider: PipelineProvider::new(),
+            color_format
+        }
+    }
 
     /// Renders a `Model`
     /// * `model` - Model to render
@@ -46,12 +64,11 @@ impl ModelRenderer {
     /// * `fbo` - Location to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
     pub fn render(
-        &self,
+        &mut self,
         model: &Model,
         device: &Device,
         queue: &Queue,
-        fbo: &ModelFrameBuffer,
-        pipeline_provider: &mut PipelineProvider
+        fbo: &ModelFrameBuffer
     ) {
         // Creates encoder
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
@@ -59,7 +76,7 @@ impl ModelRenderer {
         });
 
         // Adds render commands to encoder
-        self.render_to_encoder(model, &mut encoder, fbo, pipeline_provider);
+        self.render_to_encoder(model, &mut encoder, fbo);
 
         // Gets commands and writes them to queue
         let commands = encoder.finish();
@@ -73,11 +90,10 @@ impl ModelRenderer {
     /// * `fbo` - Location to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
     pub fn render_to_encoder(
-        &self,
+        &mut self,
         model: &Model,
         encoder: &mut CommandEncoder,
-        fbo: &ModelFrameBuffer,
-        pipeline_provider: &mut PipelineProvider
+        fbo: &ModelFrameBuffer
     ) {
 
         // Creates attachments
@@ -86,7 +102,7 @@ impl ModelRenderer {
                 view: &fbo.color,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(Color::BLACK),
+                    load: LoadOp::Clear(wgpu::Color::BLACK),
                     store: true
                 }
             }
@@ -108,32 +124,38 @@ impl ModelRenderer {
         });
 
         // Draws all meshes within the model using render pass
-        self.render_model(model, &mut render_pass, pipeline_provider);
+        self.render_model(model, &mut render_pass);
     }
 
     /// Creates pipeline objects for a particular Model ahead of time if they don't already exist
     pub fn prepare_for_model<'a>(
-        &self,
+        &mut self,
         device: &Device,
-        model: &'a Model,
-        render_pass: &mut RenderPass<'a>,
-        pipeline_provider: &'a mut PipelineProvider
+        model: &'a Model
     ) {
+        let pipeline_provider = &mut self.pipeline_provider;
+        let shader_provider = &mut self.shader_provider;
         for (_, material) in model.iter() {
-            let features = ShaderFeatures { material_flags: material.flags() };
-            pipeline_provider.provide_or_create(device, &features);
+            let features = PipelineFeatures {
+                shader_features: ShaderFeatures { material_flags: material.flags() },
+                color_format: self.color_format
+            };
+            pipeline_provider.provide_or_create(device, &features, shader_provider);
         }
     }
 
-    fn render_model<'a>(
-        &self,
-        model: &'a Model,
-        render_pass: &mut RenderPass<'a>,
-        pipeline_provider: &'a mut PipelineProvider
-    ) {
+    fn render_model<'a, 'b>(
+        &'a self,
+        model: &'b Model,
+        render_pass: &mut RenderPass<'b>,
+    ) where 'a: 'b {
+        let pipeline_provider = &self.pipeline_provider;
         for (mesh, material) in model.iter() {
-            let features = ShaderFeatures { material_flags: material.flags() };
-            let pipeline: &RenderPipeline = pipeline_provider
+            let features = PipelineFeatures {
+                shader_features: ShaderFeatures { material_flags: material.flags() },
+                color_format: self.color_format
+            };
+            let pipeline = pipeline_provider
                 .provide(&features)
                 .expect("Missing pipeline with features specified");
             render_pass.set_pipeline(pipeline);

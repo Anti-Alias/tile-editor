@@ -6,18 +6,22 @@ use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
+use wgpu::TextureViewDescriptor;
 
 use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
 
 
-use tile_editor::graphics::Renderer;
+use tile_editor::graphics::{Color, create_surface_depth_texture, get_texture_view_of_surface, Material, Mesh, Model, ModelFrameBuffer, ModelRenderer};
 use tile_editor::gui::{GUI, Editor};
 
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
 
 fn main() {
+
+    // Initializes logger
+    env_logger::init();
 
     // Creates WINIT window and event loop
     let event_loop = winit::event_loop::EventLoop::new();
@@ -61,8 +65,16 @@ fn main() {
     };
     surface.configure(&device, &surface_config);
 
-    // Sets up voxel renderer
-    let mut renderer = Renderer::new();
+    // Sets up model renderer and model
+    let mut renderer = ModelRenderer::new(surface_config.format);
+    let model = Model {
+        meshes: vec![Mesh::cube(&device, Color::WHITE)],
+        materials: vec![Material::empty()],
+        associations: vec![(0, 0)]
+    };
+    renderer.prepare_for_model(&device, &model);
+    let mut depth_stencil = create_surface_depth_texture(&device, &surface_config);
+    let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
 
     // Sets up EGUI
     let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -86,17 +98,21 @@ fn main() {
             RedrawRequested(..) => {
 
                 // Gets texture view of surface for drawing on
-                let output_frame = match surface.get_current_frame() {
+                let surface_frame = match surface.get_current_frame() {
                     Ok(frame) => frame,
                     Err(_) => { return }
                 };
-                let output_view = output_frame
+                let surface_view = surface_frame
                     .output
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
                 // Draws with renderer
-                renderer.render();
+                let fbo = ModelFrameBuffer {
+                    color: &surface_view,
+                    depth_stencil: &depth_stencil_view
+                };
+                renderer.render(&model, &device, &queue, &fbo);
 
                 // Updates/draws EGUI
                 platform.update_time(start_time.elapsed().as_secs_f64());
@@ -115,7 +131,7 @@ fn main() {
                 egui_rpass.update_buffers(&mut device, &mut queue, &paint_jobs, &screen_descriptor);
                 egui_rpass.execute(
                     &mut encoder,
-                    &output_view,
+                    &surface_view,
                     &paint_jobs,
                     &screen_descriptor,
                     Some(wgpu::Color::BLACK),
@@ -133,6 +149,8 @@ fn main() {
                     if size.width != 0 { surface_config.width = size.width; }
                     if size.height != 0 { surface_config.height = size.height; }
                     surface.configure(&device, &surface_config);
+                    depth_stencil = create_surface_depth_texture(&device, &surface_config);
+                    depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
                 }
                 winit::event::WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
