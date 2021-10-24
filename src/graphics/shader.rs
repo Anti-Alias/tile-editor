@@ -47,7 +47,7 @@ impl ShaderProvider {
     // Preprocesses shader source code with features and creates a shader module
     fn create(source: &str, device: &Device, features: &ShaderFeatures) -> ShaderModule {
         let source = Self::preprocess_source(source, features);
-        log::debug!("Preprocessed source as:\n{}", Self::source_with_lines(&source));
+        log::info!("Preprocessed source as:\n{}", Self::source_with_lines(&source));
         let source = ShaderSource::Wgsl(Cow::from(source.as_str()));
         device.create_shader_module(&ShaderModuleDescriptor {
             label: None,

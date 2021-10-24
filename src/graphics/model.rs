@@ -166,7 +166,6 @@ impl ModelRenderer {
             render_pass.set_vertex_buffer(VERTEX_BUFFER_SLOT, mesh.vertices.slice(..));
             render_pass.set_index_buffer(mesh.indices.slice(..), IndexFormat::Uint32);
             render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
-            log::info!("Drawing!!!");
         }
     }
 }
