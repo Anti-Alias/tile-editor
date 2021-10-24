@@ -8,6 +8,7 @@ mod voxel_map_graphics;
 mod shader_features;
 mod shader_provider;
 mod pipeline_provider;
+mod matrices;
 
 pub use mesh::*;
 pub use model::*;

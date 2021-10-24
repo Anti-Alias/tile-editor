@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, Color, RenderPassDepthStencilAttachment, IndexFormat, Queue, RenderPass};
-use crate::graphics::{Material, Mesh, PipelineProvider, ShaderFeatures, ShaderProvider};
+use crate::graphics::{Material, Mesh, PipelineProvider, RGBA, ShaderFeatures, ShaderProvider, Vector3};
 
 // Helpful local constants
 const VERTEX_BUFFER_SLOT: u32 = 0;
@@ -108,10 +108,24 @@ impl ModelRenderer {
         });
 
         // Draws all meshes within the model using render pass
-        self.render_meshes(model, &mut render_pass, pipeline_provider);
+        self.render_model(model, &mut render_pass, pipeline_provider);
     }
 
-    fn render_meshes<'a>(
+    /// Creates pipeline objects for a particular Model ahead of time if they don't already exist
+    pub fn prepare_for_model<'a>(
+        &self,
+        device: &Device,
+        model: &'a Model,
+        render_pass: &mut RenderPass<'a>,
+        pipeline_provider: &'a mut PipelineProvider
+    ) {
+        for (_, material) in model.iter() {
+            let features = ShaderFeatures { material_flags: material.flags() };
+            pipeline_provider.provide_or_create(device, &features);
+        }
+    }
+
+    fn render_model<'a>(
         &self,
         model: &'a Model,
         render_pass: &mut RenderPass<'a>,
@@ -124,7 +138,7 @@ impl ModelRenderer {
                 .expect("Missing pipeline with features specified");
             render_pass.set_pipeline(pipeline);
             render_pass.set_vertex_buffer(VERTEX_BUFFER_SLOT, mesh.vertices.slice(..));
-            render_pass.set_index_buffer(mesh.indices.slice(..), mesh.index_format);
+            render_pass.set_index_buffer(mesh.indices.slice(..), IndexFormat::Uint32);
         }
     }
 }

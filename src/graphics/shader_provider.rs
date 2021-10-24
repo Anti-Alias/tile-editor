@@ -19,17 +19,17 @@ impl ShaderProvider {
     }
 
     /// Gets cached shader module, or creates it based on features provided
-    pub fn provide(&mut self, device: &Device, features: &ShaderFeatures) -> &mut ShaderModule {
+    pub fn provide_or_create(&mut self, device: &Device, features: &ShaderFeatures) -> &ShaderModule {
         let modules = &mut self.modules;
         let source = &self.source;
-        modules.entry(*features).or_insert_with(|| {
-            let source = Self::preprocess_source(source, features);
-            let source = ShaderSource::Wgsl(Cow::from(source.as_str()));
-            device.create_shader_module(&ShaderModuleDescriptor {
-                label: None,
-                source
-            })
+        modules.entry(*features).or_insert_with(move || {
+            Self::create(source, device, features)
         })
+    }
+
+    /// Gets cached shader module
+    pub fn provide(&self, features: &ShaderFeatures) -> Option<&ShaderModule> {
+        self.modules.get(features)
     }
 
     pub fn preprocess_source(source: &str, features: &ShaderFeatures) -> String {
@@ -43,5 +43,14 @@ impl ShaderProvider {
             macros.insert(String::from("NORMAL"), String::from("EXISTS"));
         }
         gpp::process_str(source, &mut context).unwrap()
+    }
+
+    fn create(source: &str, device: &Device, features: &ShaderFeatures) -> ShaderModule {
+        let source = Self::preprocess_source(source, features);
+        let source = ShaderSource::Wgsl(Cow::from(source.as_str()));
+        device.create_shader_module(&ShaderModuleDescriptor {
+            label: None,
+            source
+        })
     }
 }

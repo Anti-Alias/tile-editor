@@ -14,11 +14,23 @@ pub struct Vector3 {
     pub z: f32
 }
 
+impl Vector3 {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z }
+    }
+}
+
 #[repr(C)]
 #[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct Vector2 {
     pub x: f32,
     pub y: f32
+}
+
+impl Vector2 {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
 }
 
 #[repr(C)]
@@ -28,6 +40,12 @@ pub struct RGBA {
     pub g: f32,
     pub b: f32,
     pub a: f32
+}
+
+impl RGBA {
+    pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self { r, g, b, a }
+    }
 }
 
 #[repr(C)]
