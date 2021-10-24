@@ -135,11 +135,11 @@ fn main() {
                     &surface_view,
                     &paint_jobs,
                     &screen_descriptor,
-                    Some(wgpu::Color::BLACK),
+                    None,
                 ).unwrap();
 
                 // Submit the commands.
-                //queue.submit(iter::once(encoder.finish()));
+                queue.submit(iter::once(encoder.finish()));
 
                 // Done with current loop
                 *control_flow = ControlFlow::Poll;
