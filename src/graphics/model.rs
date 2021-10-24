@@ -38,22 +38,24 @@ pub struct ModelFrameBuffer<'a> {
 pub struct ModelRenderer {
     shader_provider: ShaderProvider,        // Provider of shaders derived from an ubershader/material features
     pipeline_provider: PipelineProvider,    // Provider of pipelines derived from material features
-    color_format: TextureFormat             // Expected format of texture view being drawn to
+    color_format: TextureFormat,            // Expected format of texture being drawn to
+    depth_stencil_format: TextureFormat     // Expected format of depth/stencil texture being drawn to
 }
 impl ModelRenderer {
 
     /// Creates a `ModelRenderer` with a default shader
-    pub fn new(color_format: TextureFormat) -> ModelRenderer {
+    pub fn new(color_format: TextureFormat, depth_stencil_format: TextureFormat) -> ModelRenderer {
         let shader_source = String::from(include_str!("model_ubershader.wgsl"));
-        Self::create_from_shader(shader_source, color_format)
+        Self::create_from_shader(shader_source, color_format, depth_stencil_format)
     }
 
     /// Creates a `ModelRenderer` with the specified shader
-    pub fn create_from_shader(shader_source: String, color_format: TextureFormat) -> ModelRenderer {
+    pub fn create_from_shader(shader_source: String, color_format: TextureFormat, depth_stencil_format: TextureFormat) -> ModelRenderer {
         ModelRenderer {
             shader_provider: ShaderProvider::new(shader_source),
             pipeline_provider: PipelineProvider::new(),
-            color_format
+            color_format,
+            depth_stencil_format
         }
     }
 
@@ -138,7 +140,8 @@ impl ModelRenderer {
         for (_, material) in model.iter() {
             let features = PipelineFeatures {
                 shader_features: ShaderFeatures { material_flags: material.flags() },
-                color_format: self.color_format
+                color_format: self.color_format,
+                depth_stencil_format: self.depth_stencil_format
             };
             pipeline_provider.provide_or_create(device, &features, shader_provider);
         }
@@ -153,7 +156,8 @@ impl ModelRenderer {
         for (mesh, material) in model.iter() {
             let features = PipelineFeatures {
                 shader_features: ShaderFeatures { material_flags: material.flags() },
-                color_format: self.color_format
+                color_format: self.color_format,
+                depth_stencil_format: self.depth_stencil_format
             };
             let pipeline = pipeline_provider
                 .provide(&features)

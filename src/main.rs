@@ -6,7 +6,7 @@ use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
-use wgpu::TextureViewDescriptor;
+use wgpu::{TextureFormat, TextureViewDescriptor};
 
 use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
@@ -17,6 +17,7 @@ use tile_editor::gui::{GUI, Editor};
 
 const INITIAL_WIDTH: u32 = 640;
 const INITIAL_HEIGHT: u32 = 480;
+const DEPTH_STENCIL_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 
 fn main() {
 
@@ -66,14 +67,14 @@ fn main() {
     surface.configure(&device, &surface_config);
 
     // Sets up model renderer and model
-    let mut renderer = ModelRenderer::new(surface_config.format);
+    let mut renderer = ModelRenderer::new(surface_config.format, DEPTH_STENCIL_FORMAT);
     let model = Model {
         meshes: vec![Mesh::cube(&device, Color::RED)],
         materials: vec![Material::empty()],
         associations: vec![(0, 0)]
     };
     renderer.prepare_for_model(&device, &model);
-    let mut depth_stencil = create_surface_depth_texture(&device, &surface_config);
+    let mut depth_stencil = create_surface_depth_texture(&device, &DEPTH_STENCIL_FORMAT, &surface_config);
     let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
 
     // Sets up EGUI
@@ -151,7 +152,7 @@ fn main() {
                     if size.width != 0 { surface_config.width = size.width; }
                     if size.height != 0 { surface_config.height = size.height; }
                     surface.configure(&device, &surface_config);
-                    depth_stencil = create_surface_depth_texture(&device, &surface_config);
+                    depth_stencil = create_surface_depth_texture(&device, &DEPTH_STENCIL_FORMAT, &surface_config);
                     depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
                 }
                 winit::event::WindowEvent::CloseRequested => {

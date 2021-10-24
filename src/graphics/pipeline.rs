@@ -8,7 +8,8 @@ use crate::graphics::{ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct PipelineFeatures {
     pub shader_features: ShaderFeatures,
-    pub color_format: TextureFormat
+    pub color_format: TextureFormat,
+    pub depth_stencil_format: TextureFormat
 }
 
 /// Provides a pipeline based on features provided
@@ -78,7 +79,7 @@ impl PipelineProvider {
             vertex,
             fragment,
             primitive: Self::create_primitive_state(),
-            depth_stencil: Some(Self::create_depth_stencil_state()),
+            depth_stencil: Some(Self::create_depth_stencil_state(features.depth_stencil_format)),
             multisample: Self::create_multisample_state(),
         })
     }
@@ -111,9 +112,9 @@ impl PipelineProvider {
         }
     }
 
-    fn create_depth_stencil_state() -> DepthStencilState {
+    fn create_depth_stencil_state(format: TextureFormat) -> DepthStencilState {
         DepthStencilState {
-            format: TextureFormat::Depth32Float,
+            format,
             depth_write_enabled: true,
             depth_compare: CompareFunction::LessEqual,
             stencil: StencilState::default(),
