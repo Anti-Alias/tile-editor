@@ -15,18 +15,31 @@ use winit::event_loop::{ControlFlow};
 use crate::graphics::{Color, create_surface_depth_texture, get_texture_view_of_surface, Material, Mesh, Model, ModelFrameBuffer, ModelRenderer};
 use crate::gui::{GUI, Editor};
 
-const INITIAL_WIDTH: u32 = 640;
-const INITIAL_HEIGHT: u32 = 480;
-const DEPTH_STENCIL_FORMAT: TextureFormat = TextureFormat::Depth32Float;
-
 pub struct App {
-
+    width: u32,
+    height: u32,
+    depth_stencil_format: TextureFormat
 }
 
 impl App {
 
     pub fn new() -> App {
-        App {}
+        App {
+            width: 640,
+            height: 480,
+            depth_stencil_format: TextureFormat::Depth32Float
+        }
+    }
+
+    pub fn size(mut self, width: u32, height: u32) -> Self {
+        self.width = width;
+        self.height = height;
+        self
+    }
+
+    pub fn depth_stencil_format(mut self, format: TextureFormat) -> Self {
+        self.depth_stencil_format = format;
+        return self
     }
 
     pub fn start(self) {
@@ -42,8 +55,8 @@ impl App {
             .with_transparent(false)
             .with_title("Tile Editor")
             .with_inner_size(winit::dpi::PhysicalSize {
-                width: INITIAL_WIDTH,
-                height: INITIAL_HEIGHT,
+                width: self.width,
+                height: self.height,
             })
             .build(&event_loop)
             .unwrap();
@@ -77,14 +90,14 @@ impl App {
         surface.configure(&device, &surface_config);
 
         // Sets up model renderer and model
-        let mut renderer = ModelRenderer::new(surface_config.format, DEPTH_STENCIL_FORMAT);
+        let mut renderer = ModelRenderer::new(surface_config.format, self.depth_stencil_format);
         let model = Model {
             meshes: vec![Mesh::cube(&device, Color::RED)],
             materials: vec![Material::empty()],
             associations: vec![(0, 0)]
         };
         renderer.prepare_for_model(&device, &model);
-        let mut depth_stencil = create_surface_depth_texture(&device, &DEPTH_STENCIL_FORMAT, &surface_config);
+        let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
         let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
 
         // Sets up EGUI
@@ -162,7 +175,7 @@ impl App {
                         if size.width != 0 { surface_config.width = size.width; }
                         if size.height != 0 { surface_config.height = size.height; }
                         surface.configure(&device, &surface_config);
-                        depth_stencil = create_surface_depth_texture(&device, &DEPTH_STENCIL_FORMAT, &surface_config);
+                        depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
                         depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
                     }
                     winit::event::WindowEvent::CloseRequested => {
