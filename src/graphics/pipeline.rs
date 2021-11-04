@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use egui_wgpu_backend::wgpu::{FrontFace, PrimitiveTopology};
-use wgpu::{BindGroupLayout, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
+use wgpu::{BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
 use crate::graphics::{ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
 
 /// Represents a permutation of features a pipeline should have
@@ -85,9 +85,22 @@ impl PipelineProvider {
     }
 
     fn create_pipeline_layout(device: &Device) -> PipelineLayout {
+        let layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("Camera Bind Group Layout"),
+            entries: &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None
+                },
+                count: None
+            }]
+        });
         device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Model Pipeline Layout"),
-            bind_group_layouts: &[],
+            bind_group_layouts: &[&layout],
             push_constant_ranges: &[]
         })
     }

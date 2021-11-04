@@ -8,6 +8,7 @@ mod shader;
 mod pipeline;
 mod matrices;
 mod util;
+mod camera;
 
 pub use mesh::*;
 pub use model::*;
@@ -17,4 +18,5 @@ pub use material::*;
 pub use voxel_map_graphics::*;
 pub use shader::*;
 pub use pipeline::*;
+pub use camera::*;
 pub use util::*;
