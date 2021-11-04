@@ -1,7 +1,7 @@
 use wgpu::{Device, Extent3d, Surface, SurfaceConfiguration, Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor};
 
 /// Creates a wgpu depth texture from a surface config
-pub fn create_surface_depth_texture(device: &Device, format: &TextureFormat, config: &SurfaceConfiguration) -> Texture {
+pub fn create_surface_depth_texture(device: &Device, _format: &TextureFormat, config: &SurfaceConfiguration) -> Texture {
     device.create_texture(&TextureDescriptor {
         label: None,
         size: Extent3d {

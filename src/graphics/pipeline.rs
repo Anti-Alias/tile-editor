@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+
 use egui_wgpu_backend::wgpu::{FrontFace, PrimitiveTopology};
 use wgpu::{BindGroupLayout, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
 use crate::graphics::{ModelVertex, ShaderFeatures, ShaderProvider, Vertex};

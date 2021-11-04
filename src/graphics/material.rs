@@ -1,4 +1,4 @@
-use std::rc::Rc;
+
 use crate::graphics::Texture;
 
 /// A set of textures that determines how light interacts with a `Mesh`

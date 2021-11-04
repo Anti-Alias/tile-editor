@@ -1,6 +1,6 @@
 use std::iter;
 use std::time::Instant;
-use chrono::Timelike;
+
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -12,10 +12,11 @@ use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
 
 
-use crate::graphics::{Color, create_surface_depth_texture, get_texture_view_of_surface, Material, Mesh, Model, ModelFrameBuffer, ModelRenderer};
+use crate::graphics::{Color, create_surface_depth_texture, Material, Mesh, Model, ModelFrameBuffer, ModelRenderer};
 use crate::gui::{GUI, Editor};
 
 pub struct App {
+    title: String,
     width: u32,
     height: u32,
     depth_stencil_format: TextureFormat
@@ -25,10 +26,16 @@ impl App {
 
     pub fn new() -> App {
         App {
+            title: String::from("App"),
             width: 640,
             height: 480,
             depth_stencil_format: TextureFormat::Depth32Float
         }
+    }
+
+    pub fn title(mut self, title: &str) -> Self {
+        self.title = title.into();
+        self
     }
 
     pub fn size(mut self, width: u32, height: u32) -> Self {
@@ -53,7 +60,7 @@ impl App {
             .with_decorations(true)
             .with_resizable(true)
             .with_transparent(false)
-            .with_title("Tile Editor")
+            .with_title(self.title.clone())
             .with_inner_size(winit::dpi::PhysicalSize {
                 width: self.width,
                 height: self.height,

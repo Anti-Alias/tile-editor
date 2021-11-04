@@ -1,7 +1,7 @@
-use std::cmp::Ordering;
-use std::collections::HashMap;
-use wgpu::{Device, FragmentState, MultisampleState, PipelineLayout, PrimitiveState, RenderPipelineDescriptor, VertexState, DepthStencilState, RenderPipeline, PipelineLayoutDescriptor, ShaderModule, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, RenderPassDepthStencilAttachment, IndexFormat, Queue, RenderPass, TextureFormat};
-use crate::graphics::{Material, Mesh, PipelineProvider, Color, ShaderFeatures, ShaderProvider, PipelineFeatures};
+
+
+use wgpu::{Device, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, RenderPassDepthStencilAttachment, IndexFormat, Queue, RenderPass, TextureFormat};
+use crate::graphics::{Material, Mesh, PipelineProvider, ShaderFeatures, ShaderProvider, PipelineFeatures};
 
 // Helpful local constants
 const VERTEX_BUFFER_SLOT: u32 = 0;

@@ -1,5 +1,5 @@
-use cgmath::{Vector2, Vector3};
-use wgpu::{Buffer, BufferUsages, Device, IndexFormat};
+
+use wgpu::{Buffer, BufferUsages, Device};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use crate::graphics::{ModelVertex, Color};
 

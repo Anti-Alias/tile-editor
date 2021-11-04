@@ -9,7 +9,7 @@ pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
 
 #[cfg(test)]
 mod tests {
-    use cgmath::{Vector3, Vector4};
+    use cgmath::{Vector4};
     use crate::graphics::matrices::OPENGL_TO_WGPU_MATRIX;
 
     #[test]
