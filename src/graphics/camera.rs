@@ -1,5 +1,5 @@
 use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, EuclideanSpace};
-use wgpu::{Buffer, BufferAddress, BufferDescriptor, BufferUsages, Device, Queue};
+use wgpu::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferDescriptor, BufferUsages, Device, Queue, ShaderStages};
 use wgpu::util::DeviceExt;
 
 #[rustfmt::skip]
@@ -23,8 +23,10 @@ pub struct Camera {
     projection: Matrix4<f32>,
     changed: bool,
 
-    // Projection/view buffer
-    buffer: Buffer,
+    // WGPU Resources
+    buffer: Buffer,                         // Buffer that stores data
+    bind_group: BindGroup,                  // Bind group for that data
+    bind_group_layout: BindGroupLayout,     // Layout of that data
 
     // Right-handedness flag
     is_right_handed: bool
@@ -67,6 +69,27 @@ impl Camera {
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             mapped_at_creation: false
         });
+        let bind_group_layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("Camera Bind Group Layout"),
+            entries: &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None
+                },
+                count: None
+            }]
+        });
+        let bind_group = device.create_bind_group(&BindGroupDescriptor {
+            label: Some("Camera Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[BindGroupEntry {
+                binding: 0,
+                resource: buffer.as_entire_binding()
+            }]
+        });
         Self {
             eye,
             direction,
@@ -74,6 +97,8 @@ impl Camera {
             projection: Matrix4::identity(),
             changed: true,
             buffer,
+            bind_group,
+            bind_group_layout,
             is_right_handed
         }
     }
@@ -129,5 +154,17 @@ impl Camera {
     /// To be used in rendering pipelines.
     pub fn projection_view_buffer(&self) -> &Buffer {
         self.projection_view_buffer()
+    }
+
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
+    }
+
+    pub fn bind_group(&self) -> &BindGroup {
+        &self.bind_group
+    }
+
+    pub fn bind_group_layout(&self) -> &BindGroupLayout {
+        &self.bind_group_layout
     }
 }

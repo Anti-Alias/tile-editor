@@ -33,13 +33,14 @@ impl PipelineProvider {
         &mut self,
         device: &Device,
         features: &PipelineFeatures,
-        shader_provider: &mut ShaderProvider
+        shader_provider: &mut ShaderProvider,
+        bind_group_layouts: &[&BindGroupLayout]
     ) -> &RenderPipeline {
         self.pipelines
             .entry(*features)
             .or_insert_with(|| {
                 let shader = shader_provider.provide_or_create(device, &features.shader_features);
-                let pipeline = Self::create_pipeline(device, &shader, &features);
+                let pipeline = Self::create_pipeline(device, &shader, features, bind_group_layouts);
                 log::info!("Created new pipeline");
                 pipeline
             })
@@ -50,10 +51,15 @@ impl PipelineProvider {
         self.pipelines.get(features)
     }
 
-    fn create_pipeline(device: &Device, module: &ShaderModule, features: &PipelineFeatures) -> RenderPipeline {
+    fn create_pipeline(
+        device: &Device,
+        module: &ShaderModule,
+        features: &PipelineFeatures,
+        bind_group_layouts: &[&BindGroupLayout]
+    ) -> RenderPipeline {
 
         // Creates states and layout for pipeline
-        let layout = Self::create_pipeline_layout(device);
+        let layout = Self::create_pipeline_layout(device, bind_group_layouts);
         let targets = [
             ColorTargetState {
                 format: features.color_format,
@@ -84,23 +90,10 @@ impl PipelineProvider {
         })
     }
 
-    fn create_pipeline_layout(device: &Device) -> PipelineLayout {
-        let layout = device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("Camera Bind Group Layout"),
-            entries: &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::VERTEX,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None
-                },
-                count: None
-            }]
-        });
+    fn create_pipeline_layout(device: &Device, bind_group_layouts: &[&BindGroupLayout]) -> PipelineLayout {
         device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Model Pipeline Layout"),
-            bind_group_layouts: &[&layout],
+            bind_group_layouts,
             push_constant_ranges: &[]
         })
     }

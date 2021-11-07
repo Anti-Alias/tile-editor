@@ -1,5 +1,6 @@
 use std::iter;
 use std::time::Instant;
+use cgmath::{Point3, Vector3};
 
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
@@ -12,7 +13,7 @@ use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
 
 
-use crate::graphics::{Color, create_surface_depth_texture, Material, Mesh, Model, ModelFrameBuffer, ModelRenderer};
+use crate::graphics::{Camera, Color, create_surface_depth_texture, Material, Mesh, Model, ModelFrameBuffer, ModelRenderer};
 use crate::gui::{GUI, Editor};
 
 pub struct App {
@@ -96,14 +97,22 @@ impl App {
         };
         surface.configure(&device, &surface_config);
 
+        // Sets up camera
+        let camera = Camera::create_rh(
+            &device,
+            Point3::<f32>::new(0.0, 0.0, 0.0),
+            Vector3::<f32>::new(0.0, 0.0, -1.0),
+            Vector3::<f32>::unit_y()
+        );
+
         // Sets up model renderer and model
-        let mut renderer = ModelRenderer::new(surface_config.format, self.depth_stencil_format);
+        let mut renderer = ModelRenderer::new(&device, surface_config.format, self.depth_stencil_format);
         let model = Model {
             meshes: vec![Mesh::cube(&device, Color::RED)],
             materials: vec![Material::empty()],
             associations: vec![(0, 0)]
         };
-        renderer.prepare_for_model(&device, &model);
+        renderer.prepare(&device, &model, &camera);
         let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
         let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
 
@@ -143,7 +152,7 @@ impl App {
                         color: &surface_view,
                         depth_stencil: &depth_stencil_view
                     };
-                    renderer.render(&model, &device, &queue, &fbo);
+                    renderer.render(&model, &camera, &device, &queue, &fbo);
 
                     // Updates/draws EGUI
                     platform.update_time(start_time.elapsed().as_secs_f64());
