@@ -13,6 +13,15 @@ pub struct Mesh {
 
 impl Mesh {
 
+    const CUBE_INDICES: [u32; 36] = [
+        0, 1, 2, 2, 3, 0,   // Near
+        4, 0, 3, 3, 7, 4,   // Left
+        1, 5, 6, 6, 2, 1,   // Right
+        4, 5, 1, 1, 0, 4,   // Bottom
+        3, 2, 6, 6, 7, 3,   // Top
+        5, 4, 7, 7, 6, 5,   // Far
+    ];
+
     pub fn triangle(device: &Device, color: Color) -> Mesh {
         // Vertices (right-handed)
         let rgba = color.rgba();
@@ -61,9 +70,31 @@ impl Mesh {
     }
 
     pub fn cube(device: &Device, color: Color, scale: Vector3<f32>) -> Mesh {
-        // Vertices (right-handed)
-        let rgba = color.rgba();
-        let mut v = &mut [
+        let v = Self::create_cube_vertices(scale, color.rgba());
+        let vertices = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&v),
+            usage: BufferUsages::VERTEX
+        });
+        let indices = device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&Self::CUBE_INDICES),
+            usage: BufferUsages::INDEX
+        });
+
+        // Done
+        Self {
+            vertices,
+            indices,
+            num_indices: Self::CUBE_INDICES.len() as u32
+        }
+    }
+
+    fn create_cube_vertices(
+        scale: Vector3<f32>,
+        rgba: [f32; 4]
+    ) -> [ModelVertex; 8] {
+        let mut v = [
             ModelVertex {                               // bottom/left/near
                 position: [-0.5, -0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
@@ -118,34 +149,6 @@ impl Mesh {
             vert.position[1] *= scale.y;
             vert.position[2] *= scale.z;
         }
-
-        // Indices (Counter-clockwise)
-        let i = &[
-            0, 1, 2, 2, 3, 0,   // Near
-            4, 0, 3, 3, 7, 4,   // Left
-            1, 5, 6, 6, 2, 1,   // Right
-            4, 5, 1, 1, 0, 4,   // Bottom
-            3, 2, 6, 6, 7, 3,   // Top
-            5, 4, 7, 7, 6, 5,   // Far
-        ];
-
-        // Creates vertex and index buffers
-        let vertices = device.create_buffer_init(&BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(v),
-            usage: BufferUsages::VERTEX
-        });
-        let indices = device.create_buffer_init(&BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(i),
-            usage: BufferUsages::INDEX
-        });
-
-        // Done
-        Self {
-            vertices,
-            indices,
-            num_indices: i.len() as u32
-        }
+        v
     }
 }

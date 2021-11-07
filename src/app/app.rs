@@ -1,3 +1,4 @@
+use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
 use cgmath::{Deg, Ortho, Perspective, PerspectiveFov, Point3, Rad, Vector3};
@@ -99,7 +100,8 @@ impl App {
 
         // Sets up camera
         let mut camera = create_camera(&device, size.width, size.height);
-        camera.move_to(Point3::new(0.0, 100.0, 300.0));
+        //camera.move_to(Point3::new(0.0, 100.0, 300.0));
+        let mut t: f32 = 0.0;
 
         // Sets up model renderer and model
         let mut renderer = ModelRenderer::new(&device, surface_config.format, self.depth_stencil_format);
@@ -151,7 +153,14 @@ impl App {
                     renderer.render(&model, &mut camera, &device, &queue, &fbo);
 
                     // Moves camera
-                    camera.translate(Vector3::new(0.5, 0.0, 0.0));
+                    let theta = std::f32::consts::PI * t;
+                    let rad = 200.0_f32;
+                    camera.move_to(Point3::new(
+                        f32::cos(theta)*rad,
+                        f32::sin(theta*4.0)*50.0_f32,
+                        f32::sin(theta)*rad)
+                    );
+                    camera.look_at(Point3::new(0.0, 0.0, 0.0));
 
                     // Updates/draws EGUI
                     platform.update_time(start_time.elapsed().as_secs_f64());
@@ -181,6 +190,9 @@ impl App {
 
                     // Done with current loop
                     *control_flow = ControlFlow::Poll;
+
+                    // Update t
+                    t += 0.005;
                 }
                 MainEventsCleared => {
                     window.request_redraw();

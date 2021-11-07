@@ -144,8 +144,8 @@ impl Camera {
         self.changed = true;
     }
 
-    pub fn look_at(&mut self, point: Vector3<f32>) {
-        self.direction = point - self.eye.to_vec();
+    pub fn look_at(&mut self, point: Point3<f32>) {
+        self.direction = point - self.eye;
         self.changed = true;
     }
 
