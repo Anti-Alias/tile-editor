@@ -76,7 +76,7 @@ impl ModelRenderer {
     pub fn render(
         &mut self,
         model: &Model,
-        camera: &Camera,
+        camera: &mut Camera,
         device: &Device,
         queue: &Queue,
         fbo: &ModelFrameBuffer
@@ -89,6 +89,9 @@ impl ModelRenderer {
         // Adds render commands to encoder
         self.render_to_encoder(model, camera, &mut encoder, fbo);
 
+        // Updates camera first
+        camera.write(queue);
+
         // Gets commands and writes them to queue
         let commands = encoder.finish();
         queue.submit(std::iter::once(commands));
@@ -100,7 +103,7 @@ impl ModelRenderer {
     /// * `queue` - Location to encode draw commands
     /// * `fbo` - Location to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
-    pub fn render_to_encoder(
+    fn render_to_encoder(
         &mut self,
         model: &Model,
         camera: &Camera,

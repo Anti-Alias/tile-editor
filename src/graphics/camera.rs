@@ -1,4 +1,4 @@
-use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, EuclideanSpace};
+use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, EuclideanSpace, PerspectiveFov};
 use wgpu::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferDescriptor, BufferUsages, Device, Queue, ShaderStages};
 use wgpu::util::DeviceExt;
 
@@ -35,28 +35,64 @@ pub struct Camera {
 
 impl Camera {
 
-    /// Creates a right-handed camera using a `Device` to allocate buffers
-    pub fn create_rh(
+    /// Creates a camera with a custom projection
+    pub fn create(
         device: &Device,
         eye: Point3<f32>,
         direction: Vector3<f32>,
         up: Vector3<f32>,
+        projection: Matrix4<f32>,
+        is_right_handed: bool
     ) -> Self {
-        Self::create_handed(device, eye, direction, up, true)
+        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        cam.projection = projection;
+        cam
     }
 
-    /// Creates a left-handed camera using a `Device` to allocate buffers
-    pub fn create_lh(
+    /// Creates an orthographic camera
+    pub fn create_ortho(
         device: &Device,
         eye: Point3<f32>,
         direction: Vector3<f32>,
         up: Vector3<f32>,
+        ortho: Ortho<f32>,
+        is_right_handed: bool
     ) -> Self {
-        Self::create_handed(device, eye, direction, up, false)
+        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        cam.set_ortho(ortho);
+        cam
+    }
+
+    /// Creates a perspective camera
+    pub fn create_perspective(
+        device: &Device,
+        eye: Point3<f32>,
+        direction: Vector3<f32>,
+        up: Vector3<f32>,
+        perspective: Perspective<f32>,
+        is_right_handed: bool
+    ) -> Self {
+        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        cam.set_perspective(perspective);
+        cam
+    }
+
+    /// Creates a perspective camera
+    pub fn create_perspective_fov(
+        device: &Device,
+        eye: Point3<f32>,
+        direction: Vector3<f32>,
+        up: Vector3<f32>,
+        fov: PerspectiveFov<f32>,
+        is_right_handed: bool
+    ) -> Self {
+        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        cam.set_perspective_fov(fov);
+        cam
     }
 
     /// Creates a right-handed camera using a `Device` to allocate buffers
-    fn create_handed(
+    fn _create(
         device: &Device,
         eye: Point3<f32>,
         direction: Vector3<f32>,
@@ -126,6 +162,12 @@ impl Camera {
     /// Sets projection matrix to perspective matrix
     pub fn set_perspective(&mut self, perspective: Perspective<f32>) {
         self.projection = perspective.into();
+        self.changed = true;
+    }
+
+    /// Sets projection matrix to perspective matrix
+    pub fn set_perspective_fov(&mut self, fov: PerspectiveFov<f32>) {
+        self.projection = fov.into();
         self.changed = true;
     }
 

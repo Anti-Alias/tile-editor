@@ -1,4 +1,13 @@
 // ----------------- Vertex -----------------
+[[block]]
+struct Camera {
+    proj_view: mat4x4<f32>;
+};
+
+[[group(0), binding(0)]]
+var<uniform> camera: Camera;
+
+
 struct ModelVertex {
     [[location(0)]] position: vec3<f32>;
     [[location(1)]] normal: vec3<f32>;
@@ -13,10 +22,12 @@ struct ModelVertexOutput {
     [[location(2)]] uv: vec2<f32>;
 };
 
+
 [[stage(vertex)]]
 fn main(input: ModelVertex) -> ModelVertexOutput {
+    let out_pos = camera.proj_view * vec4<f32>(input.position, 1.0);
     return ModelVertexOutput(
-       vec4<f32>(input.position, 1.0),
+       out_pos,
        input.normal,
        input.color,
        input.uv

@@ -1,6 +1,6 @@
 use std::iter;
 use std::time::Instant;
-use cgmath::{Point3, Vector3};
+use cgmath::{Deg, Perspective, PerspectiveFov, Point3, Rad, Vector3};
 
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
@@ -98,11 +98,18 @@ impl App {
         surface.configure(&device, &surface_config);
 
         // Sets up camera
-        let camera = Camera::create_rh(
+        let mut camera = Camera::create_perspective_fov(
             &device,
-            Point3::<f32>::new(0.0, 0.0, 0.0),
+            Point3::<f32>::new(0.0, 0.0, 1.0),
             Vector3::<f32>::new(0.0, 0.0, -1.0),
-            Vector3::<f32>::unit_y()
+            Vector3::<f32>::unit_y(),
+            PerspectiveFov {
+                fovy: Deg::<f32>(90.0).into(),
+                aspect: 16.0/9.0,
+                near: 1.0,
+                far: 100.0
+            },
+            true
         );
 
         // Sets up model renderer and model
@@ -152,7 +159,7 @@ impl App {
                         color: &surface_view,
                         depth_stencil: &depth_stencil_view
                     };
-                    renderer.render(&model, &camera, &device, &queue, &fbo);
+                    renderer.render(&model, &mut camera, &device, &queue, &fbo);
 
                     // Updates/draws EGUI
                     platform.update_time(start_time.elapsed().as_secs_f64());
