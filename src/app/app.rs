@@ -1,6 +1,6 @@
 use std::iter;
 use std::time::Instant;
-use cgmath::{Deg, Perspective, PerspectiveFov, Point3, Rad, Vector3};
+use cgmath::{Deg, Ortho, Perspective, PerspectiveFov, Point3, Rad, Vector3};
 
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
@@ -99,7 +99,7 @@ impl App {
 
         // Sets up camera
         let mut camera = create_camera(&device, size.width, size.height);
-        camera.move_to(Point3::new(100.0, 100.0, 15.0));
+        camera.move_to(Point3::new(0.0, 100.0, 300.0));
 
         // Sets up model renderer and model
         let mut renderer = ModelRenderer::new(&device, surface_config.format, self.depth_stencil_format);
@@ -151,7 +151,7 @@ impl App {
                     renderer.render(&model, &mut camera, &device, &queue, &fbo);
 
                     // Moves camera
-                    camera.translate(Vector3::new(0.0, 0.0, -0.5));
+                    camera.translate(Vector3::new(0.5, 0.0, 0.0));
 
                     // Updates/draws EGUI
                     platform.update_time(start_time.elapsed().as_secs_f64());
@@ -211,17 +211,22 @@ impl App {
     }
 }
 
+const CAM_NEAR: f32 = 1.0;
+const CAM_FAR: f32 = 1000.0;
+const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
+
+/*
 fn create_camera(device: &Device, width: u32, height: u32) -> Camera {
     let sw = width as f32;
     let sh = height as f32;
     let hw = sw / 2.0;
     let hh = sh / 2.0;
-    let mut cam = Camera::create_perspective(
+    let mut cam = Camera::create_ortho(
         &device,
         Point3::<f32>::new(0.0, 0.0, 0.0),
         Vector3::<f32>::new(0.0, 0.0, -1.0),
         Vector3::<f32>::unit_y(),
-        Perspective { left: -hw, right: hw, bottom: -hh, top: hh, near: 0.1, far: 100.0 }
+        Ortho { left: -hw, right: hw, bottom: -hh, top: hh, near: CAM_NEAR, far: CAM_FAR }
     );
     cam.set_coordinate_system(Camera::OPENGL_COORDINATE_SYSTEM);
     cam
@@ -232,5 +237,44 @@ fn update_camera(camera: &mut Camera, width: u32, height: u32) {
     let sh = height as f32;
     let hw = sw / 2.0;
     let hh = sh / 2.0;
-    camera.set_perspective(Perspective { left: -hw, right: hw, bottom: -hh, top: hh, near: 0.1, far: 100.0 });
+    camera.set_ortho(Ortho { left: -hw, right: hw, bottom: -hh, top: hh, near: CAM_NEAR, far: CAM_FAR });
+}
+*/
+
+fn create_camera(device: &Device, width: u32, height: u32) -> Camera {
+    let sw = width as f32;
+    let sh = height as f32;
+    let hw = sw / 2.0;
+    let hh = sh / 2.0;
+    let mut cam = Camera::create_perspective(
+        &device,
+        Point3::<f32>::new(0.0, 0.0, 0.0),
+        Vector3::<f32>::new(0.0, 0.0, -1.0),
+        Vector3::<f32>::unit_y(),
+        Perspective {
+            left: -hw * CAM_PERSPECTIVE_SCALE,
+            right: hw * CAM_PERSPECTIVE_SCALE,
+            bottom: -hh * CAM_PERSPECTIVE_SCALE,
+            top: hh * CAM_PERSPECTIVE_SCALE,
+            near: CAM_NEAR,
+            far: CAM_FAR
+        }
+    );
+    cam.set_coordinate_system(Camera::OPENGL_COORDINATE_SYSTEM);
+    cam
+}
+
+fn update_camera(camera: &mut Camera, width: u32, height: u32) {
+    let sw = width as f32;
+    let sh = height as f32;
+    let hw = sw / 2.0;
+    let hh = sh / 2.0;
+    camera.set_perspective(Perspective {
+        left: -hw * CAM_PERSPECTIVE_SCALE,
+        right: hw * CAM_PERSPECTIVE_SCALE,
+        bottom: -hh * CAM_PERSPECTIVE_SCALE,
+        top: hh * CAM_PERSPECTIVE_SCALE,
+        near: CAM_NEAR,
+        far: CAM_FAR
+    });
 }
