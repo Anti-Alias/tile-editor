@@ -1,4 +1,4 @@
-
+use cgmath::Vector3;
 use wgpu::{Buffer, BufferUsages, Device};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use crate::graphics::{ModelVertex, Color};
@@ -60,10 +60,10 @@ impl Mesh {
         }
     }
 
-    pub fn cube(device: &Device, color: Color) -> Mesh {
+    pub fn cube(device: &Device, color: Color, scale: Vector3<f32>) -> Mesh {
         // Vertices (right-handed)
         let rgba = color.rgba();
-        let v = &[
+        let mut v = &mut [
             ModelVertex {                               // bottom/left/near
                 position: [-0.5, -0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
@@ -113,6 +113,11 @@ impl Mesh {
                 uv: [0.0, 0.0]
             },
         ];
+        for vert in v.iter_mut() {
+            vert.position[0] *= scale.x;
+            vert.position[1] *= scale.y;
+            vert.position[2] *= scale.z;
+        }
 
         // Indices (Counter-clockwise)
         let i = &[
@@ -140,7 +145,7 @@ impl Mesh {
         Self {
             vertices,
             indices,
-            num_indices: 36
+            num_indices: i.len() as u32
         }
     }
 }

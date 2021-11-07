@@ -2,38 +2,38 @@ use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, Euclide
 use wgpu::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferDescriptor, BufferUsages, Device, Queue, ShaderStages};
 use wgpu::util::DeviceExt;
 
-#[rustfmt::skip]
-pub const OPENGL_TO_WGPU_MATRIX: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 0.5, 0.0,
-    0.0, 0.0, 0.5, 1.0,
-);
-
 
 /// Represents a camera
 pub struct Camera {
-
-    // Directly manipulated by user
-    eye: Point3<f32>,
-    direction: Vector3<f32>,
-    up: Vector3<f32>,
-
-    // Indirectly manipulated before writing
-    projection: Matrix4<f32>,
-    changed: bool,
-
-    // WGPU Resources
+    eye: Point3<f32>,                       // Position of the eye (origin) of the camera
+    direction: Vector3<f32>,                // Direction the camera is looking
+    up: Vector3<f32>,                       // Orientation of the camera. Usually set to (0, 1, 0)
+    projection: Matrix4<f32>,               // Projection matrix. Can be manipulated to give an orthographic or perspective look.
+    coordinate_system: Matrix4<f32>,        // Matrix that transforms geometry from a foreign coordinate system to WGPU's coordinate system.
     buffer: Buffer,                         // Buffer that stores data
     bind_group: BindGroup,                  // Bind group for that data
     bind_group_layout: BindGroupLayout,     // Layout of that data
-
-    // Right-handedness flag
-    is_right_handed: bool
+    changed: bool                           // Caching flag
 }
 
 
 impl Camera {
+
+    #[rustfmt::skip]
+    pub const WGPU_COORDINATE_SYSTEM: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0,
+    );
+
+    #[rustfmt::skip]
+    pub const OPENGL_COORDINATE_SYSTEM: cgmath::Matrix4<f32> = cgmath::Matrix4::new(
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 0.5, 0.0,
+        0.0, 0.0, 0.5, 1.0,
+    );
 
     /// Creates a camera with a custom projection
     pub fn create(
@@ -41,10 +41,9 @@ impl Camera {
         eye: Point3<f32>,
         direction: Vector3<f32>,
         up: Vector3<f32>,
-        projection: Matrix4<f32>,
-        is_right_handed: bool
+        projection: Matrix4<f32>
     ) -> Self {
-        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        let mut cam = Self::_create(device, eye, direction, up);
         cam.projection = projection;
         cam
     }
@@ -55,10 +54,9 @@ impl Camera {
         eye: Point3<f32>,
         direction: Vector3<f32>,
         up: Vector3<f32>,
-        ortho: Ortho<f32>,
-        is_right_handed: bool
+        ortho: Ortho<f32>
     ) -> Self {
-        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        let mut cam = Self::_create(device, eye, direction, up);
         cam.set_ortho(ortho);
         cam
     }
@@ -69,10 +67,9 @@ impl Camera {
         eye: Point3<f32>,
         direction: Vector3<f32>,
         up: Vector3<f32>,
-        perspective: Perspective<f32>,
-        is_right_handed: bool
+        perspective: Perspective<f32>
     ) -> Self {
-        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        let mut cam = Self::_create(device, eye, direction, up);
         cam.set_perspective(perspective);
         cam
     }
@@ -83,10 +80,9 @@ impl Camera {
         eye: Point3<f32>,
         direction: Vector3<f32>,
         up: Vector3<f32>,
-        fov: PerspectiveFov<f32>,
-        is_right_handed: bool
+        fov: PerspectiveFov<f32>
     ) -> Self {
-        let mut cam = Self::_create(device, eye, direction, up, is_right_handed);
+        let mut cam = Self::_create(device, eye, direction, up);
         cam.set_perspective_fov(fov);
         cam
     }
@@ -96,8 +92,7 @@ impl Camera {
         device: &Device,
         eye: Point3<f32>,
         direction: Vector3<f32>,
-        up: Vector3<f32>,
-        is_right_handed: bool
+        up: Vector3<f32>
     ) -> Self {
         let buffer = device.create_buffer(&BufferDescriptor {
             label: Some("Projection View Buffer"),
@@ -131,16 +126,21 @@ impl Camera {
             direction,
             up,
             projection: Matrix4::identity(),
-            changed: true,
+            coordinate_system: Matrix4::identity(),
             buffer,
             bind_group,
             bind_group_layout,
-            is_right_handed
+            changed: true
         }
     }
 
     pub fn move_to(&mut self, eye: Point3<f32>) {
         self.eye = eye;
+        self.changed = true;
+    }
+
+    pub fn translate(&mut self, translation: Vector3<f32>) {
+        self.eye += translation;
         self.changed = true;
     }
 
@@ -177,14 +177,16 @@ impl Camera {
         self.changed = true;
     }
 
+    /// Sets expected coordinate system of geometry
+    pub fn set_coordinate_system(&mut self, coordinate_system: Matrix4<f32>) {
+        self.coordinate_system = coordinate_system;
+    }
+
     /// Writes to internal
     pub fn write(&mut self, queue: &Queue) {
         if self.changed {
             let view = Matrix4::look_to_rh(self.eye, self.direction, self.up);
-            let mut proj_view = self.projection * view;
-            if self.is_right_handed {
-                proj_view = OPENGL_TO_WGPU_MATRIX * proj_view;
-            }
+            let mut proj_view = self.coordinate_system * self.projection * view;
             let proj_view: [[f32; 4]; 4] = proj_view.into();
             queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[proj_view]));
             self.changed = false;

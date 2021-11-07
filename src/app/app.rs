@@ -7,7 +7,7 @@ use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
-use wgpu::{TextureFormat, TextureViewDescriptor};
+use wgpu::{Device, TextureFormat, TextureViewDescriptor};
 
 use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
@@ -98,24 +98,13 @@ impl App {
         surface.configure(&device, &surface_config);
 
         // Sets up camera
-        let mut camera = Camera::create_perspective_fov(
-            &device,
-            Point3::<f32>::new(0.0, 0.0, 1.0),
-            Vector3::<f32>::new(0.0, 0.0, -1.0),
-            Vector3::<f32>::unit_y(),
-            PerspectiveFov {
-                fovy: Deg::<f32>(90.0).into(),
-                aspect: 16.0/9.0,
-                near: 1.0,
-                far: 100.0
-            },
-            true
-        );
+        let mut camera = create_camera(&device, size.width, size.height);
+        camera.move_to(Point3::new(100.0, 100.0, 15.0));
 
         // Sets up model renderer and model
         let mut renderer = ModelRenderer::new(&device, surface_config.format, self.depth_stencil_format);
         let model = Model {
-            meshes: vec![Mesh::cube(&device, Color::RED)],
+            meshes: vec![Mesh::cube(&device, Color::RED, Vector3::new(100.0, 100.0, 100.0))],
             materials: vec![Material::empty()],
             associations: vec![(0, 0)]
         };
@@ -161,6 +150,9 @@ impl App {
                     };
                     renderer.render(&model, &mut camera, &device, &queue, &fbo);
 
+                    // Moves camera
+                    camera.translate(Vector3::new(0.0, 0.0, -0.5));
+
                     // Updates/draws EGUI
                     platform.update_time(start_time.elapsed().as_secs_f64());
                     platform.begin_frame();
@@ -194,12 +186,19 @@ impl App {
                     window.request_redraw();
                 }
                 WindowEvent { event, .. } => match event {
+
+                    // Screen resized
                     winit::event::WindowEvent::Resized(size) => {
+
+                        // Updates surface and depth_stencil
                         if size.width != 0 { surface_config.width = size.width; }
                         if size.height != 0 { surface_config.height = size.height; }
                         surface.configure(&device, &surface_config);
                         depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
                         depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
+
+                        // Updates camera
+                        update_camera(&mut camera, size.width, size.height);
                     }
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
@@ -210,4 +209,28 @@ impl App {
             }
         });
     }
+}
+
+fn create_camera(device: &Device, width: u32, height: u32) -> Camera {
+    let sw = width as f32;
+    let sh = height as f32;
+    let hw = sw / 2.0;
+    let hh = sh / 2.0;
+    let mut cam = Camera::create_perspective(
+        &device,
+        Point3::<f32>::new(0.0, 0.0, 0.0),
+        Vector3::<f32>::new(0.0, 0.0, -1.0),
+        Vector3::<f32>::unit_y(),
+        Perspective { left: -hw, right: hw, bottom: -hh, top: hh, near: 0.1, far: 100.0 }
+    );
+    cam.set_coordinate_system(Camera::OPENGL_COORDINATE_SYSTEM);
+    cam
+}
+
+fn update_camera(camera: &mut Camera, width: u32, height: u32) {
+    let sw = width as f32;
+    let sh = height as f32;
+    let hw = sw / 2.0;
+    let hh = sh / 2.0;
+    camera.set_perspective(Perspective { left: -hw, right: hw, bottom: -hh, top: hh, near: 0.1, far: 100.0 });
 }
