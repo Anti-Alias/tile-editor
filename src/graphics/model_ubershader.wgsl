@@ -5,7 +5,7 @@
 
 
 //////////////////////////////// Vertex ////////////////////////////////
-// ------------- Vertex/instance buffer type(s) -------------
+// ------------- Vertex input type -------------
 struct ModelVertexIn {
     [[location(0)]] position: vec3<f32>;
     [[location(1)]] normal: vec3<f32>;
@@ -13,6 +13,8 @@ struct ModelVertexIn {
     [[location(3)]] uv: vec2<f32>;
 };
 
+
+// ------------- Instance input type -------------
 struct ModelInstanceIn {
     [[location(4)]] col0: vec4<f32>;
     [[location(5)]] col1: vec4<f32>;
@@ -21,7 +23,7 @@ struct ModelInstanceIn {
 };
 
 
-// ------------- Output type -------------
+// ------------- Vertex output type -------------
 struct ModelVertexOut {
     [[builtin(position)]] position: vec4<f32>;
     [[location(0)]] normal: vec3<f32>;
@@ -45,23 +47,23 @@ var<uniform> camera: CameraUni;
 // ------------- Texture bind group -------------
 #ifdef M_DIFFUSE_ENABLED
 [[group(1), binding(M_DIFFUSE_TEXTURE_BINDING)]]
-var t_diffuse: texture_2d<f32>;
+var diff_tex: texture_2d<f32>;
 [[group(1), binding(M_DIFFUSE_SAMPLER_BINDING)]]
-var s_diffuse: sampler;
+var diff_samp: sampler;
 #endif
 
 #ifdef M_SPECULAR_ENABLED
 [[group(1), binding(M_SPECULAR_TEXTURE_BINDING)]]
-var t_specular: texture_2d<f32>;
+var spec_tex: texture_2d<f32>;
 [[group(1), binding(M_SPECULAR_SAMPLER_BINDING)]]
-var s_specular: sampler;
+var spec_samp: sampler;
 #endif
 
 #ifdef M_NORMAL_ENABLED
-[[group(1), binding(M_SPECULAR_TEXTURE_BINDING)]]
-var t_specular: texture_2d<f32>;
-[[group(1), binding(M_SPECULAR_SAMPLER_BINDING)]]
-var s_specular: sampler;
+[[group(1), binding(M_NORMAL_TEXTURE_BINDING)]]
+var norm_tex: texture_2d<f32>;
+[[group(1), binding(M_NORMAL_SAMPLER_BINDING)]]
+var norm_samp: sampler;
 #endif
 
 
