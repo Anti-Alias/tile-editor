@@ -8,15 +8,17 @@ use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
-use wgpu::{Device, TextureFormat, TextureViewDescriptor};
+use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor};
 
 use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
 
 
-use crate::graphics::{Camera, Color, create_surface_depth_texture, Material, Mesh, Model, ModelFrameBuffer, ModelRenderer};
+use crate::graphics::{Camera, Color, create_surface_depth_texture, Material, Mesh, Model, ModelFrameBuffer, ModelInstance, ModelInstanceSet, ModelRenderer, Texture};
 use crate::gui::{GUI, Editor};
 
+/// Represents the application as a whole.
+/// Draws an EGUI interface on top of the map renderer
 pub struct App {
     title: String,
     width: u32,
@@ -100,16 +102,12 @@ impl App {
 
         // Sets up camera
         let mut camera = create_camera(&device, size.width, size.height);
-        //camera.move_to(Point3::new(0.0, 100.0, 300.0));
         let mut t: f32 = 0.0;
 
-        // Sets up model renderer and model
+        // Sets up model renderer, model and instances
         let mut renderer = ModelRenderer::new(&device, surface_config.format, self.depth_stencil_format);
-        let model = Model {
-            meshes: vec![Mesh::cube(&device, Color::RED, Vector3::new(100.0, 100.0, 100.0))],
-            materials: vec![Material::empty()],
-            associations: vec![(0, 0)]
-        };
+        let (model, instances) = create_model_and_instances(&device, &queue);
+
         renderer.prepare(&device, &model, &camera);
         let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
         let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
@@ -150,11 +148,11 @@ impl App {
                         color: &surface_view,
                         depth_stencil: &depth_stencil_view
                     };
-                    renderer.render(&model, &mut camera, &device, &queue, &fbo);
+                    renderer.render(&model, &instances, &mut camera, &device, &queue, &fbo);
 
                     // Moves camera
                     let theta = std::f32::consts::PI * t;
-                    let rad = 200.0_f32;
+                    let rad = 300.0_f32;
                     camera.move_to(Point3::new(
                         f32::cos(theta)*rad,
                         f32::sin(theta*4.0)*50.0_f32,
@@ -289,4 +287,38 @@ fn update_camera(camera: &mut Camera, width: u32, height: u32) {
         near: CAM_NEAR,
         far: CAM_FAR
     });
+}
+
+fn create_model_and_instances(device: &Device, queue: &Queue) -> (Model, ModelInstanceSet) {
+    use image::io::Reader as ImageReader;
+    let diffuse_img = ImageReader::open("assets/stone.png")
+        .expect("Failed to open assets/stone.png")
+        .decode()
+        .expect("Failed to decode assets/stone.png");
+    let diffuse_tex = Texture::from_image(device, queue, &diffuse_img, None);
+    let material = Material::new().with_diffuse(diffuse_tex);
+    let model = Model {
+        meshes: vec![Mesh::cube(&device, Color::RED, Vector3::new(100.0, 100.0, 100.0))],
+        materials: vec![material],
+        associations: vec![(0, 0)]
+    };
+    let instances = ModelInstanceSet::new(&device, vec![
+        ModelInstance {
+            world: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [100.0, 0.0, 0.0, 1.0]
+            ]
+        },
+        ModelInstance {
+            world: [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [-100.0, 0.0, 0.0, 1.0]
+            ]
+        }
+    ]);
+    (model, instances)
 }

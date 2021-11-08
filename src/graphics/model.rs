@@ -1,6 +1,7 @@
 use cgmath::Matrix4;
-use wgpu::{Device, CommandEncoderDescriptor, RenderPassDescriptor, CommandEncoder, TextureView, RenderPassColorAttachment, Operations, LoadOp, RenderPassDepthStencilAttachment, IndexFormat, Queue, RenderPass, TextureFormat, BindGroup, BindGroupDescriptor, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, ShaderStages, BindingType, BufferBindingType, BindGroupEntry, BindingResource};
-use crate::graphics::{Material, Mesh, PipelineProvider, ShaderFeatures, ShaderProvider, PipelineFeatures, Camera};
+use egui_wgpu_backend::wgpu::VertexFormat;
+use wgpu::*;
+use crate::graphics::{Material, Mesh, PipelineProvider, ShaderFeatures, ShaderProvider, PipelineFeatures, Camera, ModelInstanceSet};
 
 // Helpful local constants
 const VERTEX_BUFFER_SLOT: u32 = 0;
@@ -25,7 +26,6 @@ impl Model {
         })
     }
 }
-
 
 /// Represents a set render targets that a `ModelRenderer` can render to
 pub struct ModelFrameBuffer<'a> {
@@ -76,6 +76,7 @@ impl ModelRenderer {
     pub fn render(
         &mut self,
         model: &Model,
+        instances: &ModelInstanceSet,
         camera: &mut Camera,
         device: &Device,
         queue: &Queue,
@@ -87,7 +88,7 @@ impl ModelRenderer {
         });
 
         // Adds render commands to encoder
-        self.render_to_encoder(model, camera, &mut encoder, fbo);
+        self.render_to_encoder(model, instances, camera, &mut encoder, fbo);
 
         // Updates camera first
         camera.write(queue);
@@ -106,6 +107,7 @@ impl ModelRenderer {
     fn render_to_encoder(
         &mut self,
         model: &Model,
+        instances: &ModelInstanceSet,
         camera: &Camera,
         encoder: &mut CommandEncoder,
         fbo: &ModelFrameBuffer
@@ -139,7 +141,7 @@ impl ModelRenderer {
         });
 
         // Draws all meshes within the model using render pass
-        self.render_model(model, camera, &mut render_pass);
+        self.render_model(model, instances, camera, &mut render_pass);
     }
 
     /// Creates pipeline objects for a particular Model ahead of time if they don't already exist
@@ -164,6 +166,7 @@ impl ModelRenderer {
     fn render_model<'a, 'b>(
         &'a self,
         model: &'b Model,
+        instances: &'b ModelInstanceSet,
         camera: &'b Camera,
         render_pass: &mut RenderPass<'b>,
     ) where 'a: 'b {
@@ -177,11 +180,13 @@ impl ModelRenderer {
             let pipeline = pipeline_provider
                 .provide(&features)
                 .expect("Missing pipeline with features specified");
+            let num_instances = instances.len() as u32;
             render_pass.set_pipeline(pipeline);
             render_pass.set_bind_group(0, camera.bind_group(), &[]);
             render_pass.set_vertex_buffer(VERTEX_BUFFER_SLOT, mesh.vertices.slice(..));
+            render_pass.set_vertex_buffer(INSTANCE_BUFFER_SLOT, instances.buffer_slice());
             render_pass.set_index_buffer(mesh.indices.slice(..), IndexFormat::Uint32);
-            render_pass.draw_indexed(0..mesh.num_indices, 0, 0..1);
+            render_pass.draw_indexed(0..mesh.num_indices, 0, 0..num_instances);
         }
     }
 }

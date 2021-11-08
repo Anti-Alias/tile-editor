@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use egui_wgpu_backend::wgpu::{FrontFace, PrimitiveTopology};
 use wgpu::{BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
-use crate::graphics::{ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
+use crate::graphics::{ModelInstance, ModelInstanceSet, ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
 
 /// Represents a permutation of features a pipeline should have
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -70,7 +70,10 @@ impl PipelineProvider {
         let vertex = VertexState {
             module,
             entry_point: "main",
-            buffers: &[ModelVertex::layout()]
+            buffers: &[
+                ModelVertex::layout(),
+                ModelInstance::layout()
+            ]
         };
         let fragment = Some(FragmentState {
             module,

@@ -9,9 +9,11 @@ mod pipeline;
 mod matrices;
 mod util;
 mod camera;
+mod model_instance;
 
 pub use mesh::*;
 pub use model::*;
+pub use model_instance::*;
 pub use texture::*;
 pub use vertex::*;
 pub use material::*;
