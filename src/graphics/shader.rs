@@ -59,7 +59,7 @@ impl ShaderProvider {
     /// Preprocesses shader source code with specified features
     pub fn preprocess_source(source: &str, features: &ShaderFeatures) -> String {
 
-        // Creates empty preprocessor context
+        // Prepares empty preprocessor context
         let mut context = gpp::Context::new();
         let macros = &mut context.macros;
         let mat_flags = features.material_flags;
@@ -67,28 +67,28 @@ impl ShaderProvider {
 
         // Sets diffuse macros
         if mat_flags & Material::DIFFUSE_BIT != 0 {
-            macros.insert(String::from("DIFFUSE"), String::from("EXISTS"));
-            macros.insert(String::from("T_DIFFUSE_BINDING"), String::from(current_binding.to_string()));
+            macros.insert(String::from("M_DIFFUSE_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_DIFFUSE_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
-            macros.insert(String::from("S_DIFFUSE_BINDING"), String::from(current_binding.to_string()));
+            macros.insert(String::from("M_DIFFUSE_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
 
         // Sets specular macros
         if mat_flags & Material::SPECULAR_BIT != 0 {
-            macros.insert(String::from("SPECULAR"), String::from("EXISTS"));
-            macros.insert(String::from("T_SPECULAR_BINDING"), String::from(current_binding.to_string()));
+            macros.insert(String::from("M_SPECULAR_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_SPECULAR_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
-            macros.insert(String::from("S_SPECULAR_BINDING"), String::from(current_binding.to_string()));
+            macros.insert(String::from("M_SPECULAR_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
 
         // Sets normal macros
         if mat_flags & Material::NORMAL_BIT != 0 {
-            macros.insert(String::from("NORMAL"), String::from("EXISTS"));
-            macros.insert(String::from("T_NORMAL_BINDING"), String::from(current_binding.to_string()));
+            macros.insert(String::from("M_NORMAL_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
-            macros.insert(String::from("S_NORMAL_BINDING"), String::from(current_binding.to_string()));
+            macros.insert(String::from("M_NORMAL_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
 
