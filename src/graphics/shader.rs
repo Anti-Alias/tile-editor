@@ -5,7 +5,8 @@ use crate::graphics::{Material};
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct ShaderFeatures {
-    pub material_flags: u64 // See material.rs for flag bits
+    /// See material.rs for flag bits
+    pub material_flags: u64
 }
 
 
@@ -55,17 +56,43 @@ impl ShaderProvider {
         })
     }
 
-    // Preprocesses shader source code with features
+    /// Preprocesses shader source code with specified features
     pub fn preprocess_source(source: &str, features: &ShaderFeatures) -> String {
+
+        // Creates empty preprocessor context
         let mut context = gpp::Context::new();
         let macros = &mut context.macros;
         let mat_flags = features.material_flags;
+        let mut current_binding = 0;
+
+        // Sets diffuse macros
         if mat_flags & Material::DIFFUSE_BIT != 0 {
             macros.insert(String::from("DIFFUSE"), String::from("EXISTS"));
+            macros.insert(String::from("T_DIFFUSE_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+            macros.insert(String::from("S_DIFFUSE_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
         }
+
+        // Sets specular macros
+        if mat_flags & Material::SPECULAR_BIT != 0 {
+            macros.insert(String::from("SPECULAR"), String::from("EXISTS"));
+            macros.insert(String::from("T_SPECULAR_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+            macros.insert(String::from("S_SPECULAR_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+        }
+
+        // Sets normal macros
         if mat_flags & Material::NORMAL_BIT != 0 {
             macros.insert(String::from("NORMAL"), String::from("EXISTS"));
+            macros.insert(String::from("T_NORMAL_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+            macros.insert(String::from("S_NORMAL_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
         }
+
+        // Returns preprocessed string
         gpp::process_str(source, &mut context).unwrap()
     }
 

@@ -44,17 +44,15 @@ impl ModelRenderer {
 
     /// Creates a `ModelRenderer` with a default shader
     pub fn new(
-        device: &Device,
         color_format: TextureFormat,
         depth_stencil_format: TextureFormat
     ) -> ModelRenderer {
         let shader_source = String::from(include_str!("model_ubershader.wgsl"));
-        Self::create_from_shader(device, shader_source, color_format, depth_stencil_format)
+        Self::create_from_shader(shader_source, color_format, depth_stencil_format)
     }
 
     /// Creates a `ModelRenderer` with the specified shader
     pub fn create_from_shader(
-        device: &Device,
         shader_source: String,
         color_format: TextureFormat,
         depth_stencil_format: TextureFormat
@@ -159,7 +157,12 @@ impl ModelRenderer {
                 color_format: self.color_format,
                 depth_stencil_format: self.depth_stencil_format
             };
-            pipeline_provider.provide_or_create(device, &features, shader_provider, &[&camera.bind_group_layout()]);
+            pipeline_provider.provide_or_create(
+                device,
+                &features,
+                shader_provider,
+                &[&camera.bind_group_layout()]
+            );
         }
     }
 

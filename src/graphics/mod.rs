@@ -6,7 +6,6 @@ mod material;
 mod voxel_map_graphics;
 mod shader;
 mod pipeline;
-mod matrices;
 mod util;
 mod camera;
 mod model_instance;

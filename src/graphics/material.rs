@@ -8,8 +8,13 @@ pub struct Material {
 }
 
 impl Material {
+    /// Determines if diffuse texture will be used
     pub const DIFFUSE_BIT: u64 = 1;
+
+    /// Determines if specular texture will be used
     pub const SPECULAR_BIT: u64 = 1 << 1;
+
+    /// Determines if normal texture will be used
     pub const NORMAL_BIT: u64 = 1 << 2;
 
     /// Creates an empty material with no textures

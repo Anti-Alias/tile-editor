@@ -105,7 +105,7 @@ impl App {
         let mut t: f32 = 0.0;
 
         // Sets up model renderer, model and instances
-        let mut renderer = ModelRenderer::new(&device, surface_config.format, self.depth_stencil_format);
+        let mut renderer = ModelRenderer::new(surface_config.format, self.depth_stencil_format);
         let (model, instances) = create_model_and_instances(&device, &queue);
 
         renderer.prepare(&device, &model, &camera);
