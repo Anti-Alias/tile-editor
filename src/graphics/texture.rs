@@ -1,4 +1,4 @@
-use wgpu::{Sampler, TextureView, Device, Queue, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor, ImageCopyTexture, ImageDataLayout, SamplerDescriptor, Extent3d};
+use wgpu::{Sampler, TextureView, Device, Queue, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor, ImageCopyTexture, ImageDataLayout, SamplerDescriptor, Extent3d, TextureAspect, Origin3d};
 use std::rc::Rc;
 use image::{DynamicImage, ImageError, GenericImageView};
 use std::num::NonZeroU32;
@@ -32,50 +32,56 @@ impl Texture {
         image: &DynamicImage,
         label: Option<&'a str>
     ) -> Texture {
-
+        let rgba = image.as_rgba8().unwrap();
         let dimensions = image.dimensions();
 
+        let size = wgpu::Extent3d {
+            width: dimensions.0,
+            height: dimensions.1,
+            depth_or_array_layers: 1,
+        };
+
         // Raw texture
-        let tex = device.create_texture(&TextureDescriptor{
+        let texture = device.create_texture(&TextureDescriptor{
             label,
-            size: Extent3d {
-                width: dimensions.0,
-                height: dimensions.1,
-                depth_or_array_layers: 1
-            },
+            size,
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: TextureFormat::Rgba8UnormSrgb,
-            usage: TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING
+            usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST
         });
 
         // Writes data to texture
         queue.write_texture(
             ImageCopyTexture {
-                texture: &tex,
+                texture: &texture,
                 mip_level: 0,
-                origin: Default::default(),
-                aspect: Default::default()
+                origin: Origin3d::ZERO,
+                aspect: TextureAspect::All
             },
-            image.as_bytes(),
+            rgba,
             ImageDataLayout {
                 offset: 0,
                 bytes_per_row: Some(NonZeroU32::new(4 * dimensions.0).unwrap()),
                 rows_per_image: Some(NonZeroU32::new(dimensions.1).unwrap())
             },
-            Default::default()
+            size
         );
 
-        // Texture view
-        let view = tex.create_view(&TextureViewDescriptor::default());
-
-        // Sampler
-        let sampler = device.create_sampler(&SamplerDescriptor { ..Default::default() });
-
-        // Done
+        // Creates view and sampler, then finishes
+        let view = texture.create_view(&TextureViewDescriptor::default());
+        let sampler = device.create_sampler(&SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
         Texture {
-            texture: Rc::new(tex),
+            texture: Rc::new(texture),
             view: Rc::new(view),
             sampler: Rc::new(sampler)
         }

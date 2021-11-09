@@ -291,16 +291,16 @@ fn update_camera(camera: &mut Camera, width: u32, height: u32) {
 
 fn create_model_and_instances(device: &Device, queue: &Queue) -> (Model, ModelInstanceSet) {
     use image::io::Reader as ImageReader;
-    let diffuse_img = ImageReader::open("assets/stone.png")
-        .expect("Failed to open assets/stone.png")
+    let diffuse_img = ImageReader::open("assets/cubemap.png")
+        .unwrap()
         .decode()
-        .expect("Failed to decode assets/stone.png");
+        .unwrap();
     let diffuse_tex = Texture::from_image(device, queue, &diffuse_img, None);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .build(&device);
     let model = Model {
-        meshes: vec![Mesh::cube(&device, Color::RED, Vector3::new(100.0, 100.0, 100.0))],
+        meshes: vec![Mesh::cube(&device, Color::WHITE, Vector3::new(100.0, 100.0, 100.0))],
         materials: vec![material],
         associations: vec![(0, 0)]
     };

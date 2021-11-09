@@ -71,21 +71,30 @@ impl MaterialBuilder {
 
     // Creates layout of bind group
     fn create_bind_group_layout(&self, device: &Device) -> BindGroupLayout {
-        let entries = (0..self.num_textures())
-            .map(|binding| {
-                BindGroupLayoutEntry {
-                    binding,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::Texture {
-                        sample_type: Default::default(),
-                        view_dimension: TextureViewDimension::D2,
-                        multisampled: false
-                    },
-                    count: None
-                }
-            })
-            .collect::<Vec<_>>();
-        log::debug!("Created bind group layout with {} entries", entries.len());
+        let num_textures = self.num_textures();
+        let mut entries = Vec::with_capacity((num_textures*2) as usize);
+        for i in 0..num_textures {
+            entries.push(BindGroupLayoutEntry {
+                binding: i*2,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
+                    sample_type: TextureSampleType::Float { filterable: true },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false
+                },
+                count: None
+            });
+            entries.push(BindGroupLayoutEntry {
+                binding: i*2+1,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Sampler {
+                    filtering: true,
+                    comparison: false
+                },
+                count: None
+            });
+        }
+        log::debug!("Created bind group layout entries: {:?}", entries);
         device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some("Material Bind Group Layout"),
             entries: entries.as_slice()
@@ -93,33 +102,34 @@ impl MaterialBuilder {
     }
 
     fn create_bind_group(&self, layout: &BindGroupLayout, device: &Device) -> BindGroup {
-        let mut entries = Vec::new();
-        let mut binding: u32 = 0;
+        let mut bind_group_entries = Vec::new();
         if let Some(diffuse) = self.diffuse.as_ref() {
-            entries.push(Self::create_bind_group_entry(binding, diffuse.view.as_ref()));
-            binding += 1;
+            Self::add_entries(&mut bind_group_entries, diffuse);
         }
         if let Some(specular) = self.specular.as_ref() {
-            entries.push(Self::create_bind_group_entry(binding, specular.view.as_ref()));
-            binding += 1;
+            Self::add_entries(&mut bind_group_entries, specular);
         }
         if let Some(normal) = self.normal.as_ref() {
-            entries.push(Self::create_bind_group_entry(binding, normal.view.as_ref()));
-            binding += 1;
+            Self::add_entries(&mut bind_group_entries, normal);
         }
-        log::debug!("Created bind group with {} entries", entries.len());
+        log::debug!("Created bind group entries: {:?}", bind_group_entries);
         device.create_bind_group(&BindGroupDescriptor {
             label: Some("Material Bind Group"),
             layout,
-            entries: entries.as_slice()
+            entries: bind_group_entries.as_slice()
         })
     }
 
-    fn create_bind_group_entry(binding: u32, view: &TextureView) -> BindGroupEntry {
-        BindGroupEntry {
-            binding,
-            resource: BindingResource::TextureView(view)
-        }
+    fn add_entries<'a>(entries: &mut Vec<BindGroupEntry<'a>>, texture: &'a Texture) {
+        let len = entries.len() as u32;
+        entries.push(BindGroupEntry {
+            binding: len,
+            resource: BindingResource::TextureView(texture.view.as_ref())
+        });
+        entries.push(BindGroupEntry {
+            binding: len+1,
+            resource: BindingResource::Sampler(texture.sampler.as_ref())
+        });
     }
 }
 

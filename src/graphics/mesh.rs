@@ -13,13 +13,13 @@ pub struct Mesh {
 
 impl Mesh {
 
-    const CUBE_INDICES: [u32; 36] = [
+    const CUBE_INDICES: [u32; 6] = [
         0, 1, 2, 2, 3, 0,   // Near
-        4, 0, 3, 3, 7, 4,   // Left
-        1, 5, 6, 6, 2, 1,   // Right
-        4, 5, 1, 1, 0, 4,   // Bottom
-        3, 2, 6, 6, 7, 3,   // Top
-        5, 4, 7, 7, 6, 5,   // Far
+//        4, 0, 3, 3, 7, 4,   // Left
+//        1, 5, 6, 6, 2, 1,   // Right
+//        4, 5, 1, 1, 0, 4,   // Bottom
+//        3, 2, 6, 6, 7, 3,   // Top
+//        5, 4, 7, 7, 6, 5,   // Far
     ];
 
     pub fn triangle(device: &Device, color: Color) -> Mesh {
@@ -93,56 +93,42 @@ impl Mesh {
     fn create_cube_vertices(
         scale: Vector3<f32>,
         rgba: [f32; 4]
-    ) -> [ModelVertex; 8] {
+    ) -> [ModelVertex; 4] {
+        let x0: f32 = 0.0;
+        let x1: f32 = 1.0/4.0;
+        let x2: f32 = 2.0/4.0;
+        let x3: f32 = 3.0/4.0;
+        let x4: f32 = 4.0/4.0;
+        let y0: f32 = 0.0;
+        let y1: f32 = 1.0/3.0;
+        let y2: f32 = 2.0/3.0;
+        let y3: f32 = 3.0/3.0;
         let mut v = [
-            ModelVertex {                               // bottom/left/near
+            // NEAR
+            ModelVertex {
                 position: [-0.5, -0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
                 color: rgba,
-                uv: [0.0, 0.0]
+                uv: [x1, y2]
             },
-            ModelVertex {                               // bottom/right/near
+            ModelVertex {
                 position: [0.5, -0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
                 color: rgba,
-                uv: [0.0, 0.0]
+                uv: [x2, y2]
             },
-            ModelVertex {                               // top/right/near
+            ModelVertex {
                 position: [0.5, 0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
                 color: rgba,
-                uv: [0.0, 0.0]
+                uv: [x2, y1]
             },
-            ModelVertex {                               // top/left/near
+            ModelVertex {
                 position: [-0.5, 0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
                 color: rgba,
-                uv: [0.0, 0.0]
-            },
-            ModelVertex {                               // bottom/left/far
-                position: [-0.5, -0.5, -0.5],
-                normal: [0.0, 0.0, 1.0],
-                color: rgba,
-                uv: [0.0, 0.0]
-            },
-            ModelVertex {                               // bottom/right/far
-                position: [0.5, -0.5, -0.5],
-                normal: [0.0, 0.0, 1.0],
-                color: rgba,
-                uv: [0.0, 0.0]
-            },
-            ModelVertex {                               // top/right/far
-                position: [0.5, 0.5, -0.5],
-                normal: [0.0, 0.0, 1.0],
-                color: rgba,
-                uv: [0.0, 0.0]
-            },
-            ModelVertex {                               // top/left/far
-                position: [-0.5, 0.5, -0.5],
-                normal: [0.0, 0.0, 1.0],
-                color: rgba,
-                uv: [0.0, 0.0]
-            },
+                uv: [x1, y1]
+            }
         ];
         for vert in v.iter_mut() {
             vert.position[0] *= scale.x;

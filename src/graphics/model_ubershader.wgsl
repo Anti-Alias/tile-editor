@@ -98,5 +98,15 @@ struct ColorTargetOut {
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
 fn main(in: ModelVertexOut) -> ColorTargetOut {
-    return ColorTargetOut(in.color);
+
+    // Defines output color
+    var output = vec4<f32>(0.0);
+
+    // Applies diffuse texture
+#   ifdef M_DIFFUSE_ENABLED
+    output = output + textureSample(diff_tex, diff_samp, in.uv);
+#   endif
+
+    // Done
+    return ColorTargetOut(output);
 }
