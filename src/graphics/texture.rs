@@ -47,7 +47,7 @@ impl Texture {
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: TextureFormat::Rgba8UnormSrgb,
-            usage: TextureUsages::COPY_DST
+            usage: TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING
         });
 
         // Writes data to texture

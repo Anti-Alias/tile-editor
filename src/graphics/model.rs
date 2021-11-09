@@ -161,7 +161,7 @@ impl ModelRenderer {
                 device,
                 &features,
                 shader_provider,
-                &[&camera.bind_group_layout()]
+                &[&camera.bind_group_layout(), material.bind_group_layout()]
             );
         }
     }
@@ -186,6 +186,7 @@ impl ModelRenderer {
             let num_instances = instances.len() as u32;
             render_pass.set_pipeline(pipeline);
             render_pass.set_bind_group(0, camera.bind_group(), &[]);
+            render_pass.set_bind_group(1, material.bind_group(), &[]);
             render_pass.set_vertex_buffer(VERTEX_BUFFER_SLOT, mesh.vertices.slice(..));
             render_pass.set_vertex_buffer(INSTANCE_BUFFER_SLOT, instances.buffer_slice());
             render_pass.set_index_buffer(mesh.indices.slice(..), IndexFormat::Uint32);

@@ -14,7 +14,7 @@ use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
 
 
-use crate::graphics::{Camera, Color, create_surface_depth_texture, Material, Mesh, Model, ModelFrameBuffer, ModelInstance, ModelInstanceSet, ModelRenderer, Texture};
+use crate::graphics::{Camera, Color, create_surface_depth_texture, Material, MaterialBuilder, Mesh, Model, ModelFrameBuffer, ModelInstance, ModelInstanceSet, ModelRenderer, Texture};
 use crate::gui::{GUI, Editor};
 
 /// Represents the application as a whole.
@@ -296,7 +296,9 @@ fn create_model_and_instances(device: &Device, queue: &Queue) -> (Model, ModelIn
         .decode()
         .expect("Failed to decode assets/stone.png");
     let diffuse_tex = Texture::from_image(device, queue, &diffuse_img, None);
-    let material = Material::new().with_diffuse(diffuse_tex);
+    let material = MaterialBuilder::new()
+        .diffuse(diffuse_tex)
+        .build(&device);
     let model = Model {
         meshes: vec![Mesh::cube(&device, Color::RED, Vector3::new(100.0, 100.0, 100.0))],
         materials: vec![material],
