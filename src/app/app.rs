@@ -155,7 +155,7 @@ impl App {
                     let rad = 300.0_f32;
                     camera.move_to(Point3::new(
                         f32::cos(theta)*rad,
-                        f32::sin(theta*4.0)*50.0_f32,
+                        f32::sin(theta*2.0)*180.0_f32,
                         f32::sin(theta)*rad)
                     );
                     camera.look_at(Point3::new(0.0, 0.0, 0.0));
@@ -190,7 +190,7 @@ impl App {
                     *control_flow = ControlFlow::Poll;
 
                     // Update t
-                    t += 0.005;
+                    t += 0.003;
                 }
                 MainEventsCleared => {
                     window.request_redraw();

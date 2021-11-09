@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use egui_wgpu_backend::wgpu::{FrontFace, PrimitiveTopology};
-use wgpu::{BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
+use wgpu::{BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, Face, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
 use crate::graphics::{ModelInstance, ModelInstanceSet, ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
 
 /// Represents a permutation of features a pipeline should have
@@ -114,7 +114,7 @@ impl PipelineProvider {
             topology: PrimitiveTopology::TriangleList,
             strip_index_format: None,
             front_face: FrontFace::Ccw,
-            cull_mode: None,
+            cull_mode: Some(Face::Back),
             clamp_depth: false,
             polygon_mode: PolygonMode::Fill,
             conservative: false
