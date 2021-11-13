@@ -1,7 +1,9 @@
+#ifdef M_DO_NOT_SET_ME
 // Note: This is an 'ubershader' that must be preprocessed with 'gpp'.
-// All macro variable names should be all uppercase with words separated by '_'.
+// All macro variable names should be uppercase with words separated by '_'.
 // All macro variable names should be prefixed with 'M_'. IE: 'M_MY_VARIABLE_NAME'.
 // Macro flag variable names should be suffixed with '_ENABLED'. IE: 'M_UNICYCLES_ENABLED'.
+#endif
 
 
 //////////////////////////////// Vertex ////////////////////////////////

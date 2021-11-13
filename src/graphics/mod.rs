@@ -9,10 +9,16 @@ mod pipeline;
 mod util;
 mod camera;
 mod model_instance;
+mod model_environment;
+mod light;
+mod model_renderer;
 
 pub use mesh::*;
 pub use model::*;
+pub use model_renderer::*;
 pub use model_instance::*;
+pub use model_environment::*;
+pub use light::*;
 pub use texture::*;
 pub use vertex::*;
 pub use material::*;

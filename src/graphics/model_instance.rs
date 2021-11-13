@@ -1,6 +1,7 @@
 use wgpu::*;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use bytemuck::{Pod, Zeroable};
+use crate::graphics::Model;
 
 /// Represents the instance data of a `Model`.
 #[repr(C)]
@@ -42,27 +43,33 @@ impl ModelInstance {
     }
 }
 
-/// Represents a set of `ModelInstance`s stored on the GPU
+/// Represents a `Model` and a set of instances.
 pub struct ModelInstanceSet {
-    instances: Vec<ModelInstance>,
-    buffer: Buffer
+    pub model: Model,
+    pub instances: Vec<ModelInstance>,
+    pub buffer: Buffer
 }
 
 impl ModelInstanceSet {
 
-    /// Creates a new set of `ModelInstance`s.
-    pub fn new(device: &Device, instances: Vec<ModelInstance>) -> ModelInstanceSet {
+    /// Creates a new set
+    /// * `device` - Device used to allocate buffer that houses model instances on the GPU
+    /// * `model` - Main model to render
+    /// * `instances` - Initial set of instances of said model to render
+    pub fn new(device: &Device, model: Model, instances: Vec<ModelInstance>) -> ModelInstanceSet {
         let buffer = device.create_buffer_init(&BufferInitDescriptor {
             label: None,
             contents: bytemuck::cast_slice(&instances),
             usage: BufferUsages::VERTEX
         });
         ModelInstanceSet {
+            model,
             instances,
             buffer
         }
     }
 
+    /// Number of instances stored
     pub fn len(&self) -> usize {
         self.instances.len()
     }

@@ -183,7 +183,7 @@ impl Camera {
     }
 
     /// Writes to internal
-    pub fn write(&mut self, queue: &Queue) {
+    pub fn flush(&mut self, queue: &Queue) {
         if self.changed {
             let view = Matrix4::look_to_rh(self.eye, self.direction, self.up);
             let mut proj_view = self.coordinate_system * self.projection * view;

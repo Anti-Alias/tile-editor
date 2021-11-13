@@ -2,19 +2,15 @@ use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
 use cgmath::{Deg, Ortho, Perspective, PerspectiveFov, Point3, Rad, Vector3};
-
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
 use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor};
-
 use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
-
-
-use crate::graphics::{Camera, Color, create_surface_depth_texture, Material, MaterialBuilder, Mesh, Model, ModelFrameBuffer, ModelInstance, ModelInstanceSet, ModelRenderer, Texture};
+use crate::graphics::*;
 use crate::gui::{GUI, Editor};
 
 /// Represents the application as a whole.
@@ -100,17 +96,25 @@ impl App {
         };
         surface.configure(&device, &surface_config);
 
-        // Sets up camera
-        let mut camera = create_camera(&device, size.width, size.height);
-        let mut t: f32 = 0.0;
-
-        // Sets up model renderer, model and instances
-        let mut renderer = ModelRenderer::new(surface_config.format, self.depth_stencil_format);
-        let (model, instances) = create_model_and_instances(&device, &queue);
-
-        renderer.prepare(&device, &model, &camera);
+        // Creates depth buffer
         let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
         let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
+
+        // Sets up environment to render (models, camera, lights, etc)
+        let mut camera = create_camera(&device, size.width, size.height);
+        let model_instances = create_model_and_instances(&device, &queue);
+
+        // Creates model renderer, then primes it with the environment
+        let mut renderer = ModelRenderer::new(surface_config.format, self.depth_stencil_format);
+        renderer.prime(
+            &device,
+            &ModelEnvironment {
+                instance_set: &model_instances,
+                camera: &camera,
+                point_lights: &[],
+                directional_lights: &[]
+            }
+        );
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -124,7 +128,8 @@ impl App {
         let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
         let start_time = Instant::now();
 
-        // Main loop
+        // ---------- Main loop ----------
+        let mut t: f32 = 0.0;
         event_loop.run(move |event, _, control_flow| {
 
             // Pass the winit events to the platform integration.
@@ -133,7 +138,7 @@ impl App {
             match event {
                 RedrawRequested(..) => {
 
-                    // Gets texture view of surface for drawing on
+                    // Gets texture view of surface
                     let surface_frame = match surface.get_current_frame() {
                         Ok(frame) => frame,
                         Err(_) => { return }
@@ -143,12 +148,22 @@ impl App {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
-                    // Draws with renderer
-                    let fbo = ModelFrameBuffer {
-                        color: &surface_view,
-                        depth_stencil: &depth_stencil_view
-                    };
-                    renderer.render(&model, &instances, &mut camera, &device, &queue, &fbo);
+                    // Flushes environment uniforms, then renders model environment
+                    camera.flush(&queue);
+                    renderer.render(
+                        &device,
+                        &queue,
+                        &ModelEnvironment {
+                            instance_set: &model_instances,
+                            camera: &camera,
+                            point_lights: &[],
+                            directional_lights: &[]
+                        },
+                        &ModelFrameBuffer {
+                            color: &surface_view,
+                            depth_stencil: &depth_stencil_view
+                        }
+                    );
 
                     // Moves camera
                     let theta = std::f32::consts::PI * t;
@@ -289,7 +304,9 @@ fn update_camera(camera: &mut Camera, width: u32, height: u32) {
     });
 }
 
-fn create_model_and_instances(device: &Device, queue: &Queue) -> (Model, ModelInstanceSet) {
+fn create_model_and_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
+
+    // Creates texture from image
     use image::io::Reader as ImageReader;
     let diffuse_img = ImageReader::open("assets/cubemap.png")
         .unwrap()
@@ -299,12 +316,16 @@ fn create_model_and_instances(device: &Device, queue: &Queue) -> (Model, ModelIn
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .build(&device);
+
+    // Creates cube model
     let model = Model {
         meshes: vec![Mesh::cube(&device, Color::WHITE, Vector3::new(100.0, 100.0, 100.0))],
         materials: vec![material],
         associations: vec![(0, 0)]
     };
-    let instances = ModelInstanceSet::new(&device, vec![
+
+    // Creates model instances and returns instance set
+    ModelInstanceSet::new(&device, model, vec![
         ModelInstance {
             world: [
                 [1.0, 0.0, 0.0, 0.0],
@@ -321,6 +342,5 @@ fn create_model_and_instances(device: &Device, queue: &Queue) -> (Model, ModelIn
                 [-100.0, 0.0, 0.0, 1.0]
             ]
         }
-    ]);
-    (model, instances)
+    ])
 }
