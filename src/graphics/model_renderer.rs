@@ -174,7 +174,11 @@ impl ModelRenderer {
                 device,
                 &features,
                 shader_provider,
-                &[&camera.bind_group_layout(), material.bind_group_layout()]
+                &[
+                    camera.bind_group_layout(),
+                    material.bind_group_layout(),
+
+                ]
             );
         }
     }

@@ -1,5 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::{VertexBufferLayout, BufferAddress, VertexStepMode, VertexAttribute, VertexFormat};
+use crevice::std140::AsStd140;
 
 /// Describes a vertex layout
 pub trait Vertex {
@@ -7,7 +8,7 @@ pub trait Vertex {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Pod, Zeroable)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable, AsStd140)]
 pub struct Color {
     pub r: f32,
     pub g: f32,

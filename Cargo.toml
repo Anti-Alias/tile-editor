@@ -19,6 +19,7 @@ egui_winit_platform = "0.10.0"
 egui_demo_lib = "0.14"
 nfd = "0.0.4"
 gpp = "0.6.2"
+crevice = { version = "0.8.0", features = [ "cgmath" ]}
 
 chrono = "0.4"
 futures-lite = "1.12"
