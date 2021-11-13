@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use egui_wgpu_backend::wgpu::{FrontFace, PrimitiveTopology};
 use wgpu::{BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, Face, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
-use crate::graphics::{ModelInstance, ModelInstanceSet, ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
+use crate::graphics::{ModelInstance, ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
 
 /// Represents a permutation of features a pipeline should have
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]

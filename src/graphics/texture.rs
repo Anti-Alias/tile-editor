@@ -1,4 +1,4 @@
-use wgpu::{Sampler, TextureView, Device, Queue, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor, ImageCopyTexture, ImageDataLayout, SamplerDescriptor, Extent3d, TextureAspect, Origin3d};
+use wgpu::{Sampler, TextureView, Device, Queue, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor, ImageCopyTexture, ImageDataLayout, SamplerDescriptor, TextureAspect, Origin3d};
 use std::rc::Rc;
 use image::{DynamicImage, ImageError, GenericImageView};
 use std::num::NonZeroU32;

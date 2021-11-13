@@ -1,4 +1,4 @@
-use crate::graphics::{Camera, DirectionalLight, Model, ModelInstanceSet, PointLight};
+use crate::graphics::{Camera, DirectionalLight, ModelInstanceSet, PointLight};
 
 /// Represents data needed for a `ModelRenderer` to render a set of model instances.
 pub struct ModelEnvironment<'a> {

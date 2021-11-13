@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+
 use std::iter;
 use std::time::Instant;
 use cgmath::{Deg, Ortho, Perspective, PerspectiveFov, Point3, Rad, Vector3};

@@ -1,6 +1,6 @@
-use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, EuclideanSpace, PerspectiveFov};
+use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, PerspectiveFov};
 use wgpu::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferDescriptor, BufferUsages, Device, Queue, ShaderStages};
-use wgpu::util::DeviceExt;
+
 
 
 /// Represents a camera
@@ -186,7 +186,7 @@ impl Camera {
     pub fn flush(&mut self, queue: &Queue) {
         if self.changed {
             let view = Matrix4::look_to_rh(self.eye, self.direction, self.up);
-            let mut proj_view = self.coordinate_system * self.projection * view;
+            let proj_view = self.coordinate_system * self.projection * view;
             let proj_view: [[f32; 4]; 4] = proj_view.into();
             queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[proj_view]));
             self.changed = false;
