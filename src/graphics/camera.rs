@@ -1,9 +1,9 @@
 use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, PerspectiveFov};
-use wgpu::{BindGroup, BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, Buffer, BufferAddress, BufferBindingType, BufferDescriptor, BufferUsages, Device, Queue, ShaderStages};
+use wgpu::*;
 
 
-
-/// Represents a camera
+/// Represents a camera.
+/// May be either perspective or orthographic depending on how the projection matrix is configured.
 pub struct Camera {
     eye: Point3<f32>,                       // Position of the eye (origin) of the camera
     direction: Vector3<f32>,                // Direction the camera is looking
@@ -13,7 +13,6 @@ pub struct Camera {
     buffer: Buffer,                         // Buffer that stores data
     bind_group: BindGroup,                  // Bind group for that data
     bind_group_layout: BindGroupLayout,     // Layout of that data
-    changed: bool                           // Caching flag
 }
 
 
@@ -129,68 +128,57 @@ impl Camera {
             coordinate_system: Matrix4::identity(),
             buffer,
             bind_group,
-            bind_group_layout,
-            changed: true
+            bind_group_layout
         }
     }
 
     pub fn move_to(&mut self, eye: Point3<f32>) {
         self.eye = eye;
-        self.changed = true;
     }
 
     pub fn translate(&mut self, translation: Vector3<f32>) {
         self.eye += translation;
-        self.changed = true;
     }
 
     pub fn look_at(&mut self, point: Point3<f32>) {
         self.direction = point - self.eye;
-        self.changed = true;
     }
 
     pub fn look_to(&mut self, direction: Vector3<f32>) {
         self.direction = direction;
-        self.changed = true;
     }
 
     pub fn set_up(&mut self, up: Vector3<f32>) {
         self.up = up;
-        self.changed = true;
     }
 
-    /// Sets projection matrix to perspective matrix
+    /// Sets projection matrix to a perspective matrix
     pub fn set_perspective(&mut self, perspective: Perspective<f32>) {
         self.projection = perspective.into();
-        self.changed = true;
     }
 
-    /// Sets projection matrix to perspective matrix
+    /// Sets projection matrix to a perspective matrix
     pub fn set_perspective_fov(&mut self, fov: PerspectiveFov<f32>) {
         self.projection = fov.into();
-        self.changed = true;
     }
 
-    /// Sets projection matrix to orthographic matrix
+    /// Sets projection matrix to an orthographic matrix
     pub fn set_ortho(&mut self, ortho: Ortho<f32>) {
         self.projection = ortho.into();
-        self.changed = true;
     }
 
-    /// Sets expected coordinate system of geometry
+    /// Sets expected coordinate system of the geometry being rendered
     pub fn set_coordinate_system(&mut self, coordinate_system: Matrix4<f32>) {
         self.coordinate_system = coordinate_system;
     }
 
-    /// Writes to internal
-    pub fn flush(&mut self, queue: &Queue) {
-        if self.changed {
-            let view = Matrix4::look_to_rh(self.eye, self.direction, self.up);
-            let proj_view = self.coordinate_system * self.projection * view;
-            let proj_view: [[f32; 4]; 4] = proj_view.into();
-            queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[proj_view]));
-            self.changed = false;
-        }
+    /// Writes camera's state to it's WGPU buffer.
+    /// Only need to be invoked on the camera's state changing.
+    pub fn flush(&self, queue: &Queue) {
+        let view = Matrix4::look_to_rh(self.eye, self.direction, self.up);
+        let proj_view = self.coordinate_system * self.projection * view;
+        let proj_view: [[f32; 4]; 4] = proj_view.into();
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[proj_view]));
     }
 
     /// Reference to projection-view buffer.
@@ -200,14 +188,17 @@ impl Camera {
         self.projection_view_buffer()
     }
 
+    /// Underlying WGPU buffer
     pub fn buffer(&self) -> &Buffer {
         &self.buffer
     }
 
+    /// WGPU bind group for this camera
     pub fn bind_group(&self) -> &BindGroup {
         &self.bind_group
     }
 
+    /// Layout of the WGPU bind group
     pub fn bind_group_layout(&self) -> &BindGroupLayout {
         &self.bind_group_layout
     }
