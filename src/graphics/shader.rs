@@ -28,9 +28,9 @@ impl ShaderProvider {
         }
     }
 
-    /// Gets cached shader module, or creates it based on features provided.
-    /// Often used to preprocess a shader variant.
-    pub fn provide_or_create(&mut self, device: &Device, features: &ShaderFeatures) -> &ShaderModule {
+    /// Creates and returns a shader module with the specified features.
+    /// On subsequent invocations with the same permutation of features, the cached version wil be returned.
+    pub fn prime(&mut self, device: &Device, features: &ShaderFeatures) -> &ShaderModule {
         let modules = &mut self.modules;
         let source = &self.source;
         modules.entry(*features).or_insert_with(move || {

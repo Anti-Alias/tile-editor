@@ -51,7 +51,7 @@ impl ModelRenderer {
         device: &Device,
         queue: &Queue,
         environment: &ModelEnvironment,
-        fbo: &FrameBuffer
+        fbo: &ScreenBuffer
     ) {
 
         // Creates encoder
@@ -77,7 +77,7 @@ impl ModelRenderer {
         &mut self,
         encoder: &mut CommandEncoder,
         environment: &ModelEnvironment,
-        fbo: &FrameBuffer
+        fbo: &ScreenBuffer
     ) {
 
         // Creates attachments (targets to draw to + load operations for each)
@@ -170,14 +170,13 @@ impl ModelRenderer {
                 color_format: self.color_format,
                 depth_stencil_format: self.depth_stencil_format
             };
-            pipeline_provider.provide_or_create(
+            pipeline_provider.prime(
                 device,
                 &features,
                 shader_provider,
                 &[
                     camera.bind_group_layout(),
                     material.bind_group_layout(),
-
                 ]
             );
         }

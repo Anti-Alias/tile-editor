@@ -26,10 +26,9 @@ impl PipelineProvider {
         }
     }
 
-    /// Provides a `RenderPipeline` based on features specified.
-    /// If features have been seen before, uses cached `RenderPipeline`.
-    /// Otherwise, creates a new one and caches.
-    pub fn provide_or_create(
+    /// Creates and returns a pipeline with the specified features.
+    /// On subsequent invocations with the same permutation of features, the cached version wil be returned.
+    pub fn prime(
         &mut self,
         device: &Device,
         features: &PipelineFeatures,
@@ -39,7 +38,7 @@ impl PipelineProvider {
         self.pipelines
             .entry(*features)
             .or_insert_with(|| {
-                let shader = shader_provider.provide_or_create(device, &features.shader_features);
+                let shader = shader_provider.prime(device, &features.shader_features);
                 let pipeline = Self::create_pipeline(device, &shader, features, bind_group_layouts);
                 log::info!("Created new pipeline");
                 pipeline
@@ -60,7 +59,7 @@ impl PipelineProvider {
 
         // Creates states and layout for pipeline
         let layout = Self::create_pipeline_layout(device, bind_group_layouts);
-        let targets = [
+        let color_targets = [
             ColorTargetState {
                 format: features.color_format,
                 blend: None,
@@ -78,7 +77,7 @@ impl PipelineProvider {
         let fragment = Some(FragmentState {
             module,
             entry_point: "main",
-            targets: &targets
+            targets: &color_targets
         });
 
         // Creates pipeline

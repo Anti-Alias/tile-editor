@@ -12,6 +12,7 @@ mod model_instance;
 mod model_environment;
 mod light;
 mod model_renderer;
+mod framebuffer;
 
 pub use mesh::*;
 pub use model::*;
@@ -26,4 +27,5 @@ pub use voxel_map_graphics::*;
 pub use shader::*;
 pub use pipeline::*;
 pub use camera::*;
+pub use framebuffer::*;
 pub use util::*;
