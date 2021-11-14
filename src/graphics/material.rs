@@ -8,14 +8,16 @@ pub struct Material {
     specular: Option<Texture>,
     normal: Option<Texture>,
     bind_group: BindGroup,
-    bind_group_layout: BindGroupLayout
+    bind_group_layout: BindGroupLayout,
+    flags: u64
 }
 
 /// Responsible for building a `Material`
 pub struct MaterialBuilder {
     diffuse: Option<Texture>,
     specular: Option<Texture>,
-    normal: Option<Texture>
+    normal: Option<Texture>,
+    flags: u64
 }
 
 impl MaterialBuilder {
@@ -25,25 +27,29 @@ impl MaterialBuilder {
         MaterialBuilder {
             diffuse: None,
             specular: None,
-            normal: None
+            normal: None,
+            flags: 0
         }
     }
 
     /// Adds a diffuse texture
     pub fn diffuse(mut self, diffuse: Texture) -> Self {
         self.diffuse = Some(diffuse);
+        self.flags |= Material::DIFFUSE_BIT;
         self
     }
 
     /// Adds a specular texture
     pub fn specular(mut self, specular: Texture) -> Self {
         self.specular = Some(specular);
+        self.flags |= Material::SPECULAR_BIT;
         self
     }
 
     /// Adds a normal texture
     pub fn normal(mut self, normal: Texture) -> Self {
         self.normal = Some(normal);
+        self.flags |= Material::NORMAL_BIT;
         self
     }
 
@@ -56,7 +62,8 @@ impl MaterialBuilder {
             specular: self.specular,
             normal: self.normal,
             bind_group,
-            bind_group_layout
+            bind_group_layout,
+            flags: self.flags
         }
     }
 
@@ -166,13 +173,7 @@ impl Material {
     ///     ...011 = DIFFUSE + SPECULAR
     ///     ...100 = NORMAL
     ///     ...etc
-    pub fn flags(&self) -> u64 {
-        let mut result = 0;
-        result |= self.diffuse.is_some() as u64;
-        result |= (self.specular.is_some() as u64) << 1;
-        result |= (self.normal.is_some() as u64) << 2;
-        result
-    }
+    pub fn flags(&self) -> u64 { self.flags }
 
     /// Bind group of this material
     pub fn bind_group(&self) -> &BindGroup {

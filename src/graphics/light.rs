@@ -1,42 +1,63 @@
+use std::io::Write;
 use cgmath::{Point3, Vector3};
 use wgpu::{Buffer, BufferAddress, BufferDescriptor, BufferUsages, Device, Queue};
-use crate::graphics::Color;
-use std::mem::size_of;
-use crevice::std140::AsStd140;
+use bytemuck::{Pod, Zeroable};
+use crate::graphics::{Color};
 
-/// Represents a simple point light that does not cast shadows
-#[derive(Copy, Clone, Debug, AsStd140)]
+/// Represents a simple point light that does not cast shadows.
+/// Padded to the std140 specification.
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct PointLight {
-    /// Position of the light in 3D space
-    pub position: Point3<f32>,
-    /// Color/intensity of the light
-    pub color: Color,
+    pub position: [f32; 3], // 0..2
+    _pad: u32,              // 3
+    pub color: [f32; 4],    // 4..7
 }
 
-/// Represents a simple directional light that does not cast shadows
-#[derive(Copy, Clone, Debug, AsStd140)]
+impl PointLight {
+    pub fn new(position: Point3<f32>, color: Color) -> Self {
+        Self {
+            position: [position.x, position.y, position.z],
+            _pad: 0,
+            color: color.rgba()
+        }
+    }
+}
+
+/// Represents a simple directional light that does not cast shadows.
+/// Padded to the std140 specification.
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Pod, Zeroable)]
 pub struct DirectionalLight {
-    /// Direction of the rays being emitted from the light
-    pub direction: Vector3<f32>,
-    /// Color/intensity of the light
-    pub color: Color,
+    pub direction: [f32; 3],    // 0..2
+    pub _pad: u32,              // 3
+    pub color: [f32; 4],        // 4..7
+}
+
+impl DirectionalLight {
+    pub fn new(direction: Vector3<f32>, color: Color) -> Self {
+        Self {
+            direction: [direction.x, direction.y, direction.z],
+            _pad: 0,
+            color: color.rgba()
+        }
+    }
 }
 
 /// Represents a set of lights of a given type
-pub struct LightSet<L> {
+pub struct LightSet<L: Pod + Zeroable> {
     lights: Vec<L>,
     buffer: Buffer
 }
 
-impl<L> LightSet<L> {
-
+impl<L: Pod + Zeroable> LightSet<L> {
     /// Creates a new `LightSet`.
     /// * `device` - Device used to create WGPU buffer. Buffer's capacity will match that of `lights` and is not growable.
     /// * `lights` - Client-side lights that should be flushed when changed.
     pub fn new(device: &Device, lights: Vec<L>) -> Self {
         let buffer = device.create_buffer(&BufferDescriptor {
             label: None,
-            size: size_of::<L>() as BufferAddress,
+            size: (std::mem::size_of::<L>() * lights.capacity()) as BufferAddress,
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             mapped_at_creation: false
         });
@@ -55,8 +76,9 @@ impl<L> LightSet<L> {
 
 /// Represents a bundle of lights
 pub struct LightBundle {
-    pub directional_lights: LightSet<DirectionalLight>,
-    pub point_lights: LightSet<PointLight>
+    directional_lights: LightSet<DirectionalLight>,
+    point_lights: LightSet<PointLight>,
+    flags: u64
 }
 
 impl LightBundle {
@@ -67,6 +89,16 @@ impl LightBundle {
     /// Determines if point light(s) will be used
     pub const POINT_LIGHT_BIT: u64 = 1 << 1;
 
+    /// All directional lights
+    fn directional_lights(&self) -> &LightSet<DirectionalLight> {
+        &self.directional_lights
+    }
+
+    /// All point lights
+    fn point_lights(&self) -> &LightSet<PointLight> {
+        &self.point_lights
+    }
+
     /// Bit pattern where each bit determines the presence of an array of light types in the bundle.
     /// Bit order starting from LSB: DIRECTIONAL_LIGHTS, POINT_LIGHTS
     /// IE:
@@ -74,37 +106,42 @@ impl LightBundle {
     ///     ...010 = POINT_LIGHTS
     ///     ...011 = DIRECTIONAL_LIGHTS + POINT_LIGHTS
     ///     ...etc
-    fn flags() -> u64 {
-        todo!()
-    }
+    fn flags(&self) -> u64 { self.flags }
 }
 
 /// Represents a builder of a `LightBundle`.
 struct LightBundleBuilder {
     directional_lights: Vec<DirectionalLight>,
-    point_lights: Vec<PointLight>
+    point_lights: Vec<PointLight>,
+    flags: u64
 }
 
 impl LightBundleBuilder {
-
     pub fn new() -> Self {
         Self {
             directional_lights: Vec::new(),
-            point_lights: Vec::new()
+            point_lights: Vec::new(),
+            flags: 0
         }
     }
 
     pub fn directional_light(mut self, light: DirectionalLight) -> Self {
         self.directional_lights.push(light);
+        self.flags |= LightBundle::DIRECTIONAL_LIGHT_BIT;
         self
     }
 
     pub fn point_light(mut self, light: PointLight) -> Self {
         self.point_lights.push(light);
+        self.flags |= LightBundle::POINT_LIGHT_BIT;
         self
     }
 
-    pub fn build(self) -> LightBundle {
-        todo!()
+    pub fn build(self, device: &Device) -> LightBundle {
+        LightBundle {
+            directional_lights: LightSet::new(device, self.directional_lights),
+            point_lights: LightSet::new(device, self.point_lights),
+            flags: self.flags
+        }
     }
 }
