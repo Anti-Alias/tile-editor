@@ -1,23 +1,24 @@
 use std::collections::HashMap;
 
 use egui_wgpu_backend::wgpu::{FrontFace, PrimitiveTopology};
-use wgpu::{BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, ColorTargetState, ColorWrites, CompareFunction, DepthBiasState, DepthStencilState, Device, Face, FragmentState, IndexFormat, MultisampleState, PipelineLayout, PipelineLayoutDescriptor, PolygonMode, PrimitiveState, RenderPipeline, RenderPipelineDescriptor, ShaderModule, ShaderStages, StencilState, TextureFormat, VertexBufferLayout, VertexState, VertexStepMode};
-use crate::graphics::{ModelInstance, ModelVertex, ShaderFeatures, ShaderProvider, Vertex};
+use wgpu::*;
+use crate::graphics::*;
+use crate::graphics::screen::{ModelShaderFeatures, ModelShaderProvider};
 
 /// Represents a permutation of features a pipeline should have
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub struct PipelineFeatures {
-    pub shader_features: ShaderFeatures,
+pub struct ModelPipelineFeatures {
+    pub shader_features: ModelShaderFeatures,
     pub color_format: TextureFormat,
     pub depth_stencil_format: TextureFormat
 }
 
 /// Provides a pipeline based on features provided
-pub struct PipelineProvider {
-    pipelines: HashMap<PipelineFeatures, RenderPipeline>
+pub struct ModelPipelineProvider {
+    pipelines: HashMap<ModelPipelineFeatures, RenderPipeline>
 }
 
-impl PipelineProvider {
+impl ModelPipelineProvider {
 
     /// Creates empty provider
     pub fn new() -> Self {
@@ -31,8 +32,8 @@ impl PipelineProvider {
     pub fn prime(
         &mut self,
         device: &Device,
-        features: &PipelineFeatures,
-        shader_provider: &mut ShaderProvider,
+        features: &ModelPipelineFeatures,
+        shader_provider: &mut ModelShaderProvider,
         bind_group_layouts: &[&BindGroupLayout]
     ) -> &RenderPipeline {
         self.pipelines
@@ -46,14 +47,14 @@ impl PipelineProvider {
     }
 
     /// Provides a `RenderPipeline` if it is already cached
-    pub fn provide(&self, features: &PipelineFeatures) -> Option<&RenderPipeline> {
+    pub fn provide(&self, features: &ModelPipelineFeatures) -> Option<&RenderPipeline> {
         self.pipelines.get(features)
     }
 
     fn create_pipeline(
         device: &Device,
         module: &ShaderModule,
-        features: &PipelineFeatures,
+        features: &ModelPipelineFeatures,
         bind_group_layouts: &[&BindGroupLayout]
     ) -> RenderPipeline {
 

@@ -1,5 +1,5 @@
 use wgpu::*;
-use crate::graphics::*;
+
 
 /// Geometry buffer that stores a multitude of color targets and a depth_stencil target
 pub struct GBuffer {
@@ -170,11 +170,4 @@ impl GBufferFormatBuilder {
     pub fn build(self) -> GBufferFormat {
         self.format
     }
-}
-
-/// Main frame buffer to be rendered to after the geometry pass.
-/// Does not own texture views as they tend to change frequently each frame.
-pub struct ScreenBuffer<'a> {
-    pub color: &'a TextureView,
-    pub depth_stencil: &'a TextureView
 }

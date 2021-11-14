@@ -1,10 +1,11 @@
 use wgpu::*;
 use crate::graphics::*;
+use crate::graphics::screen::{ModelPipelineFeatures, ModelPipelineProvider, ModelShaderFeatures, ModelShaderProvider, ScreenBuffer};
 
 /// Renderer of a `Model`
 pub struct ModelRenderer {
-    shader_provider: ShaderProvider,            // Provider of shaders derived from an ubershader/material features
-    pipeline_provider: PipelineProvider,        // Provider of pipelines derived from material features
+    shader_provider: ModelShaderProvider,       // Provider of shaders derived from an ubershader/material features
+    pipeline_provider: ModelPipelineProvider,   // Provider of pipelines derived from material features
     color_format: TextureFormat,                // Expected format of texture being drawn to
     depth_stencil_format: TextureFormat         // Expected format of depth/stencil texture being drawn to,
 }
@@ -33,8 +34,8 @@ impl ModelRenderer {
         depth_stencil_format: TextureFormat
     ) -> ModelRenderer {
         ModelRenderer {
-            shader_provider: ShaderProvider::new(shader_source),
-            pipeline_provider: PipelineProvider::new(),
+            shader_provider: ModelShaderProvider::new(shader_source),
+            pipeline_provider: ModelPipelineProvider::new(),
             color_format,
             depth_stencil_format
         }
@@ -127,8 +128,8 @@ impl ModelRenderer {
         for (mesh, material) in model.iter() {
 
             // Gets appropriate pipeline for the set of features this material has
-            let features = PipelineFeatures {
-                shader_features: ShaderFeatures { material_flags: material.flags() },
+            let features = ModelPipelineFeatures {
+                shader_features: ModelShaderFeatures { material_flags: material.flags() },
                 color_format: self.color_format,
                 depth_stencil_format: self.depth_stencil_format
             };
@@ -165,8 +166,8 @@ impl ModelRenderer {
         let pipeline_provider = &mut self.pipeline_provider;
         let shader_provider = &mut self.shader_provider;
         for (_, material) in model.iter() {
-            let features = PipelineFeatures {
-                shader_features: ShaderFeatures { material_flags: material.flags() },
+            let features = ModelPipelineFeatures {
+                shader_features: ModelShaderFeatures { material_flags: material.flags() },
                 color_format: self.color_format,
                 depth_stencil_format: self.depth_stencil_format
             };

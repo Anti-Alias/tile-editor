@@ -2,9 +2,10 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::{Device, ShaderModule, ShaderModuleDescriptor, ShaderSource};
 use crate::graphics::{Material};
+use crate::graphics::util::with_lines;
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub struct ShaderFeatures {
+pub struct ModelShaderFeatures {
     /// See material.rs for flag bits
     pub material_flags: u64
 }
@@ -13,12 +14,12 @@ pub struct ShaderFeatures {
 /// Provides shader variants derived from an 'ubershader'
 /// Which variant is provided depends on the features given
 /// Users should preprocess variants ahead of time via `provide_or_create`
-pub struct ShaderProvider {
-    source: String,                                 // Non-preprocessed source code
-    modules: HashMap<ShaderFeatures, ShaderModule>  // Preprocessed variants of `source` that are created as needed
+pub struct ModelShaderProvider {
+    source: String,                                     // Non-preprocessed source code
+    modules: HashMap<ModelShaderFeatures, ShaderModule> // Preprocessed variants of `source` that are created as needed
 }
 
-impl ShaderProvider {
+impl ModelShaderProvider {
 
     /// Creates a shader provider from shader source code
     pub fn new(source: String) -> Self {
@@ -30,7 +31,7 @@ impl ShaderProvider {
 
     /// Creates and returns a shader module with the specified features.
     /// On subsequent invocations with the same permutation of features, the cached version wil be returned.
-    pub fn prime(&mut self, device: &Device, features: &ShaderFeatures) -> &ShaderModule {
+    pub fn prime(&mut self, device: &Device, features: &ModelShaderFeatures) -> &ShaderModule {
         let modules = &mut self.modules;
         let source = &self.source;
         modules.entry(*features).or_insert_with(move || {
@@ -41,14 +42,14 @@ impl ShaderProvider {
     }
 
     /// Gets cached shader module with given features if one is present
-    pub fn provide(&self, features: &ShaderFeatures) -> Option<&ShaderModule> {
+    pub fn provide(&self, features: &ModelShaderFeatures) -> Option<&ShaderModule> {
         self.modules.get(features)
     }
 
     // Preprocesses shader source code with features and creates a shader module
-    fn create(source: &str, device: &Device, features: &ShaderFeatures) -> ShaderModule {
+    fn create(source: &str, device: &Device, features: &ModelShaderFeatures) -> ShaderModule {
         let source = Self::preprocess_source(source, features);
-        log::info!("Preprocessed source as:\n{}", Self::source_with_lines(&source));
+        log::info!("Preprocessed source as:\n{}", with_lines(&source));
         let source = ShaderSource::Wgsl(Cow::from(source.as_str()));
         device.create_shader_module(&ShaderModuleDescriptor {
             label: None,
@@ -57,7 +58,7 @@ impl ShaderProvider {
     }
 
     /// Preprocesses shader source code with specified features
-    pub fn preprocess_source(source: &str, features: &ShaderFeatures) -> String {
+    pub fn preprocess_source(source: &str, features: &ModelShaderFeatures) -> String {
 
         // Prepares empty preprocessor context
         let mut context = gpp::Context::new();
@@ -103,16 +104,5 @@ impl ShaderProvider {
 
         // Returns preprocessed string
         gpp::process_str(source, &mut context).unwrap()
-    }
-
-    fn source_with_lines(source: &str) -> String {
-        let mut result = String::new();
-        for (i, line) in source.lines().enumerate() {
-            let header = format!("{:>4}|  ", i+1);
-            result.push_str(&header);
-            result.push_str(line);
-            result.push('\n');
-        }
-        result
     }
 }

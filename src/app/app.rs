@@ -11,6 +11,7 @@ use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor};
 use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
 use crate::graphics::*;
+use crate::graphics::screen::{ModelRenderer, ScreenBuffer};
 use crate::gui::{GUI, Editor};
 
 /// Represents the application as a whole.
