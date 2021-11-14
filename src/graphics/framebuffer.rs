@@ -9,43 +9,74 @@ pub struct GBuffer {
     diffuse: Option<TextureView>,
     specular: Option<TextureView>,
     emissive: Option<TextureView>,
-    format: GBufferFormat,
-    flags: u64
+    format: GBufferFormat
 }
 impl GBuffer {
-    pub const DEPTH_STENCIL_BUFFER_BIT: u64 = 1;
-    pub const DIFFUSE_BUFFER_BIT: u64 = 1 << 1;
-    pub const SPECULAR_BUFFER_BIT: u64 = 1 << 2;
-    pub const EMISSIVE_BUFFER_BIT: u64 = 1 << 3;
-    pub fn new(device: &Device, width: u32, height: u32, format: GBufferFormat) -> GBuffer {
-        let position_view = device
+    pub const DIFFUSE_BUFFER_BIT: u64 = 1;
+    pub const SPECULAR_BUFFER_BIT: u64 = 1 << 1;
+    pub const EMISSIVE_BUFFER_BIT: u64 = 1 << 2;
+
+    /// Creates a GBuffer where each texture is of the specified size and have the formats specified
+    /// in `format`.
+    pub fn new(device: &Device, width: u32, height: u32, format: GBufferFormat) -> Self {
+        let position = device
             .create_texture(&Self::descriptor_of(width, height, format.position))
             .create_view(&TextureViewDescriptor::default());
-        let normal_view
-            = device
+        let normal = device
             .create_texture(&Self::descriptor_of(width, height, format.normal))
             .create_view(&TextureViewDescriptor::default());
         let depth_stencil = device
-            .create_texture(&depth_stencil_descriptor)
+            .create_texture(&Self::descriptor_of(width, height, format.depth_stencil))
             .create_view(&TextureViewDescriptor::default());
-        let diffuse_view = format.diffuse.map(|tex_form| {
+        let diffuse = format.diffuse.map(|tex_form| {
             device
                 .create_texture(&Self::descriptor_of(width, height, tex_form))
                 .create_view(&TextureViewDescriptor::default())
         });
-        let specular_view = format.specular.map(|tex_form| {
+        let specular = format.specular.map(|tex_form| {
             device
                 .create_texture(&Self::descriptor_of(width, height, tex_form))
                 .create_view(&TextureViewDescriptor::default())
         });
-        let emissive_view = format.emissive.map(|tex_form| {
+        let emissive = format.emissive.map(|tex_form| {
             device
                 .create_texture(&Self::descriptor_of(width, height, tex_form))
                 .create_view(&TextureViewDescriptor::default())
         });
-        GBuffer {
-            
+        log::info!("Created GBuffer with format {:?}", format);
+        Self {
+            position,
+            normal,
+            depth_stencil,
+            diffuse,
+            specular,
+            emissive,
+            format
         }
+    }
+
+    /// Creates a simple frame buffer where all of the color buffers are of format `TextureFormat::Rgba32Float`
+    /// and the depth stencil format is `TextureFormat::Depth32Float`
+    pub fn create_simple(device: &Device, width: u32, height: u32, flags: u64) -> GBuffer {
+        let position_format = TextureFormat::Rgba32Float;
+        let normal_format = TextureFormat::Rgba32Float;
+        let depth_stencil_format = TextureFormat::Depth32Float;
+        let mut builder = GBufferFormatBuilder::new(
+            position_format,
+            normal_format,
+            depth_stencil_format
+        );
+        if flags | Self::DIFFUSE_BUFFER_BIT != 0 {
+            builder = builder.diffuse_format(TextureFormat::Rgba32Float);
+        }
+        if flags | Self::SPECULAR_BUFFER_BIT != 0 {
+            builder = builder.specular_format(TextureFormat::Rgba32Float);
+        }
+        if flags | Self::EMISSIVE_BUFFER_BIT != 0 {
+            builder = builder.emissive_format(TextureFormat::Rgba32Float);
+        }
+        let format = builder.build();
+        Self::new(device, width, height, format)
     }
     pub fn position(&self) -> &TextureView { &self.position }
     pub fn normal(&self) -> &TextureView { &self.normal }
@@ -53,9 +84,12 @@ impl GBuffer {
     pub fn diffuse(&self) -> Option<&TextureView> { self.diffuse.as_ref() }
     pub fn specular(&self) -> Option<&TextureView> { self.specular.as_ref() }
     pub fn emissive(&self) -> Option<&TextureView> { self.emissive.as_ref() }
-    pub fn flags(&self) -> u64 { self.flags }
+    pub fn format(&self) -> &GBufferFormat { &self.format }
 
-    fn descriptor_of(width: u32, height: u32, format: TextureFormat) -> TextureDescriptor {
+    fn optional_format(flags: u64, bit: u64, format: TextureFormat) -> Option<TextureFormat> {
+        if flags | bit != 0 { Some(format) } else { None }
+    }
+    fn descriptor_of<'a>(width: u32, height: u32, format: TextureFormat) -> TextureDescriptor<'a> {
         TextureDescriptor {
             label: None,
             size: Extent3d {
@@ -70,8 +104,6 @@ impl GBuffer {
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING
         }
     }
-
-    fn create_texture_view()
 }
 
 /// Represents the format of a `GBuffer`
@@ -96,9 +128,7 @@ impl GBufferFormat {
 }
 
 /// Builds a GBufferFormat
-struct GBufferFormatBuilder {
-    format: GBufferFormat
-}
+pub struct GBufferFormatBuilder { format: GBufferFormat }
 impl GBufferFormatBuilder {
     pub fn new(
         position_format: TextureFormat,
@@ -131,9 +161,14 @@ impl GBufferFormatBuilder {
     }
 
     pub fn emissive_format(mut self, emissive_format: TextureFormat) -> Self {
-        self.format.specular = Some(emissive_format);
+        self.format.emissive = Some(emissive_format);
         self.format.flags |= GBuffer::EMISSIVE_BUFFER_BIT;
         self
+    }
+
+    /// Builds final format
+    pub fn build(self) -> GBufferFormat {
+        self.format
     }
 }
 

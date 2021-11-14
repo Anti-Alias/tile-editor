@@ -1,4 +1,5 @@
 use wgpu::{Device, Extent3d, Surface, SurfaceConfiguration, Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor};
+use crate::graphics::GBuffer;
 
 /// Creates a wgpu depth texture from a surface config
 pub fn create_surface_depth_texture(device: &Device, _format: &TextureFormat, config: &SurfaceConfiguration) -> Texture {
@@ -15,6 +16,14 @@ pub fn create_surface_depth_texture(device: &Device, _format: &TextureFormat, co
         format: TextureFormat::Depth32Float,
         usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING
     })
+}
+
+pub fn create_gbuffer(device: &Device, config: &SurfaceConfiguration) -> GBuffer {
+    let flags =
+        GBuffer::DIFFUSE_BUFFER_BIT |
+        GBuffer::SPECULAR_BUFFER_BIT |
+        GBuffer::EMISSIVE_BUFFER_BIT;
+    GBuffer::create_simple(device, config.width, config.height, flags)
 }
 
 pub fn get_texture_view_of_surface(surface: &Surface) -> TextureView {
