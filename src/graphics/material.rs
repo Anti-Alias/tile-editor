@@ -4,19 +4,66 @@ use crate::graphics::Texture;
 
 /// A set of textures that determines how light interacts with a `Mesh`
 pub struct Material {
+    normal: Option<Texture>,
     diffuse: Option<Texture>,
     specular: Option<Texture>,
-    normal: Option<Texture>,
+    emissive: Option<Texture>,
     bind_group: BindGroup,
     bind_group_layout: BindGroupLayout,
     flags: u64
 }
 
+impl Material {
+
+    // Bits used for constructing `flags`
+    pub const NORMAL_BIT: u64 = 1;
+    pub const DIFFUSE_BIT: u64 = 1 << 1;
+    pub const SPECULAR_BIT: u64 = 1 << 2;
+    pub const EMISSIVE_BIT: u64 = 1 << 3;
+
+    /// Diffuse texture
+    pub fn diffuse(&self) -> Option<&Texture> {
+        self.diffuse.as_ref()
+    }
+
+    /// Specular texture
+    pub fn specular(&self) -> Option<&Texture> {
+        self.specular.as_ref()
+    }
+
+    /// Normal texture
+    pub fn normal(&self) -> Option<&Texture> {
+        self.normal.as_ref()
+    }
+
+    /// Bit pattern where each bit determines the presence of a texture in the material.
+    /// Bit order starting from LSB: NORMAL, DIFFUSE, SPECULAR, EMISSIVE.
+    /// IE:
+    ///     ...001 = NORMAL
+    ///     ...010 = DIFFUSE
+    ///     ...011 = NORMAL + DIFFUSE
+    ///     ...100 = SPECULAR
+    ///     ...etc
+    pub fn flags(&self) -> u64 { self.flags }
+
+    /// Bind group of this material
+    pub fn bind_group(&self) -> &BindGroup {
+        &self.bind_group
+    }
+
+    /// Layout of the bind group of this material
+    pub fn bind_group_layout(&self) -> &BindGroupLayout {
+        &self.bind_group_layout
+    }
+}
+
 /// Responsible for building a `Material`
+#[derive(Default)]
 pub struct MaterialBuilder {
+    normal: Option<Texture>,
     diffuse: Option<Texture>,
     specular: Option<Texture>,
-    normal: Option<Texture>,
+    emissive: Option<Texture>,
     flags: u64
 }
 
@@ -24,12 +71,14 @@ impl MaterialBuilder {
 
     /// Makes new builder
     pub fn new() -> MaterialBuilder {
-        MaterialBuilder {
-            diffuse: None,
-            specular: None,
-            normal: None,
-            flags: 0
-        }
+        MaterialBuilder { ..Default::default() }
+    }
+
+    /// Adds a normal texture
+    pub fn normal(mut self, normal: Texture) -> Self {
+        self.normal = Some(normal);
+        self.flags |= Material::NORMAL_BIT;
+        self
     }
 
     /// Adds a diffuse texture
@@ -46,10 +95,10 @@ impl MaterialBuilder {
         self
     }
 
-    /// Adds a normal texture
-    pub fn normal(mut self, normal: Texture) -> Self {
+    /// Adds an emissive texture
+    pub fn emissive(mut self, normal: Texture) -> Self {
         self.normal = Some(normal);
-        self.flags |= Material::NORMAL_BIT;
+        self.flags |= Material::EMISSIVE_BIT;
         self
     }
 
@@ -61,6 +110,7 @@ impl MaterialBuilder {
             diffuse: self.diffuse,
             specular: self.specular,
             normal: self.normal,
+            emissive: self.emissive,
             bind_group,
             bind_group_layout,
             flags: self.flags
@@ -137,51 +187,5 @@ impl MaterialBuilder {
             binding: len+1,
             resource: BindingResource::Sampler(texture.sampler.as_ref())
         });
-    }
-}
-
-impl Material {
-    /// Determines if diffuse texture will be used
-    pub const DIFFUSE_BIT: u64 = 1;
-
-    /// Determines if specular texture will be used
-    pub const SPECULAR_BIT: u64 = 1 << 1;
-
-    /// Determines if normal texture will be used
-    pub const NORMAL_BIT: u64 = 1 << 2;
-
-    /// Diffuse texture
-    pub fn diffuse(&self) -> Option<&Texture> {
-        self.diffuse.as_ref()
-    }
-
-    /// Specular texture
-    pub fn specular(&self) -> Option<&Texture> {
-        self.specular.as_ref()
-    }
-
-    /// Normal texture
-    pub fn normal(&self) -> Option<&Texture> {
-        self.normal.as_ref()
-    }
-
-    /// Bit pattern where each bit determines the presence of a texture in the material.
-    /// Bit order starting from LSB: DIFFUSE, SPECULAR, NORMAL.
-    /// IE:
-    ///     ...001 = DIFFUSE
-    ///     ...010 = SPECULAR
-    ///     ...011 = DIFFUSE + SPECULAR
-    ///     ...100 = NORMAL
-    ///     ...etc
-    pub fn flags(&self) -> u64 { self.flags }
-
-    /// Bind group of this material
-    pub fn bind_group(&self) -> &BindGroup {
-        &self.bind_group
-    }
-
-    /// Layout of the bind group of this material
-    pub fn bind_group_layout(&self) -> &BindGroupLayout {
-        &self.bind_group_layout
     }
 }

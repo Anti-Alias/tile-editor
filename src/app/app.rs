@@ -159,7 +159,7 @@ impl App {
                             point_lights: &[],
                             directional_lights: &[]
                         },
-                        &ModelFrameBuffer {
+                        &FrameBuffer {
                             color: &surface_view,
                             depth_stencil: &depth_stencil_view
                         }

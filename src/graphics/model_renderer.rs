@@ -51,7 +51,7 @@ impl ModelRenderer {
         device: &Device,
         queue: &Queue,
         environment: &ModelEnvironment,
-        fbo: &ModelFrameBuffer
+        fbo: &FrameBuffer
     ) {
 
         // Creates encoder
@@ -77,7 +77,7 @@ impl ModelRenderer {
         &mut self,
         encoder: &mut CommandEncoder,
         environment: &ModelEnvironment,
-        fbo: &ModelFrameBuffer
+        fbo: &FrameBuffer
     ) {
 
         // Creates attachments (targets to draw to + load operations for each)
