@@ -65,6 +65,15 @@ impl ShaderProvider {
         let mat_flags = features.material_flags;
         let mut current_binding = 0;
 
+        // Sets normal macros
+        if mat_flags & Material::NORMAL_BIT != 0 {
+            macros.insert(String::from("M_NORMAL_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+            macros.insert(String::from("M_NORMAL_SAMPLER_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+        }
+
         // Sets diffuse macros
         if mat_flags & Material::DIFFUSE_BIT != 0 {
             macros.insert(String::from("M_DIFFUSE_ENABLED"), String::from("TRUE"));
@@ -83,12 +92,12 @@ impl ShaderProvider {
             current_binding += 1;
         }
 
-        // Sets normal macros
-        if mat_flags & Material::NORMAL_BIT != 0 {
-            macros.insert(String::from("M_NORMAL_ENABLED"), String::from("TRUE"));
-            macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from(current_binding.to_string()));
+        // Sets emissive macros
+        if mat_flags & Material::EMISSIVE_BIT != 0 {
+            macros.insert(String::from("M_EMISSIVE_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_EMISSIVE_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
-            macros.insert(String::from("M_NORMAL_SAMPLER_BINDING"), String::from(current_binding.to_string()));
+            macros.insert(String::from("M_EMISSIVE_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
 
