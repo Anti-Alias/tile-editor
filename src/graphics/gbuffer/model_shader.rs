@@ -2,12 +2,13 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::{Device, ShaderModule, ShaderModuleDescriptor, ShaderSource};
 use crate::graphics::{Material};
+use crate::graphics::gbuffer::GBuffer;
 use crate::graphics::util::string_with_lines;
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct ModelShaderFeatures {
-    /// See material.rs for flag bits
-    pub material_flags: u64
+    pub material_flags: u64,
+    pub gbuffer_flags: u64
 }
 
 
@@ -64,9 +65,11 @@ impl ModelShaderProvider {
         let mut context = gpp::Context::new();
         let macros = &mut context.macros;
         let mat_flags = features.material_flags;
-        let mut current_binding = 0;
+        let gbuffer_flags = features.gbuffer_flags;
 
+        // ----------- Material macros -----------
         // Sets normal macros
+        let mut current_binding = 0;
         if mat_flags & Material::NORMAL_BIT != 0 {
             macros.insert(String::from("M_NORMAL_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from(current_binding.to_string()));
@@ -100,6 +103,24 @@ impl ModelShaderProvider {
             current_binding += 1;
             macros.insert(String::from("M_EMISSIVE_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
+        }
+
+        // ----------- Material macros -----------
+        let mut current_location = 2;                           // Starting at 2 since "position" and "normal" always occupy locations 0 and 1 respectively in the shader
+        if gbuffer_flags & GBuffer::DIFFUSE_BUFFER_BIT != 0 {
+            macros.insert(String::from("M_DIFFUSE_BUFFER_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_DIFFUSE_BUFFER_LOCATION"), String::from(current_location.to_string()));
+            current_location += 1;
+        }
+        if gbuffer_flags & GBuffer::SPECULAR_BUFFER_BIT != 0 {
+            macros.insert(String::from("M_SPECULAR_BUFFER_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_SPECULAR_BUFFER_LOCATION"), String::from(current_location.to_string()));
+            current_location += 1;
+        }
+        if gbuffer_flags & GBuffer::EMISSIVE_BUFFER_BIT != 0 {
+            macros.insert(String::from("M_EMISSIVE_BUFFER_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_EMISSIVE_BUFFER_LOCATION"), String::from(current_location.to_string()));
+            current_location += 1;
         }
 
         // Returns preprocessed string

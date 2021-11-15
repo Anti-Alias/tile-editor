@@ -31,7 +31,7 @@ pub fn get_texture_view_of_surface(surface: &Surface) -> TextureView {
 }
 
 /// Adds line numbers to multi-line strings
-pub fn with_lines(source: &str) -> String {
+pub fn string_with_lines(source: &str) -> String {
     let mut result = String::new();
     for (i, line) in source.lines().enumerate() {
         let header = format!("{:>4}|  ", i+1);
