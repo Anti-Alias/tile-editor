@@ -20,6 +20,7 @@ pub fn create_surface_depth_texture(device: &Device, _format: &TextureFormat, co
 
 pub fn create_gbuffer(device: &Device, config: &SurfaceConfiguration) -> GBuffer {
     let flags =
+        GBuffer::DEPTH_STENCIL_BUFFER_BIT |
         GBuffer::DIFFUSE_BUFFER_BIT |
         GBuffer::SPECULAR_BUFFER_BIT |
         GBuffer::EMISSIVE_BUFFER_BIT;

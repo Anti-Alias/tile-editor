@@ -3,14 +3,13 @@ use std::collections::HashMap;
 use egui_wgpu_backend::wgpu::{FrontFace, PrimitiveTopology};
 use wgpu::*;
 use crate::graphics::*;
-use crate::graphics::gbuffer::{ModelShaderFeatures, ModelShaderProvider};
+use crate::graphics::gbuffer::*;
 
 /// Represents a permutation of features a pipeline should have
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct ModelPipelineFeatures {
-    pub shader_features: ModelShaderFeatures,
-    pub color_format: TextureFormat,
-    pub depth_stencil_format: TextureFormat
+    pub gbuffer_format: GBufferFormat,
+    pub shader_features: ModelShaderFeatures
 }
 
 /// Provides a pipeline based on features provided
@@ -32,15 +31,15 @@ impl ModelPipelineProvider {
     pub fn prime(
         &mut self,
         device: &Device,
-        features: &ModelPipelineFeatures,
+        features: ModelPipelineFeatures,
         shader_provider: &mut ModelShaderProvider,
         bind_group_layouts: &[&BindGroupLayout]
     ) -> &RenderPipeline {
         self.pipelines
-            .entry(*features)
+            .entry(features)
             .or_insert_with(|| {
                 let shader = shader_provider.prime(device, &features.shader_features);
-                let pipeline = Self::create_pipeline(device, &shader, features, bind_group_layouts);
+                let pipeline = Self::create_pipeline(device, &shader, &features, bind_group_layouts);
                 log::info!("Created new pipeline");
                 pipeline
             })
@@ -58,15 +57,12 @@ impl ModelPipelineProvider {
         bind_group_layouts: &[&BindGroupLayout]
     ) -> RenderPipeline {
 
-        // Creates states and layout for pipeline
-        let layout = Self::create_pipeline_layout(device, bind_group_layouts);
-        let color_targets = [
-            ColorTargetState {
-                format: features.color_format,
-                blend: None,
-                write_mask: ColorWrites::ALL
-            }
-        ];
+        // Creates layout and states for pipeline
+        let layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
+            label: Some("Model Pipeline Layout"),
+            bind_group_layouts,
+            push_constant_ranges: &[]
+        });
         let vertex = VertexState {
             module,
             entry_point: "main",
@@ -75,42 +71,22 @@ impl ModelPipelineProvider {
                 ModelInstance::layout()
             ]
         };
+        let color_targets = Self::create_color_targets(&features.gbuffer_format);
+        let depth_stencil_target = features.gbuffer_format.depth_stencil().map(|format| {
+            DepthStencilState {
+                format,
+                depth_write_enabled: true,
+                depth_compare: CompareFunction::LessEqual,
+                stencil: StencilState::default(),
+                bias: DepthBiasState::default()
+            }
+        });
         let fragment = Some(FragmentState {
             module,
             entry_point: "main",
-            targets: &color_targets
+            targets: color_targets.as_slice()
         });
-
-        // Creates pipeline
-        device.create_render_pipeline(&RenderPipelineDescriptor {
-            label: Some("Model Render Pipeline"),
-            layout: Some(&layout),
-            vertex,
-            fragment,
-            primitive: Self::create_primitive_state(),
-            depth_stencil: Some(Self::create_depth_stencil_state(features.depth_stencil_format)),
-            multisample: Self::create_multisample_state(),
-        })
-    }
-
-    fn create_pipeline_layout(device: &Device, bind_group_layouts: &[&BindGroupLayout]) -> PipelineLayout {
-        device.create_pipeline_layout(&PipelineLayoutDescriptor {
-            label: Some("Model Pipeline Layout"),
-            bind_group_layouts,
-            push_constant_ranges: &[]
-        })
-    }
-
-    fn create_vertex_state<'a>(module: &'a ShaderModule, layout: &'a [VertexBufferLayout]) -> VertexState<'a> {
-        VertexState {
-            module,
-            entry_point: "main",
-            buffers: layout
-        }
-    }
-
-    fn create_primitive_state() -> PrimitiveState {
-        PrimitiveState {
+        let primitive = PrimitiveState {
             topology: PrimitiveTopology::TriangleList,
             strip_index_format: None,
             front_face: FrontFace::Ccw,
@@ -118,24 +94,51 @@ impl ModelPipelineProvider {
             clamp_depth: false,
             polygon_mode: PolygonMode::Fill,
             conservative: false
-        }
-    }
-
-    fn create_depth_stencil_state(format: TextureFormat) -> DepthStencilState {
-        DepthStencilState {
-            format,
-            depth_write_enabled: true,
-            depth_compare: CompareFunction::LessEqual,
-            stencil: StencilState::default(),
-            bias: DepthBiasState::default()
-        }
-    }
-
-    fn create_multisample_state() -> MultisampleState {
-        MultisampleState {
+        };
+        let multisample = MultisampleState {
             count: 1,
             mask: !0,
             alpha_to_coverage_enabled: false
+        };
+
+        // Creates pipeline with layout and states
+        device.create_render_pipeline(&RenderPipelineDescriptor {
+            label: Some("Model Render Pipeline"),
+            layout: Some(&layout),
+            vertex,
+            fragment,
+            primitive,
+            depth_stencil: depth_stencil_target,
+            multisample
+        })
+    }
+
+    fn create_color_targets(format: &GBufferFormat) -> Vec<ColorTargetState> {
+        let mut targets = vec![
+            ColorTargetState {
+                format: format.position(),
+                blend: None,
+                write_mask: ColorWrites::ALL
+            },
+            ColorTargetState {
+                format: format.normal(),
+                blend: None,
+                write_mask: ColorWrites::ALL
+            }
+        ];
+        Self::push_state(&mut targets, format.diffuse());
+        Self::push_state(&mut targets, format.specular());
+        Self::push_state(&mut targets, format.emissive());
+        targets
+    }
+
+    fn push_state(targets: &mut Vec<ColorTargetState>, format: Option<TextureFormat>) {
+        if let Some(format) = format {
+            targets.push(ColorTargetState {
+                format,
+                blend: None,
+                write_mask: ColorWrites::ALL
+            });
         }
     }
 }

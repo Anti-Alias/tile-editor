@@ -1,13 +1,12 @@
 use wgpu::*;
 use crate::graphics::*;
-use crate::graphics::gbuffer::{ModelPipelineFeatures, ModelPipelineProvider, ModelShaderFeatures, ModelShaderProvider};
+use crate::graphics::gbuffer::*;
 
 /// Renderer of a `Model`
 pub struct ModelRenderer {
     shader_provider: ModelShaderProvider,       // Provider of shaders derived from an ubershader/material features
     pipeline_provider: ModelPipelineProvider,   // Provider of pipelines derived from material features
-    color_format: TextureFormat,                // Expected format of texture being drawn to
-    depth_stencil_format: TextureFormat         // Expected format of depth/stencil texture being drawn to,
+    gbuffer_format: GBufferFormat               // Format of the gbuffer
 }
 
 impl ModelRenderer {
@@ -19,41 +18,32 @@ impl ModelRenderer {
     const NORMAL_TEX_BIND_GROUP: u32 = 1;
 
     /// Creates a `ModelRenderer` with a default shader
-    pub fn new(
-        color_format: TextureFormat,
-        depth_stencil_format: TextureFormat
-    ) -> ModelRenderer {
+    pub fn new(gbuffer_format: GBufferFormat) -> ModelRenderer {
         let shader_source = String::from(include_str!("model_ubershader.wgsl"));
-        Self::create_from_shader(shader_source, color_format, depth_stencil_format)
+        Self::create_from_shader(shader_source, gbuffer_format)
     }
 
     /// Creates a `ModelRenderer` with the specified shader
-    pub fn create_from_shader(
-        shader_source: String,
-        color_format: TextureFormat,
-        depth_stencil_format: TextureFormat
-    ) -> ModelRenderer {
+    pub fn create_from_shader(shader_source: String, gbuffer_format: GBufferFormat) -> ModelRenderer {
         ModelRenderer {
             shader_provider: ModelShaderProvider::new(shader_source),
             pipeline_provider: ModelPipelineProvider::new(),
-            color_format,
-            depth_stencil_format
+            gbuffer_format
         }
     }
 
-    /*
     /// Renders a `Model`
     /// * `model` - Model to render
     /// * `device` - Device used to create encoder
-    /// * `queue` - Location to encode draw commands
-    /// * `fbo` - Location to draw to
+    /// * `queue` - Queue to encode draw commands
+    /// * `gbuffer` - GBuffer to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
     pub fn render(
         &mut self,
         device: &Device,
         queue: &Queue,
         environment: &ModelEnvironment,
-        fbo: &ScreenBuffer
+        gbuffer: &GBuffer
     ) {
 
         // Creates encoder
@@ -62,7 +52,7 @@ impl ModelRenderer {
         });
 
         // Adds render commands to encoder
-        self.render_environment_to_encoder(&mut encoder, environment, fbo);
+        self.render_environment_to_encoder(&mut encoder, environment, gbuffer);
 
         // Gets commands and writes them to queue
         let commands = encoder.finish();
@@ -72,41 +62,45 @@ impl ModelRenderer {
     /// Renders a `Model` using an existing `CommandEncoder`
     /// * `model` - Model to render
     /// * `encoder` - Command encoder to write commands to
-    /// * `queue` - Location to encode draw commands
-    /// * `fbo` - Location to draw to
+    /// * `queue` - Queue to encode draw commands
+    /// * `gbuffer` - GBuffer to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
     fn render_environment_to_encoder(
         &mut self,
         encoder: &mut CommandEncoder,
         environment: &ModelEnvironment,
-        fbo: &ScreenBuffer
+        gbuffer: &GBuffer
     ) {
 
         // Creates attachments (targets to draw to + load operations for each)
         let color_attachments = &[
+            /*
             RenderPassColorAttachment {
-                view: &fbo.color,
+                view: gbuffer.diffuse_view(),
                 resolve_target: None,
                 ops: Operations {
                     load: LoadOp::Clear(wgpu::Color {r: 0.5, g: 0.5, b: 0.5, a: 1.0}),
                     store: true
                 }
             }
+             */
         ];
-        let depth_stencil_attachment = RenderPassDepthStencilAttachment {
-            view: &fbo.depth_stencil,
-            depth_ops: Some(Operations {
-                load: LoadOp::Clear(1.0),
-                store: true
-            }),
-            stencil_ops: None
-        };
+        let depth_stencil_attachment = gbuffer.depth_stencil_view().map(|view| {
+            RenderPassDepthStencilAttachment {
+                view,
+                depth_ops: Some(Operations {
+                    load: LoadOp::Clear(1.0),
+                    store: true
+                }),
+                stencil_ops: None
+            }
+        });
 
         // Begins render pass with attachments
         let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("Model Renderer Render Pass"),
             color_attachments,
-            depth_stencil_attachment: Some(depth_stencil_attachment)
+            depth_stencil_attachment
         });
 
         // Draws all meshes within the model using render pass
@@ -128,11 +122,13 @@ impl ModelRenderer {
         // For all mesh/material associations...
         for (mesh, material) in model.iter() {
 
-            // Gets appropriate pipeline for the set of features this material has
+            // Gets appropriate pipeline for the set of features from material/gbuffer
             let features = ModelPipelineFeatures {
-                shader_features: ModelShaderFeatures { material_flags: material.flags() },
-                color_format: self.color_format,
-                depth_stencil_format: self.depth_stencil_format
+                gbuffer_format: self.gbuffer_format,
+                shader_features: ModelShaderFeatures {
+                    material_flags: material.flags(),
+                    gbuffer_flags: self.gbuffer_format.flags()
+                }
             };
             let pipeline = &self.pipeline_provider
                 .provide(&features)
@@ -168,13 +164,15 @@ impl ModelRenderer {
         let shader_provider = &mut self.shader_provider;
         for (_, material) in model.iter() {
             let features = ModelPipelineFeatures {
-                shader_features: ModelShaderFeatures { material_flags: material.flags() },
-                color_format: self.color_format,
-                depth_stencil_format: self.depth_stencil_format
+                gbuffer_format: self.gbuffer_format,
+                shader_features: ModelShaderFeatures {
+                    material_flags: material.flags(),
+                    gbuffer_flags: self.gbuffer_format.flags()
+                }
             };
             pipeline_provider.prime(
                 device,
-                &features,
+                features,
                 shader_provider,
                 &[
                     camera.bind_group_layout(),
@@ -183,5 +181,4 @@ impl ModelRenderer {
             );
         }
     }
-     */
 }

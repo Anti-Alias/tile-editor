@@ -28,9 +28,10 @@ struct ModelInstanceIn {
 // ------------- Vertex output type -------------
 struct ModelVertexOut {
     [[builtin(position)]] position: vec4<f32>;
-    [[location(0)]] normal: vec3<f32>;
-    [[location(1)]] color: vec4<f32>;
-    [[location(2)]] uv: vec2<f32>;
+    [[location(0]] model_position: vec4<f32>;
+    [[location(1)]] normal: vec3<f32>;
+    [[location(2)]] color: vec4<f32>;
+    [[location(3)]] uv: vec2<f32>;
 };
 
 
@@ -47,28 +48,28 @@ var<uniform> camera: CameraUni;
 
 
 // ------------- Texture bind group -------------
-#ifdef M_NORMAL_ENABLED
+#ifdef M_NORMAL_MATERIAL_ENABLED
 [[group(1), binding(M_NORMAL_TEXTURE_BINDING)]]
 var norm_tex: texture_2d<f32>;
 [[group(1), binding(M_NORMAL_SAMPLER_BINDING)]]
 var norm_samp: sampler;
 #endif
 
-#ifdef M_DIFFUSE_ENABLED
+#ifdef M_DIFFUSE_MATERIAL_ENABLED
 [[group(1), binding(M_DIFFUSE_TEXTURE_BINDING)]]
 var diff_tex: texture_2d<f32>;
 [[group(1), binding(M_DIFFUSE_SAMPLER_BINDING)]]
 var diff_samp: sampler;
 #endif
 
-#ifdef M_SPECULAR_ENABLED
+#ifdef M_SPECULAR_MATERIAL_ENABLED
 [[group(1), binding(M_SPECULAR_TEXTURE_BINDING)]]
 var spec_tex: texture_2d<f32>;
 [[group(1), binding(M_SPECULAR_SAMPLER_BINDING)]]
 var spec_samp: sampler;
 #endif
 
-#ifdef M_EMISSIVE_ENABLED
+#ifdef M_EMISSIVE_MATERIAL_ENABLED
 [[group(1), binding(M_EMISSIVE_TEXTURE_BINDING)]]
 var emi_tex: texture_2d<f32>;
 [[group(1), binding(M_EMISSIVE_SAMPLER_BINDING)]]
@@ -85,9 +86,11 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
         instance.col2,
         instance.col3
     );
-    let out_pos = camera.proj_view * model_mat * vec4<f32>(vertex.position, 1.0);
+    let model_position = model_mat * vec4<f32>(vertex.position, 1.0);
+    let position = camera.proj_view * model_pos;
     return ModelVertexOut(
-       out_pos,
+       position,
+       model_position,
        vertex.normal,
        vertex.color,
        vertex.uv
@@ -100,8 +103,8 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
 //////////////////////////////// Fragment ////////////////////////////////
 // ------------- Output type -------------
 struct ColorTargetOut {
-    [[location(0)]] position: vec4<f32>;
-    [[location(1)]] normal: vec4<f32>;
+    [[location(M_POSITION_BUFFER_LOCATION)]] position: vec4<f32>;
+    [[location(M_NORMAL_BUFFER_LOCATION)]] normal: vec4<f32>;
 #   ifdef M_DIFFUSE_BUFFER_ENABLED
     [[location(M_DIFFUSE_BUFFER_LOCATION)]] diffuse: vec4<f32>;
 #   endif
@@ -118,26 +121,28 @@ struct ColorTargetOut {
 [[stage(fragment)]]
 fn main(in: ModelVertexOut) -> ColorTargetOut {
 
-    // Variables to write out to color targets (excluding position and normal)
+    // Variables to write out to color targets
+    let position = in.model_position;
+    let normal = in.normal;
     var diffuse = vec4<f32>(in.color, 1.0);
     var specular = vec4<f32>(0.0);
     var emissive = vec4<f32>(0.0);
 
-    // Sets those variables
-#   ifdef M_DIFFUSE_ENABLED
+    // Alters those variables based on the material used
+#   ifdef M_DIFFUSE_MATERIAL_ENABLED
     diffuse = diffuse * textureSample(diff_tex, diff_samp, in.uv);
 #   endif
-#   ifdef M_SPECULAR_ENABLED
+#   ifdef M_SPECULAR_MATERIAL_ENABLED
     specular = textureSample(spec_tex, spec_samp, in.uv);
 #   endif
-#   ifdef M_EMISSIVE_ENABLED
+#   ifdef M_EMISSIVE_MATERIAL_ENABLED
     emissive = textureSample(emi_tex, emi_samp, in.uv);
 #   endif
 
-    // Outputs to color targets
+    // Outputs variables to color targets
     return ColorTargetOut(
-        in.position,
-        in.normal,
+        position,
+        normal,
 #       ifdef M_DIFFUSE_BUFFER_ENABLED
         diffuse,
 #       endif

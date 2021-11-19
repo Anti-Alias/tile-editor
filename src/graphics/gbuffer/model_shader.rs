@@ -68,45 +68,40 @@ impl ModelShaderProvider {
         let gbuffer_flags = features.gbuffer_flags;
 
         // ----------- Material macros -----------
-        // Sets normal macros
         let mut current_binding = 0;
         if mat_flags & Material::NORMAL_BIT != 0 {
-            macros.insert(String::from("M_NORMAL_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_NORMAL_MATERIAL_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
             macros.insert(String::from("M_NORMAL_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
-
-        // Sets diffuse macros
         if mat_flags & Material::DIFFUSE_BIT != 0 {
-            macros.insert(String::from("M_DIFFUSE_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_DIFFUSE_MATERIAL_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_DIFFUSE_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
             macros.insert(String::from("M_DIFFUSE_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
-
-        // Sets specular macros
         if mat_flags & Material::SPECULAR_BIT != 0 {
-            macros.insert(String::from("M_SPECULAR_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_SPECULAR_MATERIAL_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_SPECULAR_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
             macros.insert(String::from("M_SPECULAR_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
-
-        // Sets emissive macros
         if mat_flags & Material::EMISSIVE_BIT != 0 {
-            macros.insert(String::from("M_EMISSIVE_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_EMISSIVE_MATERIAL_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_EMISSIVE_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
             macros.insert(String::from("M_EMISSIVE_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
 
-        // ----------- Material macros -----------
-        let mut current_location = 2;                           // Starting at 2 since "position" and "normal" always occupy locations 0 and 1 respectively in the shader
+        // ----------- GBuffer macros -----------
+        macros.insert(String::from("M_POSITION_BUFFER_LOCATION"), String::from("0"));
+        macros.insert(String::from("M_NORMAL_BUFFER_LOCATION"), String::from("1"));
+        let mut current_location = 2;
         if gbuffer_flags & GBuffer::DIFFUSE_BUFFER_BIT != 0 {
             macros.insert(String::from("M_DIFFUSE_BUFFER_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_DIFFUSE_BUFFER_LOCATION"), String::from(current_location.to_string()));
