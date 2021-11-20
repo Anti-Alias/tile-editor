@@ -126,13 +126,12 @@ fn main(in: ModelVertexOut) -> ColorTargetOut {
     color.r = pack4x8unorm(diffuse);
 #   endif
 #   ifdef M_SPECULAR_MATERIAL_ENABLED
-    let specular = te
-    xtureSample(spec_tex, spec_samp, in.uv);
+    let specular = textureSample(spec_tex, spec_samp, in.uv);
     color.g = pack4x8unorm(specular);
 #   endif
 #   ifdef M_EMISSIVE_MATERIAL_ENABLED
     let emissive = textureSample(emi_tex, emi_samp, in.uv);
-    color.g = pack4x8unorm(emissive);
+    color.b = pack4x8unorm(emissive);
 #   endif
 
     // Outputs variables to color targets

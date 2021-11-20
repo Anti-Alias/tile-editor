@@ -13,7 +13,7 @@ use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
-use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
+use crate::graphics::gbuffer::{GBuffer, GBufferFormat, ModelEnvironment};
 
 use crate::graphics::screen;
 use crate::gui::{GUI, Editor};
@@ -126,9 +126,7 @@ impl App {
             &device,
             &ModelEnvironment {
                 instance_set: &model_instances,
-                camera: &camera,
-                point_lights: &[],
-                directional_lights: &[]
+                camera: &camera
             }
         );
 
@@ -170,9 +168,7 @@ impl App {
                         &queue,
                         &ModelEnvironment {
                             instance_set: &model_instances,
-                            camera: &camera,
-                            point_lights: &[],
-                            directional_lights: &[]
+                            camera: &camera
                         },
                         &gbuffer
                     );

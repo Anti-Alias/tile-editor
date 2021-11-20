@@ -111,7 +111,6 @@ impl ModelPipelineProvider {
             depth_stencil: depth_stencil_target,
             multisample
         };
-        log::info!("Pipeline descriptor: {:#?}", desc);
         device.create_render_pipeline(&desc)
     }
 

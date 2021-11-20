@@ -1,6 +1,6 @@
 use wgpu::*;
 use crate::graphics::*;
-use crate::graphics::screen::{ModelPipelineFeatures, ModelPipelineProvider, ModelShaderFeatures, ModelShaderProvider, ScreenBuffer};
+use crate::graphics::screen::{ModelEnvironment, ModelPipelineFeatures, ModelPipelineProvider, ModelShaderFeatures, ModelShaderProvider, ScreenBuffer};
 
 /// Renderer of a `Model`
 pub struct ModelRenderer {
