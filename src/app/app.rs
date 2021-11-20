@@ -1,15 +1,17 @@
 
 use std::iter;
 use std::time::Instant;
-use cgmath::{Deg, Ortho, Perspective, PerspectiveFov, Point3, Rad, Vector3};
+use cgmath::{Perspective, Point3, Vector3};
+use chrono::Timelike;
 use egui::FontDefinitions;
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
-use futures_lite::future::block_on;
-use wgpu::{Backends, Device, Queue, TextureFormat, TextureViewDescriptor};
+use pollster::block_on;
+use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor};
 use winit::event::Event::*;
-use winit::event_loop::{ControlFlow};
+use winit::event_loop::ControlFlow;
+
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
 use crate::graphics::screen;
@@ -81,6 +83,7 @@ impl App {
         */
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
+            force_fallback_adapter: false,
             compatible_surface: Some(&surface),
         })).unwrap();
         let (mut device, mut queue) = block_on(adapter.request_device(
@@ -105,8 +108,8 @@ impl App {
         surface.configure(&device, &surface_config);
 
         // Creates GBuffer
-        let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
-        let gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
+        //let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
+        //let gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
 
         // Creates depth buffer
         let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
@@ -117,6 +120,7 @@ impl App {
         let model_instances = create_model_and_instances(&device, &queue);
 
         // Creates gbuffer model renderer, then primes it with the model environment
+        /*
         let mut renderer = gbuffer::ModelRenderer::new(gbuffer_format);
         renderer.prime(
             &device,
@@ -127,6 +131,7 @@ impl App {
                 directional_lights: &[]
             }
         );
+         */
 
         // Creates model renderer, then primes it with the model environment
         let mut screen_renderer = screen::ModelRenderer::new(surface_config.format, self.depth_stencil_format);
@@ -146,7 +151,7 @@ impl App {
             physical_width: size.width as u32,
             physical_height: size.height as u32,
             scale_factor: window.scale_factor(),
-            font_definitions: FontDefinitions::default(),
+            font_definitions: egui::FontDefinitions::default(),
             style: Default::default(),
         });
         let mut egui_rpass = RenderPass::new(&device, surface_format, 1);
@@ -163,12 +168,11 @@ impl App {
                 RedrawRequested(..) => {
 
                     // Gets texture view of surface
-                    let surface_frame = match surface.get_current_frame() {
+                    let surface_tex = match surface.get_current_texture() {
                         Ok(frame) => frame,
                         Err(_) => { return }
                     };
-                    let surface_view = surface_frame
-                        .output
+                    let surface_view = surface_tex
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
@@ -211,7 +215,7 @@ impl App {
                         physical_height: surface_config.height,
                         scale_factor: window.scale_factor() as f32,
                     };
-                    egui_rpass.update_texture(&device, &queue, &platform.context().texture());
+                    egui_rpass.update_texture(&device, &queue, platform.context().texture().as_ref());
                     egui_rpass.update_user_textures(&device, &queue);
                     egui_rpass.update_buffers(&mut device, &mut queue, &paint_jobs, &screen_descriptor);
                     egui_rpass.execute(

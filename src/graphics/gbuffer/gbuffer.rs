@@ -148,7 +148,7 @@ impl GBufferFormat {
             f |= GBuffer::COLOR_BUFFER_BIT;
         }
         if flags & GBuffer::DEPTH_STENCIL_BUFFER_BIT != 0 {
-            color = Some(TextureFormat::Depth32Float);
+            depth_stencil = Some(TextureFormat::Depth32Float);
             f |= GBuffer::DEPTH_STENCIL_BUFFER_BIT;
         }
         GBufferFormat {

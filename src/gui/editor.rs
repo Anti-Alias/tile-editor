@@ -1,4 +1,4 @@
-use egui::{SidePanel, CtxRef, TopBottomPanel};
+use epi::egui::{CtxRef, SidePanel, TopBottomPanel};
 
 pub struct Editor {
     pub name: String,

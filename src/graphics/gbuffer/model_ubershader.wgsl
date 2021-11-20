@@ -116,9 +116,9 @@ struct ColorTargetOut {
 fn main(in: ModelVertexOut) -> ColorTargetOut {
 
     // Variables to write out to color targets
-    let position: vec4<f32> = in.model_position;            // X, Y, Z
-    let normal: vec4<f32> = vec4<f32>(in.normal, 1.0);      // X, Y, Z
-    var color: vec4<u32> = vec4<u32>(0);                    // diffuse(rgba), specular(rgba), emissive(rgba), <unused>(rgba)
+    let position: vec4<f32> = in.model_position;        // X, Y, Z
+    let normal: vec4<f32> = vec4<f32>(in.normal, 1.0);  // X, Y, Z
+    var color: vec4<u32> = vec4<u32>(0u, 0u, 0u, 0u);   // diffuse(rgba), specular(rgba), emissive(rgba), <unused>(rgba)
 
     // Alters those variables based on the material used
 #   ifdef M_DIFFUSE_MATERIAL_ENABLED
@@ -136,7 +136,7 @@ fn main(in: ModelVertexOut) -> ColorTargetOut {
 #   endif
 
     // Outputs variables to color targets
-    return ColorTargetOut(
+    let out = ColorTargetOut(
         position,
         normal,
 #       ifdef M_COLOR_BUFFER_ENABLED

@@ -1,5 +1,5 @@
-use egui::{CtxRef, TopBottomPanel, Color32, Stroke, Ui};
-use egui::style::{Widgets, WidgetVisuals};
+use epi::egui::style::{Widgets, WidgetVisuals};
+use epi::egui::{TopBottomPanel, Color32, Stroke, Ui, CtxRef};
 
 use crate::gui::Editor;
 
@@ -71,7 +71,7 @@ impl GUI {
         let opened = &mut self.window_flags.new_map_opened;
         let input = &mut self.inputs.new_map_input.data;
         let ready = &mut self.inputs.new_map_input.is_ready;
-        egui::Window::new("New Map")
+        epi::egui::Window::new("New Map")
             .show(ctx, move |ui| {
                 ui.label("Name");
                 ui.text_edit_singleline(input);
@@ -111,8 +111,8 @@ impl GUI {
     }
 
     fn show_menu_bar(&mut self, ui: &mut Ui) {
-        egui::menu::bar(ui, |ui|{
-            egui::menu::menu(ui, "File", |ui|{
+        epi::egui::menu::bar(ui, |ui|{
+            epi::egui::menu::menu(ui, "File", |ui|{
                 if ui.button("New Map").clicked() {
                     self.window_flags.new_map_opened = true;
                 }
@@ -126,10 +126,10 @@ impl GUI {
                     // todo
                 }
             });
-            egui::menu::menu(ui, "Options", |ui|{
+            epi::egui::menu::menu(ui, "Options", |ui|{
                 ui.button("No Options");
             });
-            egui::menu::menu(ui, "Help", |ui|{
+            epi::egui::menu::menu(ui, "Help", |ui|{
                 ui.button("Nah, dude");
             });
         });
@@ -167,7 +167,7 @@ impl GUI {
             editor.content_panel(ctx);  // Content panel
         }
         else {
-            egui::CentralPanel::default().show(ctx, |ui| {
+            epi::egui::CentralPanel::default().show(ctx, |ui| {
                 ui.centered_and_justified(|ui| {
                     ui.label("Create a new map or open an existing one!")
                 });

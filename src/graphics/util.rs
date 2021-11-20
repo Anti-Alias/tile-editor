@@ -19,7 +19,7 @@ pub fn create_surface_depth_texture(device: &Device, _format: &TextureFormat, co
 }
 
 pub fn get_texture_view_of_surface(surface: &Surface) -> TextureView {
-    surface.get_current_frame().unwrap().output.texture.create_view(&TextureViewDescriptor::default())
+    surface.get_current_texture().unwrap().texture.create_view(&TextureViewDescriptor::default())
 }
 
 /// Adds line numbers to multi-line strings

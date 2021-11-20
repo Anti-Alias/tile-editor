@@ -5,22 +5,22 @@ edition = "2018"
 resolver = "2"
 
 [dependencies]
-image = "0.23"
+egui_wgpu_backend = "0.13"
+chrono = "0.4"
+pollster = "0.2"
+egui = "0.14"
+epi = "0.14"
+egui_winit_platform = "0.10.0"
+wgpu = "0.11"
 winit = "0.25"
+egui_demo_lib = "0.14"
+
+image = "0.23"
 cgmath = "0.18"
 env_logger = "0.9"
 log = "0.4"
-wgpu = "0.10"
-pollster = "0.2"
 bytemuck = { version = "1.4", features = [ "derive" ] }
-egui = "0.14.2"
-egui_wgpu_backend = "0.12"
-egui_winit_platform = "0.10.0"
-egui_demo_lib = "0.14"
 nfd = "0.0.4"
 gpp = "0.6.2"
-crevice = { version = "0.8.0", features = [ "cgmath" ]}
-
-chrono = "0.4"
+crevice = { version = "0.8", features = [ "cgmath" ]}
 futures-lite = "1.12"
-epi = "0.14"
