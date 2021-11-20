@@ -228,6 +228,7 @@ impl App {
 
                     // Submit the commands.
                     queue.submit(iter::once(encoder.finish()));
+                    surface_tex.present();
 
                     // Done with current loop
                     *control_flow = ControlFlow::Poll;
