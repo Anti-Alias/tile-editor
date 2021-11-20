@@ -18,15 +18,6 @@ pub fn create_surface_depth_texture(device: &Device, _format: &TextureFormat, co
     })
 }
 
-pub fn create_gbuffer(device: &Device, config: &SurfaceConfiguration) -> GBuffer {
-    let flags =
-        GBuffer::DEPTH_STENCIL_BUFFER_BIT |
-        GBuffer::DIFFUSE_BUFFER_BIT |
-        GBuffer::SPECULAR_BUFFER_BIT |
-        GBuffer::EMISSIVE_BUFFER_BIT;
-    GBuffer::create_simple(device, config.width, config.height, flags)
-}
-
 pub fn get_texture_view_of_surface(surface: &Surface) -> TextureView {
     surface.get_current_frame().unwrap().output.texture.create_view(&TextureViewDescriptor::default())
 }

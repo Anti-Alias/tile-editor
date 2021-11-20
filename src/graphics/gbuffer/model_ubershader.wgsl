@@ -28,7 +28,7 @@ struct ModelInstanceIn {
 // ------------- Vertex output type -------------
 struct ModelVertexOut {
     [[builtin(position)]] position: vec4<f32>;
-    [[location(0]] model_position: vec4<f32>;
+    [[location(0)]] model_position: vec4<f32>;
     [[location(1)]] normal: vec3<f32>;
     [[location(2)]] color: vec4<f32>;
     [[location(3)]] uv: vec2<f32>;
@@ -86,11 +86,11 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
         instance.col2,
         instance.col3
     );
-    let model_position = model_mat * vec4<f32>(vertex.position, 1.0);
+    let model_pos = model_mat * vec4<f32>(vertex.position, 1.0);
     let position = camera.proj_view * model_pos;
     return ModelVertexOut(
        position,
-       model_position,
+       model_pos,
        vertex.normal,
        vertex.color,
        vertex.uv
@@ -105,14 +105,8 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
 struct ColorTargetOut {
     [[location(M_POSITION_BUFFER_LOCATION)]] position: vec4<f32>;
     [[location(M_NORMAL_BUFFER_LOCATION)]] normal: vec4<f32>;
-#   ifdef M_DIFFUSE_BUFFER_ENABLED
-    [[location(M_DIFFUSE_BUFFER_LOCATION)]] diffuse: vec4<f32>;
-#   endif
-#   ifdef M_SPECULAR_BUFFER_ENABLED
-    [[location(M_SPECULAR_BUFFER_LOCATION)]] specular: vec4<f32>;
-#   endif
-#   ifdef M_EMISSIVE_BUFFER_ENABLED
-    [[location(M_EMISSIVE_BUFFER_LOCATION)]] emissive: vec4<f32>;
+#   ifdef M_COLOR_BUFFER_ENABLED
+    [[location(M_COLOR_BUFFER_LOCATION)]] color: vec4<u32>;
 #   endif
 };
 
@@ -122,35 +116,31 @@ struct ColorTargetOut {
 fn main(in: ModelVertexOut) -> ColorTargetOut {
 
     // Variables to write out to color targets
-    let position = in.model_position;
-    let normal = in.normal;
-    var diffuse = vec4<f32>(in.color, 1.0);
-    var specular = vec4<f32>(0.0);
-    var emissive = vec4<f32>(0.0);
+    let position: vec4<f32> = in.model_position;            // X, Y, Z
+    let normal: vec4<f32> = vec4<f32>(in.normal, 1.0);      // X, Y, Z
+    var color: vec4<u32> = vec4<u32>(0);                    // diffuse(rgba), specular(rgba), emissive(rgba), <unused>(rgba)
 
     // Alters those variables based on the material used
 #   ifdef M_DIFFUSE_MATERIAL_ENABLED
-    diffuse = diffuse * textureSample(diff_tex, diff_samp, in.uv);
+    let diffuse = in.color * textureSample(diff_tex, diff_samp, in.uv);
+    color.r = pack4x8unorm(diffuse);
 #   endif
 #   ifdef M_SPECULAR_MATERIAL_ENABLED
-    specular = textureSample(spec_tex, spec_samp, in.uv);
+    let specular = te
+    xtureSample(spec_tex, spec_samp, in.uv);
+    color.g = pack4x8unorm(specular);
 #   endif
 #   ifdef M_EMISSIVE_MATERIAL_ENABLED
-    emissive = textureSample(emi_tex, emi_samp, in.uv);
+    let emissive = textureSample(emi_tex, emi_samp, in.uv);
+    color.g = pack4x8unorm(emissive);
 #   endif
 
     // Outputs variables to color targets
     return ColorTargetOut(
         position,
         normal,
-#       ifdef M_DIFFUSE_BUFFER_ENABLED
-        diffuse,
-#       endif
-#       ifdef M_SPECULAR_BUFFER_ENABLED
-        specular,
-#       endif
-#       ifdef M_EMISSIVE_BUFFER_ENABLED
-        emissive,
+#       ifdef M_COLOR_BUFFER_ENABLED
+        color,
 #       endif
     );
 }

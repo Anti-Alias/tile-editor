@@ -7,11 +7,12 @@ use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use futures_lite::future::block_on;
-use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor};
+use wgpu::{Backends, Device, Queue, TextureFormat, TextureViewDescriptor};
 use winit::event::Event::*;
 use winit::event_loop::{ControlFlow};
 use crate::graphics::*;
-use crate::graphics::screen::{ModelRenderer, ScreenBuffer};
+use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
+use crate::graphics::screen;
 use crate::gui::{GUI, Editor};
 
 /// Represents the application as a whole.
@@ -72,6 +73,12 @@ impl App {
         // Creates WGPU instance and friends
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
         let surface = unsafe { instance.create_surface(&window) };
+        /*
+        let adapter = instance
+            .enumerate_adapters(Backends::DX12)
+            .next()
+            .unwrap();
+        */
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
             compatible_surface: Some(&surface),
@@ -97,6 +104,10 @@ impl App {
         };
         surface.configure(&device, &surface_config);
 
+        // Creates GBuffer
+        let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
+        let gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
+
         // Creates depth buffer
         let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
         let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
@@ -105,9 +116,21 @@ impl App {
         let mut camera = create_camera(&device, size.width, size.height);
         let model_instances = create_model_and_instances(&device, &queue);
 
-        // Creates model renderer, then primes it with the environment
-        let mut renderer = ModelRenderer::new(surface_config.format, self.depth_stencil_format);
+        // Creates gbuffer model renderer, then primes it with the model environment
+        let mut renderer = gbuffer::ModelRenderer::new(gbuffer_format);
         renderer.prime(
+            &device,
+            &ModelEnvironment {
+                instance_set: &model_instances,
+                camera: &camera,
+                point_lights: &[],
+                directional_lights: &[]
+            }
+        );
+
+        // Creates model renderer, then primes it with the model environment
+        let mut screen_renderer = screen::ModelRenderer::new(surface_config.format, self.depth_stencil_format);
+        screen_renderer.prime(
             &device,
             &ModelEnvironment {
                 instance_set: &model_instances,
@@ -151,7 +174,7 @@ impl App {
 
                     // Flushes environment uniforms, then renders model environment
                     camera.flush(&queue);
-                    renderer.render(
+                    screen_renderer.render(
                         &device,
                         &queue,
                         &ModelEnvironment {
@@ -160,7 +183,7 @@ impl App {
                             point_lights: &[],
                             directional_lights: &[]
                         },
-                        &ScreenBuffer {
+                        &screen::ScreenBuffer {
                             color: &surface_view,
                             depth_stencil: &depth_stencil_view
                         }

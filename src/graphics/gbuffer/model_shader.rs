@@ -102,19 +102,9 @@ impl ModelShaderProvider {
         macros.insert(String::from("M_POSITION_BUFFER_LOCATION"), String::from("0"));
         macros.insert(String::from("M_NORMAL_BUFFER_LOCATION"), String::from("1"));
         let mut current_location = 2;
-        if gbuffer_flags & GBuffer::DIFFUSE_BUFFER_BIT != 0 {
-            macros.insert(String::from("M_DIFFUSE_BUFFER_ENABLED"), String::from("TRUE"));
-            macros.insert(String::from("M_DIFFUSE_BUFFER_LOCATION"), String::from(current_location.to_string()));
-            current_location += 1;
-        }
-        if gbuffer_flags & GBuffer::SPECULAR_BUFFER_BIT != 0 {
-            macros.insert(String::from("M_SPECULAR_BUFFER_ENABLED"), String::from("TRUE"));
-            macros.insert(String::from("M_SPECULAR_BUFFER_LOCATION"), String::from(current_location.to_string()));
-            current_location += 1;
-        }
-        if gbuffer_flags & GBuffer::EMISSIVE_BUFFER_BIT != 0 {
-            macros.insert(String::from("M_EMISSIVE_BUFFER_ENABLED"), String::from("TRUE"));
-            macros.insert(String::from("M_EMISSIVE_BUFFER_LOCATION"), String::from(current_location.to_string()));
+        if gbuffer_flags & GBuffer::COLOR_BUFFER_BIT != 0 {
+            macros.insert(String::from("M_COLOR_BUFFER_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_COLOR_BUFFER_LOCATION"), String::from(current_location.to_string()));
             current_location += 1;
         }
 

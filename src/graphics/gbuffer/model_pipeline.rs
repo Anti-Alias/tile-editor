@@ -102,7 +102,7 @@ impl ModelPipelineProvider {
         };
 
         // Creates pipeline with layout and states
-        device.create_render_pipeline(&RenderPipelineDescriptor {
+        let desc = RenderPipelineDescriptor {
             label: Some("Model Render Pipeline"),
             layout: Some(&layout),
             vertex,
@@ -110,7 +110,9 @@ impl ModelPipelineProvider {
             primitive,
             depth_stencil: depth_stencil_target,
             multisample
-        })
+        };
+        log::info!("Pipeline descriptor: {:#?}", desc);
+        device.create_render_pipeline(&desc)
     }
 
     fn create_color_targets(format: &GBufferFormat) -> Vec<ColorTargetState> {
@@ -126,19 +128,13 @@ impl ModelPipelineProvider {
                 write_mask: ColorWrites::ALL
             }
         ];
-        Self::push_state(&mut targets, format.diffuse());
-        Self::push_state(&mut targets, format.specular());
-        Self::push_state(&mut targets, format.emissive());
-        targets
-    }
-
-    fn push_state(targets: &mut Vec<ColorTargetState>, format: Option<TextureFormat>) {
-        if let Some(format) = format {
+        if let Some(format) = format.color() {
             targets.push(ColorTargetState {
                 format,
                 blend: None,
                 write_mask: ColorWrites::ALL
             });
         }
+        targets
     }
 }
