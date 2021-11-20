@@ -110,7 +110,7 @@ impl App {
 
         // Creates GBuffer
         let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
-        let gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
+        let mut gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
 
         // Creates depth buffer
         let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
@@ -123,18 +123,6 @@ impl App {
         // Creates gbuffer model renderer, then primes it with the model environment
         let mut renderer = gbuffer::ModelRenderer::new(gbuffer_format);
         renderer.prime(
-            &device,
-            &ModelEnvironment {
-                instance_set: &model_instances,
-                camera: &camera,
-                point_lights: &[],
-                directional_lights: &[]
-            }
-        );
-
-        // Creates model renderer, then primes it with the model environment
-        let mut screen_renderer = screen::ModelRenderer::new(surface_config.format, self.depth_stencil_format);
-        screen_renderer.prime(
             &device,
             &ModelEnvironment {
                 instance_set: &model_instances,
@@ -177,7 +165,7 @@ impl App {
 
                     // Flushes environment uniforms, then renders model environment
                     camera.flush(&queue);
-                    screen_renderer.render(
+                    renderer.render(
                         &device,
                         &queue,
                         &ModelEnvironment {
@@ -186,10 +174,7 @@ impl App {
                             point_lights: &[],
                             directional_lights: &[]
                         },
-                        &screen::ScreenBuffer {
-                            color: &surface_view,
-                            depth_stencil: &depth_stencil_view
-                        }
+                        &gbuffer
                     );
 
                     // Moves camera

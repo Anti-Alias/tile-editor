@@ -71,36 +71,12 @@ impl ModelRenderer {
         environment: &ModelEnvironment,
         gbuffer: &GBuffer
     ) {
-
-        // Creates attachments (targets to draw to + load operations for each)
-        let color_attachments = &[
-            /*
-            RenderPassColorAttachment {
-                view: gbuffer.diffuse_view(),
-                resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(wgpu::Color {r: 0.5, g: 0.5, b: 0.5, a: 1.0}),
-                    store: true
-                }
-            }
-             */
-        ];
-        let depth_stencil_attachment = gbuffer.depth_stencil_view().map(|view| {
-            RenderPassDepthStencilAttachment {
-                view,
-                depth_ops: Some(Operations {
-                    load: LoadOp::Clear(1.0),
-                    store: true
-                }),
-                stencil_ops: None
-            }
-        });
-
-        // Begins render pass with attachments
+        // Begins render pass with gbuffer's attachments
+        let attachments = gbuffer.attachments();
         let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("Model Renderer Render Pass"),
-            color_attachments,
-            depth_stencil_attachment
+            color_attachments: attachments.color_attachments(),
+            depth_stencil_attachment: attachments.depth_stencil_attachment()
         });
 
         // Draws all meshes within the model using render pass

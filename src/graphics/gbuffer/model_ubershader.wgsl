@@ -43,36 +43,36 @@ struct CameraUni {
 
 
 // ------------- Camera bind group -------------
-[[group(0), binding(0)]]
+[[group(M_CAMERA_BIND_GROUP), binding(0)]]
 var<uniform> camera: CameraUni;
 
 
 // ------------- Texture bind group -------------
 #ifdef M_NORMAL_MATERIAL_ENABLED
-[[group(1), binding(M_NORMAL_TEXTURE_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_NORMAL_TEXTURE_BINDING)]]
 var norm_tex: texture_2d<f32>;
-[[group(1), binding(M_NORMAL_SAMPLER_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_NORMAL_SAMPLER_BINDING)]]
 var norm_samp: sampler;
 #endif
 
 #ifdef M_DIFFUSE_MATERIAL_ENABLED
-[[group(1), binding(M_DIFFUSE_TEXTURE_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_DIFFUSE_TEXTURE_BINDING)]]
 var diff_tex: texture_2d<f32>;
-[[group(1), binding(M_DIFFUSE_SAMPLER_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_DIFFUSE_SAMPLER_BINDING)]]
 var diff_samp: sampler;
 #endif
 
 #ifdef M_SPECULAR_MATERIAL_ENABLED
-[[group(1), binding(M_SPECULAR_TEXTURE_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_SPECULAR_TEXTURE_BINDING)]]
 var spec_tex: texture_2d<f32>;
-[[group(1), binding(M_SPECULAR_SAMPLER_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_SPECULAR_SAMPLER_BINDING)]]
 var spec_samp: sampler;
 #endif
 
 #ifdef M_EMISSIVE_MATERIAL_ENABLED
-[[group(1), binding(M_EMISSIVE_TEXTURE_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_EMISSIVE_TEXTURE_BINDING)]]
 var emi_tex: texture_2d<f32>;
-[[group(1), binding(M_EMISSIVE_SAMPLER_BINDING)]]
+[[group(M_MATERIAL_BIND_GROUP), binding(M_EMISSIVE_SAMPLER_BINDING)]]
 var emi_samp: sampler;
 #endif
 

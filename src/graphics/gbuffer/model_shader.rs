@@ -67,7 +67,11 @@ impl ModelShaderProvider {
         let mat_flags = features.material_flags;
         let gbuffer_flags = features.gbuffer_flags;
 
-        // ----------- Material macros -----------
+        // ---------- Bind group macros -----------
+        macros.insert(String::from("M_CAMERA_BIND_GROUP"), String::from("0"));
+        macros.insert(String::from("M_MATERIAL_BIND_GROUP"), String::from("1"));
+
+        // ----------- Material binding macros -----------
         let mut current_binding = 0;
         if mat_flags & Material::NORMAL_BIT != 0 {
             macros.insert(String::from("M_NORMAL_MATERIAL_ENABLED"), String::from("TRUE"));
