@@ -2,8 +2,8 @@
 use std::iter;
 use std::time::Instant;
 use cgmath::{Perspective, Point3, Vector3};
-use chrono::Timelike;
-use egui::FontDefinitions;
+
+
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
@@ -14,6 +14,7 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
+
 use crate::graphics::screen;
 use crate::gui::{GUI, Editor};
 
@@ -108,8 +109,8 @@ impl App {
         surface.configure(&device, &surface_config);
 
         // Creates GBuffer
-        //let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
-        //let gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
+        let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
+        let gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
 
         // Creates depth buffer
         let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
@@ -120,7 +121,6 @@ impl App {
         let model_instances = create_model_and_instances(&device, &queue);
 
         // Creates gbuffer model renderer, then primes it with the model environment
-        /*
         let mut renderer = gbuffer::ModelRenderer::new(gbuffer_format);
         renderer.prime(
             &device,
@@ -131,7 +131,6 @@ impl App {
                 directional_lights: &[]
             }
         );
-         */
 
         // Creates model renderer, then primes it with the model environment
         let mut screen_renderer = screen::ModelRenderer::new(surface_config.format, self.depth_stencil_format);
