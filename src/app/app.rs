@@ -326,7 +326,7 @@ fn create_model_and_instances(device: &Device, queue: &Queue) -> ModelInstanceSe
 
     // Creates texture from image
     use image::io::Reader as ImageReader;
-    let diffuse_img = ImageReader::open("../../assets/cubemap/diffuse.png")
+    let diffuse_img = ImageReader::open("assets/cubemap/diffuse.png")
         .unwrap()
         .decode()
         .unwrap();
