@@ -8,6 +8,9 @@ pub struct GBuffer {
     depth_stencil: Option<TextureView>,
     color: Option<TextureView>,
     format: GBufferFormat,
+    sampler: Sampler,
+    bind_group: BindGroup,
+    bind_group_layout: BindGroupLayout,
     view_count: u32                     // Number of views. Useful for pre-allocating color attachment vector
 }
 impl GBuffer {
@@ -21,6 +24,16 @@ impl GBuffer {
     /// Creates a GBuffer where each texture is of the specified size and have the formats specified
     /// in `format`.
     pub fn new(device: &Device, width: u32, height: u32, format: GBufferFormat) -> Self {
+        let sampler = device.create_sampler(&SamplerDescriptor {
+            label: None,
+            address_mode_u: AddressMode::ClampToEdge,
+            address_mode_v: AddressMode::ClampToEdge,
+            address_mode_w: AddressMode::ClampToEdge,
+            mag_filter: FilterMode::Nearest,
+            min_filter: FilterMode::Nearest,
+            mipmap_filter: FilterMode::Nearest,
+            ..Default::default()
+        });
         let position = device
             .create_texture(&Self::descriptor_of(width, height, format.position))
             .create_view(&TextureViewDescriptor::default());
@@ -37,6 +50,13 @@ impl GBuffer {
                 .create_texture(&Self::descriptor_of(width, height, tex_form))
                 .create_view(&TextureViewDescriptor::default())
         });
+        let (bind_group, bind_group_layout) = Self::create_bind_group(
+            device,
+            &sampler,
+            &position,
+            &normal,
+            color.as_ref()
+        );
         let mut view_count = 2;
         if color.is_some() { view_count += 1 };
         log::info!("Created GBuffer with format {:?}", format);
@@ -46,6 +66,9 @@ impl GBuffer {
             depth_stencil,
             color,
             format,
+            sampler,
+            bind_group,
+            bind_group_layout,
             view_count
         }
     }
@@ -55,6 +78,8 @@ impl GBuffer {
     pub fn depth_stencil_view(&self) -> Option<&TextureView> { self.depth_stencil.as_ref() }
     pub fn color_view(&self) -> Option<&TextureView> { self.color.as_ref() }
     pub fn format(&self) -> GBufferFormat { self.format }
+    pub fn bind_group(&self) -> &BindGroup { &self.bind_group }
+    pub fn bind_group_layout(&self) -> &BindGroupLayout { &self.bind_group_layout }
 
     /// Both the color buffer and depth_stencil attachments
     pub fn attachments(&self) -> GBufferAttachments {
@@ -106,9 +131,15 @@ impl GBuffer {
         }
     }
 
+    /// Resizes all of the textures in the gbuffer to conform to a new size
+    pub fn resize(&mut self, device: &Device, width: u32, height: u32) {
+        *self = GBuffer::new(device, width, height, self.format);
+    }
+
     fn optional_format(flags: u64, bit: u64, format: TextureFormat) -> Option<TextureFormat> {
         if flags | bit != 0 { Some(format) } else { None }
     }
+
     fn descriptor_of<'a>(width: u32, height: u32, format: TextureFormat) -> TextureDescriptor<'a> {
         TextureDescriptor {
             label: None,
@@ -123,6 +154,109 @@ impl GBuffer {
             format,
             usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING
         }
+    }
+
+    fn create_bind_group(
+        device: &Device,
+        sampler: &Sampler,
+        pos_view: &TextureView,
+        nor_view: &TextureView,
+        col_view: Option<&TextureView>
+    ) -> (BindGroup, BindGroupLayout) {
+
+        // Creates required layout entries
+        let mut layout_entries = Vec::with_capacity(3);
+        layout_entries.push(
+            // Sampler
+            BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Sampler {
+                    filtering: false,
+                    comparison: false
+                },
+                count: None
+            }
+        );
+        layout_entries.push(
+            // Position
+            BindGroupLayoutEntry {
+                binding: 1,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
+                    sample_type: TextureSampleType::Float { filterable: false },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false
+                },
+                count: None
+            },
+        );
+        layout_entries.push(
+            // Normal
+            BindGroupLayoutEntry {
+                binding: 2,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
+                    sample_type: TextureSampleType::Float { filterable: false },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false
+                },
+                count: None
+            },
+        );
+
+
+        // Creates required bind group entries
+        let mut bind_group_entries = Vec::with_capacity(3);
+        bind_group_entries.push(BindGroupEntry {
+            binding: 0,
+            resource: BindingResource::Sampler(sampler)
+        });
+        bind_group_entries.push(BindGroupEntry {
+            binding: 1,
+            resource: BindingResource::TextureView(pos_view)
+        });
+        bind_group_entries.push(BindGroupEntry {
+            binding: 2,
+            resource: BindingResource::TextureView(nor_view)
+        });
+
+        // Adds optional entries
+        if let Some(col_view) = col_view {
+            layout_entries.push(
+                // Color
+                BindGroupLayoutEntry {
+                    binding: 3,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Texture {
+                        sample_type: TextureSampleType::Float { filterable: false },
+                        view_dimension: TextureViewDimension::D2,
+                        multisampled: false
+                    },
+                    count: None
+                },
+            );
+            bind_group_entries.push(BindGroupEntry {
+                binding: 3,
+                resource: BindingResource::TextureView(col_view)
+            });
+        }
+
+        // Creates layout and group, then finishes
+        let layout_desc = BindGroupLayoutDescriptor {
+            label: None,
+            entries: layout_entries.as_slice()
+        };
+        let layout = device.create_bind_group_layout(&layout_desc);
+        let group_desc = BindGroupDescriptor {
+            label: None,
+            layout: &layout,
+            entries: bind_group_entries.as_slice()
+        };
+        let bind_group = device.create_bind_group(&group_desc);
+        log::debug!("Created GBuffer bind group layout: {:#?}", layout_desc);
+        log::debug!("Created GBuffer bind group: {:#?}", group_desc);
+        (bind_group, layout)
     }
 }
 
@@ -144,7 +278,7 @@ impl GBufferFormat {
         let mut color = None;
         let mut depth_stencil = None;
         if flags & GBuffer::COLOR_BUFFER_BIT != 0 {
-            color = Some(TextureFormat::Rgba32Uint);
+            color = Some(TextureFormat::Rgba32Float);
             f |= GBuffer::COLOR_BUFFER_BIT;
         }
         if flags & GBuffer::DEPTH_STENCIL_BUFFER_BIT != 0 {

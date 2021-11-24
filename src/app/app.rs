@@ -16,6 +16,7 @@ use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat, ModelEnvironment};
 
 use crate::graphics::screen;
+use crate::graphics::screen::ScreenBuffer;
 use crate::gui::{GUI, Editor};
 
 /// Represents the application as a whole.
@@ -112,23 +113,24 @@ impl App {
         let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
         let mut gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
 
-        // Creates depth buffer
-        let mut depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
-        let mut depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
-
         // Sets up environment to render (models, camera, lights, etc)
         let mut camera = create_camera(&device, size.width, size.height);
         let model_instances = create_model_and_instances(&device, &queue);
 
-        // Creates gbuffer model renderer, then primes it with the model environment
-        let mut renderer = gbuffer::ModelRenderer::new(gbuffer_format);
-        renderer.prime(
+        // Creates model->gbuffer renderer, then primes it with the model environment
+        let mut gbuffer_renderer = gbuffer::ModelRenderer::new();
+        gbuffer_renderer.prime(
             &device,
+            gbuffer.format(),
             &ModelEnvironment {
                 instance_set: &model_instances,
                 camera: &camera
             }
         );
+
+        // Creates gbuffer->screen renderer, then primes it
+        let mut screen_renderer = screen::GBufferRenderer::new();
+        screen_renderer.prime(&device, surface_format, &gbuffer);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -161,15 +163,23 @@ impl App {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
-                    // Flushes environment uniforms, then renders model environment
+                    // Renders models to gbuffer
                     camera.flush(&queue);
-                    renderer.render(
+                    gbuffer_renderer.render(
                         &device,
                         &queue,
                         &ModelEnvironment {
                             instance_set: &model_instances,
                             camera: &camera
                         },
+                        &gbuffer
+                    );
+
+                    // Renders gbuffer to screen
+                    screen_renderer.render(
+                        &device,
+                        &queue,
+                        &surface_view,
                         &gbuffer
                     );
 
@@ -228,8 +238,7 @@ impl App {
                         if size.width != 0 { surface_config.width = size.width; }
                         if size.height != 0 { surface_config.height = size.height; }
                         surface.configure(&device, &surface_config);
-                        depth_stencil = create_surface_depth_texture(&device, &self.depth_stencil_format, &surface_config);
-                        depth_stencil_view = depth_stencil.create_view(&TextureViewDescriptor::default());
+                        gbuffer.resize(&device, size.width, size.height);
 
                         // Updates camera
                         update_camera(&mut camera, size.width, size.height);

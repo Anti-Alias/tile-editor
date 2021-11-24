@@ -1,12 +1,9 @@
-pub use model_pipeline::*;
-pub use model_renderer::*;
-pub use model_shader::*;
-pub use screen_buffer::*;
-pub use model_environment::*;
-
-mod model_renderer;
-mod model_pipeline;
-mod model_shader;
 mod screen_buffer;
-mod model_environment;
+mod gbuffer_renderer;
+mod gbuffer_shader_provider;
+mod gbuffer_pipeline_provider;
 
+pub use screen_buffer::*;
+pub use gbuffer_renderer::*;
+pub use gbuffer_shader_provider::*;
+pub use gbuffer_pipeline_provider::*;

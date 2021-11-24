@@ -6,7 +6,6 @@ use crate::graphics::gbuffer::*;
 pub struct ModelRenderer {
     shader_provider: ModelShaderProvider,       // Provider of shaders derived from an ubershader/material features
     pipeline_provider: ModelPipelineProvider,   // Provider of pipelines derived from material features
-    gbuffer_format: GBufferFormat               // Format of the gbuffer
 }
 
 impl ModelRenderer {
@@ -18,17 +17,16 @@ impl ModelRenderer {
     const NORMAL_TEX_BIND_GROUP: u32 = 1;
 
     /// Creates a `ModelRenderer` with a default shader
-    pub fn new(gbuffer_format: GBufferFormat) -> ModelRenderer {
+    pub fn new() -> ModelRenderer {
         let shader_source = String::from(include_str!("model_ubershader.wgsl"));
-        Self::create_from_shader(shader_source, gbuffer_format)
+        Self::create_from_shader(shader_source)
     }
 
     /// Creates a `ModelRenderer` with the specified shader
-    pub fn create_from_shader(shader_source: String, gbuffer_format: GBufferFormat) -> ModelRenderer {
+    pub fn create_from_shader(shader_source: String) -> ModelRenderer {
         ModelRenderer {
             shader_provider: ModelShaderProvider::new(shader_source),
             pipeline_provider: ModelPipelineProvider::new(),
-            gbuffer_format
         }
     }
 
@@ -39,7 +37,7 @@ impl ModelRenderer {
     /// * `gbuffer` - GBuffer to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
     pub fn render(
-        &mut self,
+        &self,
         device: &Device,
         queue: &Queue,
         environment: &ModelEnvironment,
@@ -66,7 +64,7 @@ impl ModelRenderer {
     /// * `gbuffer` - GBuffer to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
     fn render_environment_to_encoder(
-        &mut self,
+        &self,
         encoder: &mut CommandEncoder,
         environment: &ModelEnvironment,
         gbuffer: &GBuffer
@@ -80,13 +78,14 @@ impl ModelRenderer {
         });
 
         // Draws all meshes within the model using render pass
-        self.render_with_render_pass(&mut render_pass, environment);
+        self.render_with_render_pass(&mut render_pass, environment, gbuffer.format());
     }
 
     fn render_with_render_pass<'a, 'b>(
         &'a self,
         render_pass: &mut RenderPass<'b>,
         environment: &ModelEnvironment<'b>,
+        gbuffer_format: GBufferFormat
     ) where 'a: 'b {
 
         // Unpacks environment
@@ -100,10 +99,10 @@ impl ModelRenderer {
 
             // Gets appropriate pipeline for the set of features from material/gbuffer
             let features = ModelPipelineFeatures {
-                gbuffer_format: self.gbuffer_format,
+                gbuffer_format,
                 shader_features: ModelShaderFeatures {
                     material_flags: material.flags(),
-                    gbuffer_flags: self.gbuffer_format.flags()
+                    gbuffer_flags: gbuffer_format.flags()
                 }
             };
             let pipeline = &self.pipeline_provider
@@ -129,6 +128,7 @@ impl ModelRenderer {
     pub fn prime<'a>(
         &mut self,
         device: &Device,
+        gbuffer_format: GBufferFormat,
         environment: &ModelEnvironment<'a>
     ) {
         // Unpacks environment
@@ -140,10 +140,10 @@ impl ModelRenderer {
         let shader_provider = &mut self.shader_provider;
         for (_, material) in model.iter() {
             let features = ModelPipelineFeatures {
-                gbuffer_format: self.gbuffer_format,
+                gbuffer_format,
                 shader_features: ModelShaderFeatures {
                     material_flags: material.flags(),
-                    gbuffer_flags: self.gbuffer_format.flags()
+                    gbuffer_flags: gbuffer_format.flags()
                 }
             };
             pipeline_provider.prime(

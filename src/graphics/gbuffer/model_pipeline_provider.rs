@@ -71,8 +71,8 @@ impl ModelPipelineProvider {
                 ModelInstance::layout()
             ]
         };
-        let color_targets = Self::create_color_targets(&features.gbuffer_format);
-        let depth_stencil_target = features.gbuffer_format.depth_stencil().map(|format| {
+        let color_target_states = Self::create_color_target_states(&features.gbuffer_format);
+        let depth_stencil_state = features.gbuffer_format.depth_stencil().map(|format| {
             DepthStencilState {
                 format,
                 depth_write_enabled: true,
@@ -84,7 +84,7 @@ impl ModelPipelineProvider {
         let fragment = Some(FragmentState {
             module,
             entry_point: "main",
-            targets: color_targets.as_slice()
+            targets: color_target_states.as_slice()
         });
         let primitive = PrimitiveState {
             topology: PrimitiveTopology::TriangleList,
@@ -102,19 +102,18 @@ impl ModelPipelineProvider {
         };
 
         // Creates pipeline with layout and states
-        let desc = RenderPipelineDescriptor {
+        device.create_render_pipeline(&RenderPipelineDescriptor {
             label: Some("Model Render Pipeline"),
             layout: Some(&layout),
             vertex,
             fragment,
             primitive,
-            depth_stencil: depth_stencil_target,
+            depth_stencil: depth_stencil_state,
             multisample
-        };
-        device.create_render_pipeline(&desc)
+        })
     }
 
-    fn create_color_targets(format: &GBufferFormat) -> Vec<ColorTargetState> {
+    fn create_color_target_states(format: &GBufferFormat) -> Vec<ColorTargetState> {
         let mut targets = vec![
             ColorTargetState {
                 format: format.position(),

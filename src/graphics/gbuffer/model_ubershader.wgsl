@@ -6,6 +6,7 @@
 #endif
 
 
+
 //////////////////////////////// Vertex ////////////////////////////////
 // ------------- Vertex input type -------------
 struct ModelVertexIn {
@@ -106,7 +107,7 @@ struct ColorTargetOut {
     [[location(M_POSITION_BUFFER_LOCATION)]] position: vec4<f32>;
     [[location(M_NORMAL_BUFFER_LOCATION)]] normal: vec4<f32>;
 #   ifdef M_COLOR_BUFFER_ENABLED
-    [[location(M_COLOR_BUFFER_LOCATION)]] color: vec4<u32>;
+    [[location(M_COLOR_BUFFER_LOCATION)]] color: vec4<f32>;
 #   endif
 };
 
@@ -116,26 +117,26 @@ struct ColorTargetOut {
 fn main(in: ModelVertexOut) -> ColorTargetOut {
 
     // Variables to write out to color targets
-    let position: vec4<f32> = in.model_position;        // X, Y, Z
-    let normal: vec4<f32> = vec4<f32>(in.normal, 1.0);  // X, Y, Z
-    var color: vec4<u32> = vec4<u32>(0u, 0u, 0u, 0u);   // diffuse(rgba), specular(rgba), emissive(rgba), <unused>(rgba)
+    let position = in.model_position;       // X, Y, Z, <unused>
+    let normal = vec4<f32>(in.normal, 1.0); // X, Y, Z, <unused>
+    var color = vec4<f32>(0.0);             // diffuse(rgba), specular(rgba), emissive(rgba), <unused>(rgba)
 
     // Alters those variables based on the material used
 #   ifdef M_DIFFUSE_MATERIAL_ENABLED
     let diffuse = in.color * textureSample(diff_tex, diff_samp, in.uv);
-    color.r = pack4x8unorm(diffuse);
+    color.r = bitcast<f32>(pack4x8unorm(diffuse));  // Unholy bit casting...
 #   endif
 #   ifdef M_SPECULAR_MATERIAL_ENABLED
     let specular = textureSample(spec_tex, spec_samp, in.uv);
-    color.g = pack4x8unorm(specular);
+    color.g = bitcast<f32>(pack4x8unorm(specular)); // Unholy bit casting...
 #   endif
 #   ifdef M_EMISSIVE_MATERIAL_ENABLED
     let emissive = textureSample(emi_tex, emi_samp, in.uv);
-    color.b = pack4x8unorm(emissive);
+    color.b = bitcast<f32>(pack4x8unorm(emissive)); // Unholy bit casting...
 #   endif
 
     // Outputs variables to color targets
-    let out = ColorTargetOut(
+    return ColorTargetOut(
         position,
         normal,
 #       ifdef M_COLOR_BUFFER_ENABLED
