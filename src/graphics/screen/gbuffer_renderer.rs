@@ -169,7 +169,7 @@ impl GBufferRenderer {
         let mut context = gpp::Context::new();
         let macros = &mut context.macros;
 
-        // ---------- GBuffer texture bind group -----------
+        // ---------- GBuffer macros -----------
         macros.insert(String::from("M_GBUFFER_BIND_GROUP"), String::from("0"));
         macros.insert(String::from("M_SAMPLER_BINDING"), String::from("0"));
         macros.insert(String::from("M_POSITION_TEXTURE_BINDING"), String::from("1"));
@@ -178,6 +178,11 @@ impl GBufferRenderer {
             macros.insert(String::from("M_COLOR_BUFFER_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_COLOR_TEXTURE_BINDING"), String::from("3"));
         }
+
+        // ---------- Light macros -----------
+        macros.insert(String::from("M_LIGHT_BIND_GROUP"), String::from("0"));
+        macros.insert(String::from("M_POINT_LIGHT_BINDING"), String::from("0"));
+        macros.insert(String::from("M_DIRECTIONAL_LIGHT_BINDING"), String::from("1"));
 
         // Returns preprocessed string
         gpp::process_str(source, &mut context).unwrap()

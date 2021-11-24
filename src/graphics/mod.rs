@@ -1,5 +1,4 @@
 pub use camera::*;
-pub use light::*;
 pub use material::*;
 pub use mesh::*;
 pub use model::*;
@@ -18,8 +17,7 @@ mod voxel_map_graphics;
 mod util;
 mod camera;
 mod model_instance;
-mod light;
 
 pub mod gbuffer;
 pub mod screen;
-
+pub mod light;

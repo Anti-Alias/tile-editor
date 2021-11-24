@@ -76,11 +76,43 @@ fn main(
 
 
 //////////////////////////////// Fragment ////////////////////////////////
+
+// ------------- Light/light set types -------------
+struct PointLight {
+    position: vec3<f32>;
+    color: vec3<f32>;
+};
+
+struct DirectionalLight {
+    direction: vec3<f32>;
+    color: vec3<f32>;
+};
+
+[[block]]
+struct PointLightSet {
+    size: u32;
+    lights: array<PointLight, 128>;
+};
+
+[[block]]
+struct DirectionalLightSet {
+    size: u32;
+    lights: array<DirectionalLight, 128>;
+};
+
+// ------------- Light/light set types -------------
+[[group(M_LIGHT_BIND_GROUP), binding(M_POINT_LIGHT_BINDING)]]
+var<uniform> point_lights: PointLightSet;
+[[group(M_LIGHT_BIND_GROUP), binding(M_DIRECTIONAL_LIGHT_BINDING)]]
+var<uniform> directional_lights: DirectionalLightSet;
+
+
 // ------------- Output type -------------
 struct ColorTargetOut {
     [[location(0)]] color: vec4<f32>;
 };
 
+// ------------- Uniforms type -------------
 
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
@@ -93,8 +125,8 @@ fn main(in: GBufferVertexOut) -> ColorTargetOut {
     /// Samples color texture and modifies color components
     let color = textureSample(color_tex, samp, in.uv);
     let diffuse = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
-    let specular = unpack4x8unorm(bitcast<u32>(color.g)); // Unholy bit casting...
-    let emissive = unpack4x8unorm(bitcast<u32>(color.b)); // Unholy bit casting...
+    let specular = unpack4x8unorm(bitcast<u32>(color.g));   // Unholy bit casting...
+    let emissive = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
     output = diffuse + specular + emissive;
 #   endif
 
