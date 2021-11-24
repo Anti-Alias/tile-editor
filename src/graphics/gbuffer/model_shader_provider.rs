@@ -80,6 +80,13 @@ impl ModelShaderProvider {
             macros.insert(String::from("M_NORMAL_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
+        if mat_flags & Material::AMBIENT_BIT != 0 {
+            macros.insert(String::from("M_AMBIENT_MATERIAL_ENABLED"), String::from("TRUE"));
+            macros.insert(String::from("M_AMBIENT_TEXTURE_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+            macros.insert(String::from("M_AMBIENT_SAMPLER_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+        }
         if mat_flags & Material::DIFFUSE_BIT != 0 {
             macros.insert(String::from("M_DIFFUSE_MATERIAL_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_DIFFUSE_TEXTURE_BINDING"), String::from(current_binding.to_string()));

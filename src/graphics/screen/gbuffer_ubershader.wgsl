@@ -26,46 +26,32 @@ var norm_tex: texture_2d<f32>;
 var color_tex: texture_2d<f32>;
 #endif
 
+var<private> xys: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+    vec2<f32>(-1.0, -1.0),
+    vec2<f32>(1.0, -1.0),
+    vec2<f32>(1.0, 1.0),
+    vec2<f32>(1.0, 1.0),
+    vec2<f32>(-1.0, 1.0),
+    vec2<f32>(-1.0, -1.0)
+);
+
+var<private> uvs: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+    vec2<f32>(0.0, 0.0),
+    vec2<f32>(1.0, 0.0),
+    vec2<f32>(1.0, 1.0),
+    vec2<f32>(1.0, 1.0),
+    vec2<f32>(0.0, 1.0),
+    vec2<f32>(0.0, 0.0)
+);
+
 
 // ------------- Entrypoint -------------
 [[stage(vertex)]]
 fn main(
     [[builtin(vertex_index)]] vertex_index: u32
 ) -> GBufferVertexOut {
-    var xy: vec2<f32>;
-    var uv: vec2<f32>;
-    switch(vertex_index) {
-        case 0: {
-            xy = vec2<f32>(-1.0, -1.0);
-            uv = vec2<f32>(0.0, 0.0);
-            break;
-        }
-        case 1: {
-            xy = vec2<f32>(1.0, -1.0);
-            uv = vec2<f32>(1.0, 0.0);
-            break;
-        }
-        case 2: {
-            xy = vec2<f32>(1.0, 1.0);
-            uv = vec2<f32>(1.0, 1.0);
-            break;
-        }
-        case 3: {
-            xy = vec2<f32>(1.0, 1.0);
-            uv = vec2<f32>(1.0, 1.0);
-            break;
-        }
-        case 4: {
-            xy = vec2<f32>(-1.0, 1.0);
-            uv = vec2<f32>(0.0, 1.0);
-            break;
-        }
-        case 5: {
-            xy = vec2<f32>(-1.0, -1.0);
-            uv = vec2<f32>(0.0, 0.0);
-            break;
-        }
-    }
+    var xy: vec2<f32> = xys[vertex_index];
+    var uv: vec2<f32> = uvs[vertex_index];
     return GBufferVertexOut(
         vec4<f32>(xy, 0.0, 1.0),
         uv
@@ -124,10 +110,11 @@ fn main(in: GBufferVertexOut) -> ColorTargetOut {
 #   ifdef M_COLOR_BUFFER_ENABLED
     /// Samples color texture and modifies color components
     let color = textureSample(color_tex, samp, in.uv);
-    let diffuse = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
-    let specular = unpack4x8unorm(bitcast<u32>(color.g));   // Unholy bit casting...
-    let emissive = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
-    output = diffuse + specular + emissive;
+    let ambient = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
+    let diffuse = unpack4x8unorm(bitcast<u32>(color.g));    // Unholy bit casting...
+    let specular = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
+    let emissive = unpack4x8unorm(bitcast<u32>(color.a));   // Unholy bit casting...
+    output = ambient + diffuse + specular + emissive;
 #   endif
 
     // Done

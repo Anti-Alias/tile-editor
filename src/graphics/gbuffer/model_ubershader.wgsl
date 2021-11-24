@@ -56,6 +56,13 @@ var norm_tex: texture_2d<f32>;
 var norm_samp: sampler;
 #endif
 
+#ifdef M_AMBIENT_MATERIAL_ENABLED
+[[group(M_MATERIAL_BIND_GROUP), binding(M_AMBIENT_TEXTURE_BINDING)]]
+var amb_tex: texture_2d<f32>;
+[[group(M_MATERIAL_BIND_GROUP), binding(M_AMBIENT_SAMPLER_BINDING)]]
+var amb_samp: sampler;
+#endif
+
 #ifdef M_DIFFUSE_MATERIAL_ENABLED
 [[group(M_MATERIAL_BIND_GROUP), binding(M_DIFFUSE_TEXTURE_BINDING)]]
 var diff_tex: texture_2d<f32>;
@@ -119,20 +126,24 @@ fn main(in: ModelVertexOut) -> ColorTargetOut {
     // Variables to write out to color targets
     let position = in.model_position;       // X, Y, Z, <unused>
     let normal = vec4<f32>(in.normal, 1.0); // X, Y, Z, <unused>
-    var color = vec4<f32>(0.0);             // diffuse(rgba), specular(rgba), emissive(rgba), <unused>(rgba)
+    var color = vec4<f32>(0.0);             // ambient(rgba), diffuse(rgba), specular(rgba), emissive(rgba)
 
     // Alters those variables based on the material used
+#   ifdef M_AMBIENT_MATERIAL_ENABLED
+    let ambient = textureSample(amb_tex, amb_samp, in.uv);
+    color.r = bitcast<f32>(pack4x8unorm(ambient));  // Unholy bit casting...
+#   endif
 #   ifdef M_DIFFUSE_MATERIAL_ENABLED
     let diffuse = in.color * textureSample(diff_tex, diff_samp, in.uv);
-    color.r = bitcast<f32>(pack4x8unorm(diffuse));  // Unholy bit casting...
+    color.g = bitcast<f32>(pack4x8unorm(diffuse));  // Unholy bit casting...
 #   endif
 #   ifdef M_SPECULAR_MATERIAL_ENABLED
     let specular = textureSample(spec_tex, spec_samp, in.uv);
-    color.g = bitcast<f32>(pack4x8unorm(specular)); // Unholy bit casting...
+    color.b = bitcast<f32>(pack4x8unorm(specular)); // Unholy bit casting...
 #   endif
 #   ifdef M_EMISSIVE_MATERIAL_ENABLED
     let emissive = textureSample(emi_tex, emi_samp, in.uv);
-    color.b = bitcast<f32>(pack4x8unorm(emissive)); // Unholy bit casting...
+    color.a = bitcast<f32>(pack4x8unorm(emissive)); // Unholy bit casting...
 #   endif
 
     // Outputs variables to color targets

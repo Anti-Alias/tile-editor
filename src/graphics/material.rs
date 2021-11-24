@@ -5,6 +5,7 @@ use crate::graphics::Texture;
 /// A set of textures that determines how light interacts with a `Mesh`
 pub struct Material {
     normal: Option<Texture>,
+    ambient: Option<Texture>,
     diffuse: Option<Texture>,
     specular: Option<Texture>,
     emissive: Option<Texture>,
@@ -17,9 +18,10 @@ impl Material {
 
     // Bits used for constructing `flags`
     pub const NORMAL_BIT: u64 = 1;
-    pub const DIFFUSE_BIT: u64 = 1 << 1;
-    pub const SPECULAR_BIT: u64 = 1 << 2;
-    pub const EMISSIVE_BIT: u64 = 1 << 3;
+    pub const AMBIENT_BIT: u64 = 1 << 1;
+    pub const DIFFUSE_BIT: u64 = 1 << 2;
+    pub const SPECULAR_BIT: u64 = 1 << 3;
+    pub const EMISSIVE_BIT: u64 = 1 << 4;
 
     /// Diffuse texture
     pub fn diffuse(&self) -> Option<&Texture> {
@@ -37,12 +39,12 @@ impl Material {
     }
 
     /// Bit pattern where each bit determines the presence of a texture in the material.
-    /// Bit order starting from LSB: NORMAL, DIFFUSE, SPECULAR, EMISSIVE.
+    /// Bit order starting from LSB: NORMAL, AMBIENT, DIFFUSE, SPECULAR, EMISSIVE.
     /// IE:
     ///     ...001 = NORMAL
-    ///     ...010 = DIFFUSE
-    ///     ...011 = NORMAL + DIFFUSE
-    ///     ...100 = SPECULAR
+    ///     ...010 = AMBIENT
+    ///     ...011 = NORMAL + AMBIENT
+    ///     ...100 = DIFFUSE
     ///     ...etc
     pub fn flags(&self) -> u64 { self.flags }
 
@@ -61,6 +63,7 @@ impl Material {
 #[derive(Default)]
 pub struct MaterialBuilder {
     normal: Option<Texture>,
+    ambient: Option<Texture>,
     diffuse: Option<Texture>,
     specular: Option<Texture>,
     emissive: Option<Texture>,
@@ -78,6 +81,13 @@ impl MaterialBuilder {
     pub fn normal(mut self, normal: Texture) -> Self {
         self.normal = Some(normal);
         self.flags |= Material::NORMAL_BIT;
+        self
+    }
+
+    /// Adds an ambient texture
+    pub fn ambient(mut self, ambient: Texture) -> Self {
+        self.normal = Some(ambient);
+        self.flags |= Material::AMBIENT_BIT;
         self
     }
 
@@ -107,9 +117,10 @@ impl MaterialBuilder {
         let bind_group_layout = self.create_bind_group_layout(device);
         let bind_group = self.create_bind_group(&bind_group_layout, device);
         Material {
+            normal: self.normal,
+            ambient: self.ambient,
             diffuse: self.diffuse,
             specular: self.specular,
-            normal: self.normal,
             emissive: self.emissive,
             bind_group,
             bind_group_layout,

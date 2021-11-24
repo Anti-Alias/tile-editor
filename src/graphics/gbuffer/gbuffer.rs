@@ -87,7 +87,7 @@ impl GBuffer {
         // Creates color attachments
         let mut color_attachments = Vec::<RenderPassColorAttachment>::with_capacity(self.view_count as usize);
         let ops = Operations {
-            load: LoadOp::Clear(wgpu::Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 }),
+            load: LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }),
             store: true
         };
         color_attachments.push (
