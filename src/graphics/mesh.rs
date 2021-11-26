@@ -22,53 +22,6 @@ impl Mesh {
         20,21,22,22,23,20,  // FAR
     ];
 
-    pub fn triangle(device: &Device, color: Color) -> Mesh {
-        // Vertices (right-handed)
-        let rgba = color.rgba();
-        let v = &[
-            ModelVertex {                               // bottom/left
-                position: [-0.5, -0.5, 0.5],
-                normal: [0.0, 0.0, 1.0],
-                color: rgba,
-                uv: [0.0, 0.0]
-            },
-            ModelVertex {                               // bottom/right
-                position: [0.5, -0.5, 0.5],
-                normal: [0.0, 0.0, 1.0],
-                color: rgba,
-                uv: [0.0, 0.0]
-            },
-            ModelVertex {                               // top/center
-                position: [0.0, 0.5, 0.5],
-                normal: [0.0, 0.0, 1.0],
-                color: rgba,
-                uv: [0.0, 0.0]
-            }
-        ];
-
-        // Indices (Counter-clockwise)
-        let i = &[0, 1, 2];
-
-        // Creates vertex and index buffers
-        let vertices = device.create_buffer_init(&BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(v),
-            usage: BufferUsages::VERTEX
-        });
-        let indices = device.create_buffer_init(&BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(i),
-            usage: BufferUsages::INDEX
-        });
-
-        // Done
-        Self {
-            vertices,
-            indices,
-            num_indices: 3
-        }
-    }
-
     pub fn cube(device: &Device, color: Color, scale: Vector3<f32>) -> Mesh {
         let v = Self::create_cube_vertices(scale, color.rgba());
         let vertices = device.create_buffer_init(&BufferInitDescriptor {

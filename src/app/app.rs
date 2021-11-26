@@ -124,6 +124,7 @@ impl App {
             gbuffer.format(),
             &ModelEnvironment {
                 instance_set: &model_instances,
+                light_bundle: todo!(),
                 camera: &camera
             }
         );
@@ -170,6 +171,7 @@ impl App {
                         &queue,
                         &ModelEnvironment {
                             instance_set: &model_instances,
+                            light_bundle: todo!(),
                             camera: &camera
                         },
                         &gbuffer
