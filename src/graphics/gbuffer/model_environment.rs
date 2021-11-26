@@ -7,9 +7,6 @@ pub struct ModelEnvironment<'a> {
     /// Model instances to render
     pub instance_set: &'a ModelInstanceSet,
 
-    /// A bundle of lights
-    pub light_bundle: &'a LightBundle,
-
     /// Camera that determines our point-of-view
     pub camera: &'a Camera
 }

@@ -14,6 +14,7 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat, ModelEnvironment};
+use crate::graphics::light::{LightBundle, LightMesh, PointLight};
 
 use crate::graphics::screen;
 use crate::graphics::screen::ScreenBuffer;
@@ -116,6 +117,14 @@ impl App {
         // Sets up environment to render (models, camera, lights, etc)
         let mut camera = create_camera(&device, size.width, size.height);
         let model_instances = create_model_and_instances(&device, &queue);
+        let light_mesh = LightMesh::new(&device, 8, 8);
+        let mut light_bundle = LightBundle::new(&device, 128, 128);
+        light_bundle.point_lights.lights.push(PointLight::new(
+            [0.0, 150.0, 0.0],
+            [10.0, 10.0, 10.0]
+        ));
+        light_bundle.point_lights.compute_radius(5.0/256.0, 1.0, 0.7, 1.8);
+        light_bundle.flush(&queue);
 
         // Creates model->gbuffer renderer, then primes it with the model environment
         let mut gbuffer_renderer = gbuffer::ModelRenderer::new();
@@ -124,7 +133,6 @@ impl App {
             gbuffer.format(),
             &ModelEnvironment {
                 instance_set: &model_instances,
-                light_bundle: todo!(),
                 camera: &camera
             }
         );
@@ -171,7 +179,6 @@ impl App {
                         &queue,
                         &ModelEnvironment {
                             instance_set: &model_instances,
-                            light_bundle: todo!(),
                             camera: &camera
                         },
                         &gbuffer
@@ -182,7 +189,9 @@ impl App {
                         &device,
                         &queue,
                         &surface_view,
-                        &gbuffer
+                        &gbuffer,
+                        &light_bundle,
+                        &light_mesh
                     );
 
                     // Moves camera

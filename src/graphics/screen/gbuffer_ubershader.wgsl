@@ -6,6 +6,12 @@
 #endif
 
 // ------------- Vertex output type -------------
+struct PointLightInstanceIn {
+    [[location(1)]] position: vec3<f32>;
+    [[location(2)]] radius: f32;
+    [[location(3)]] color: vec3<f32>;
+};
+
 struct GBufferVertexOut {
     [[builtin(position)]] position: vec4<f32>;
     [[location(0)]] uv: vec2<f32>;
@@ -85,13 +91,6 @@ struct DirectionalLightSet {
     size: u32;
     lights: array<DirectionalLight, 128>;
 };
-
-// ------------- Light/light set types -------------
-[[group(M_LIGHT_BIND_GROUP), binding(M_POINT_LIGHT_BINDING)]]
-var<uniform> point_lights: PointLightSet;
-[[group(M_LIGHT_BIND_GROUP), binding(M_DIRECTIONAL_LIGHT_BINDING)]]
-var<uniform> directional_lights: DirectionalLightSet;
-
 
 // ------------- Output type -------------
 struct ColorTargetOut {

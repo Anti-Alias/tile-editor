@@ -3,8 +3,8 @@ use crate::graphics::light::{LightSet, PointLight, DirectionalLight};
 
 /// Represents a bundle of lights of various types
 pub struct LightBundle {
-    point_lights: LightSet<PointLight>,
-    directional_lights: LightSet<DirectionalLight>,
+    pub point_lights: LightSet<PointLight>,
+    pub directional_lights: LightSet<DirectionalLight>,
 }
 
 impl LightBundle {

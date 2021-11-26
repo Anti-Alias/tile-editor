@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::*;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
+use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
 use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
@@ -50,8 +51,15 @@ impl GBufferRenderer {
     }
 
     /// Renders the gbuffer to the screen
-    pub fn render(&self, device: &Device, queue: &Queue, screen: &TextureView, gbuffer: &GBuffer) {
-        let pipeline = &self.pipelines[&gbuffer.format()];
+    pub fn render(
+        &self,
+        device: &Device,
+        queue: &Queue,
+        screen: &TextureView,
+        gbuffer: &GBuffer,
+        lights: &LightBundle,
+        light_mesh: &LightMesh
+    ) {
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
         let color_attachments = &[
             RenderPassColorAttachment {
@@ -81,9 +89,15 @@ impl GBufferRenderer {
                 color_attachments,
                 depth_stencil_attachment
             });
-            render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);
-            render_pass.set_pipeline(pipeline);
-            render_pass.draw(0..6, 0..1)
+            let pipeline = &self.pipelines[&gbuffer.format()];
+            let point_lights = &lights.point_lights;
+            let num_point_lights = point_lights.lights.len() as u32;
+            render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
+            render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
+            render_pass.set_vertex_buffer(1, point_lights.instance_slice());                    // Sets light instance data
+            render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);                           // Sets bind group for GBuffer (collection of textures)
+            render_pass.set_pipeline(pipeline);                                                 // Sets pipeline
+            render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_point_lights)         // Draws!
         }
 
         // Submits commands
@@ -115,7 +129,10 @@ impl GBufferRenderer {
         let vertex = VertexState {
             module,
             entry_point: "main",
-            buffers: &[]
+            buffers: &[
+                LightMesh::layout(),
+                PointLight::layout()
+            ]
         };
         let color_targets = [
             ColorTargetState {

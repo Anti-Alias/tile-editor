@@ -1,15 +1,17 @@
-use wgpu::{Buffer, BufferAddress, BufferDescriptor, BufferUsages, Device};
+use wgpu::*;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use std::f32::consts::PI;
 
+type Vertex = [f32; 3];
+
 /// Simple light mesh
-pub struct LightVolume {
+pub struct LightMesh {
     pub vertices: Buffer,
     pub indices: Buffer,
     pub num_indices: u32
 }
 
-impl LightVolume {
+impl LightMesh {
 
     /// Creates a new `LightVolume`.
     /// * `device` - Device that will allocate buffers
@@ -29,14 +31,15 @@ impl LightVolume {
             contents: bytemuck::cast_slice(idata.as_slice()),
             usage: BufferUsages::INDEX
         });
-        LightVolume {
+        LightMesh {
             vertices,
             indices,
             num_indices: idata.len() as u32
         }
     }
 
-    fn create_mesh_data(horizontal_count: u32, vertical_count: u32) -> (Vec<[f32; 3]>, Vec<u32>) {
+    // I meshed up...
+    fn create_mesh_data(horizontal_count: u32, vertical_count: u32) -> (Vec<Vertex>, Vec<u32>) {
 
         // Allocates vecs
         let hv = horizontal_count * vertical_count;
@@ -96,5 +99,20 @@ impl LightVolume {
             indices.push(l);
         }
         (vertices, indices)
+    }
+
+    /// The WGPU memory layout of a `LightMesh`.
+    pub fn layout<'a>() -> VertexBufferLayout<'a> {
+        VertexBufferLayout {
+            array_stride: std::mem::size_of::<Vertex>() as BufferAddress,
+            step_mode: VertexStepMode::Vertex,
+            attributes: &[
+                VertexAttribute {
+                    format: VertexFormat::Float32x3,
+                    offset: 0,
+                    shader_location: 0
+                }
+            ]
+        }
     }
 }
