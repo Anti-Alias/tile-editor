@@ -69,6 +69,7 @@ impl ModelShaderProvider {
 
         // ---------- Bind group macros -----------
         macros.insert(String::from("M_CAMERA_BIND_GROUP"), String::from("0"));
+        macros.insert(String::from("M_CAMERA_BINDING"), String::from("0"));
         macros.insert(String::from("M_MATERIAL_BIND_GROUP"), String::from("1"));
 
         // ----------- Material binding macros -----------

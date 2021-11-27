@@ -16,8 +16,8 @@ impl<L: Pod + Zeroable> LightSet<L> {
         let lights: Vec<L> = Vec::with_capacity(max_lights as usize);
         let lights_size = std::mem::size_of::<L>() as u32;
         let buffer = device.create_buffer(&BufferDescriptor {
-            label: None,
-            size: (lights_size * max_lights) as BufferAddress,
+            label: Some("Light Set Buffer"),
+            size: (16 + lights_size*max_lights) as BufferAddress,
             usage: BufferUsages::UNIFORM | BufferUsages::VERTEX | BufferUsages::COPY_DST,
             mapped_at_creation: false
         });
@@ -37,19 +37,13 @@ impl<L: Pod + Zeroable> LightSet<L> {
     /// Slice buffer of usable lights.
     /// To be used as a vertex instance buffer.
     pub fn instance_slice(&self) -> BufferSlice {
-        let size = std::mem::size_of::<L>();
-        let len = self.lights.len();
-        let bytes = (size*len) as BufferAddress;
-        self.buffer.slice(16..bytes)
+        self.buffer.slice(16..)
     }
 
     /// Slice buffer of usable lights.
     /// To be used as a uniform buffer.
     pub fn uniform_slice(&self) -> BufferSlice {
-        let size = std::mem::size_of::<L>();
-        let len = self.lights.len();
-        let bytes = (size*len) as BufferAddress;
-        self.buffer.slice(0..bytes)
+        self.buffer.slice(0..)
     }
 }
 

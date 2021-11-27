@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::*;
+use crate::graphics::Camera;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
 use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
 use crate::graphics::screen::ScreenBuffer;
@@ -33,7 +34,8 @@ impl GBufferRenderer {
         &mut self,
         device: &Device,
         screen_format: TextureFormat,
-        gbuffer: &GBuffer
+        gbuffer: &GBuffer,
+        camera: &Camera
     ) {
 
         // Generates shader module if necessary
@@ -47,7 +49,7 @@ impl GBufferRenderer {
         // Generates pipeline if necessary
         self.pipelines
             .entry(gbuffer_format)
-            .or_insert_with(|| { Self::create_pipeline(device, module, screen_format, gbuffer) });
+            .or_insert_with(|| { Self::create_pipeline(device, module, screen_format, gbuffer, camera) });
     }
 
     /// Renders the gbuffer to the screen
@@ -57,8 +59,9 @@ impl GBufferRenderer {
         queue: &Queue,
         screen: &TextureView,
         gbuffer: &GBuffer,
-        lights: &LightBundle,
-        light_mesh: &LightMesh
+        lights: &LightSet<PointLight>,
+        light_mesh: &LightMesh,
+        camera: &Camera
     ) {
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
         let color_attachments = &[
@@ -90,14 +93,14 @@ impl GBufferRenderer {
                 depth_stencil_attachment
             });
             let pipeline = &self.pipelines[&gbuffer.format()];
-            let point_lights = &lights.point_lights;
-            let num_point_lights = point_lights.lights.len() as u32;
+            let num_lights = lights.lights.len() as u32;
             render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
             render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
-            render_pass.set_vertex_buffer(1, point_lights.instance_slice());                    // Sets light instance data
+            render_pass.set_vertex_buffer(1, lights.instance_slice());                          // Sets light instance data
             render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);                           // Sets bind group for GBuffer (collection of textures)
+            render_pass.set_bind_group(1, camera.bind_group(), &[]);                            // Sets bind group for camera
             render_pass.set_pipeline(pipeline);                                                 // Sets pipeline
-            render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_point_lights)         // Draws!
+            render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_lights)               // Draws!
         }
 
         // Submits commands
@@ -119,11 +122,15 @@ impl GBufferRenderer {
         device: &Device,
         module: &ShaderModule,
         screen_format: TextureFormat,
-        gbuffer: &GBuffer
+        gbuffer: &GBuffer,
+        camera: &Camera
     ) -> RenderPipeline {
         let layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[gbuffer.bind_group_layout()],
+            bind_group_layouts: &[
+                gbuffer.bind_group_layout(),
+                camera.bind_group_layout()
+            ],
             push_constant_ranges: &[]
         });
         let vertex = VertexState {
@@ -200,6 +207,9 @@ impl GBufferRenderer {
         macros.insert(String::from("M_LIGHT_BIND_GROUP"), String::from("0"));
         macros.insert(String::from("M_POINT_LIGHT_BINDING"), String::from("0"));
         macros.insert(String::from("M_DIRECTIONAL_LIGHT_BINDING"), String::from("1"));
+
+        macros.insert(String::from("M_CAMERA_BIND_GROUP"), String::from("1"));
+        macros.insert(String::from("M_CAMERA_BINDING"), String::from("0"));
 
         // Returns preprocessed string
         gpp::process_str(source, &mut context).unwrap()

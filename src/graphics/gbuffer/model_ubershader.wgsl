@@ -44,7 +44,7 @@ struct CameraUni {
 
 
 // ------------- Camera bind group -------------
-[[group(M_CAMERA_BIND_GROUP), binding(0)]]
+[[group(M_CAMERA_BIND_GROUP), binding(M_CAMERA_BINDING)]]
 var<uniform> camera: CameraUni;
 
 

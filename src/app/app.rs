@@ -14,7 +14,7 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat, ModelEnvironment};
-use crate::graphics::light::{LightBundle, LightMesh, PointLight};
+use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
 
 use crate::graphics::screen;
 use crate::graphics::screen::ScreenBuffer;
@@ -117,14 +117,18 @@ impl App {
         // Sets up environment to render (models, camera, lights, etc)
         let mut camera = create_camera(&device, size.width, size.height);
         let model_instances = create_model_and_instances(&device, &queue);
-        let light_mesh = LightMesh::new(&device, 8, 8);
-        let mut light_bundle = LightBundle::new(&device, 128, 128);
-        light_bundle.point_lights.lights.push(PointLight::new(
-            [0.0, 150.0, 0.0],
-            [10.0, 10.0, 10.0]
+        let light_mesh = LightMesh::new(&device, 8, 16);
+        let mut point_lights = LightSet::new(&device, 128);
+        point_lights.lights.push(PointLight::new(
+            [0.0, 50.0, 0.0],
+            [50.0, 10.0, 10.0]
         ));
-        light_bundle.point_lights.compute_radius(5.0/256.0, 1.0, 0.7, 1.8);
-        light_bundle.flush(&queue);
+        point_lights.lights.push(PointLight::new(
+            [0.0, -50.0, 0.0],
+            [50.0, 10.0, 10.0]
+        ));
+        point_lights.compute_radius(5.0/256.0, 1.0, 0.7, 1.8);
+        point_lights.flush(&queue);
 
         // Creates model->gbuffer renderer, then primes it with the model environment
         let mut gbuffer_renderer = gbuffer::ModelRenderer::new();
@@ -139,7 +143,7 @@ impl App {
 
         // Creates gbuffer->screen renderer, then primes it
         let mut screen_renderer = screen::GBufferRenderer::new();
-        screen_renderer.prime(&device, surface_format, &gbuffer);
+        screen_renderer.prime(&device, surface_format, &gbuffer, &camera);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -190,8 +194,9 @@ impl App {
                         &queue,
                         &surface_view,
                         &gbuffer,
-                        &light_bundle,
-                        &light_mesh
+                        &point_lights,
+                        &light_mesh,
+                        &camera
                     );
 
                     // Moves camera

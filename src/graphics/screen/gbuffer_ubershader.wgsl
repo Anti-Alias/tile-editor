@@ -5,63 +5,55 @@
 // Macro flag variable names should be suffixed with '_ENABLED'. IE: 'M_UNICYCLES_ENABLED'.
 #endif
 
-// ------------- Vertex output type -------------
+
+// ------------- Vertex input types -------------
+struct PointLightVertexIn {
+    [[location(0)]] position: vec3<f32>;
+};
 struct PointLightInstanceIn {
     [[location(1)]] position: vec3<f32>;
     [[location(2)]] radius: f32;
     [[location(3)]] color: vec3<f32>;
 };
 
+// ------------- Vertex output type -------------
 struct GBufferVertexOut {
     [[builtin(position)]] position: vec4<f32>;
-    [[location(0)]] uv: vec2<f32>;
 };
 
-// ------------- GBuffer texture bind group -------------
+// ------------- Uniform type(s) -------------
+[[block]]
+struct CameraUni {
+    proj_view: mat4x4<f32>;
+};
+
+// ------------- GBuffer bind group -------------
+//[[group(M_GBUFFER_BIND_GROUP), binding(M_SIZE_BINDING)]]
+//var size:
 [[group(M_GBUFFER_BIND_GROUP), binding(M_SAMPLER_BINDING)]]
 var samp: sampler;
-
 [[group(M_GBUFFER_BIND_GROUP), binding(M_POSITION_TEXTURE_BINDING)]]
 var pos_tex: texture_2d<f32>;
-
 [[group(M_GBUFFER_BIND_GROUP), binding(M_NORMAL_TEXTURE_BINDING)]]
 var norm_tex: texture_2d<f32>;
-
 #ifdef M_COLOR_BUFFER_ENABLED
 [[group(M_GBUFFER_BIND_GROUP), binding(M_COLOR_TEXTURE_BINDING)]]
 var color_tex: texture_2d<f32>;
 #endif
 
-var<private> xys: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-    vec2<f32>(-1.0, -1.0),
-    vec2<f32>(1.0, -1.0),
-    vec2<f32>(1.0, 1.0),
-    vec2<f32>(1.0, 1.0),
-    vec2<f32>(-1.0, 1.0),
-    vec2<f32>(-1.0, -1.0)
-);
-
-var<private> uvs: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-    vec2<f32>(0.0, 0.0),
-    vec2<f32>(1.0, 0.0),
-    vec2<f32>(1.0, 1.0),
-    vec2<f32>(1.0, 1.0),
-    vec2<f32>(0.0, 1.0),
-    vec2<f32>(0.0, 0.0)
-);
-
+// ------------- Camera bind group -------------
+[[group(M_CAMERA_BIND_GROUP), binding(M_CAMERA_BINDING)]]
+var<uniform> camera: CameraUni;
 
 // ------------- Entrypoint -------------
 [[stage(vertex)]]
 fn main(
-    [[builtin(vertex_index)]] vertex_index: u32
+    vertex: PointLightVertexIn,
+    instance: PointLightInstanceIn
 ) -> GBufferVertexOut {
-    var xy: vec2<f32> = xys[vertex_index];
-    var uv: vec2<f32> = uvs[vertex_index];
-    return GBufferVertexOut(
-        vec4<f32>(xy, 0.0, 1.0),
-        uv
-    );
+    let model_pos = (vertex.position * instance.radius + instance.position);
+    let clip_pos = camera.proj_view * vec4<f32>(model_pos, 1.0);
+    return GBufferVertexOut(clip_pos);
 }
 
 
@@ -97,18 +89,20 @@ struct ColorTargetOut {
     [[location(0)]] color: vec4<f32>;
 };
 
-// ------------- Uniforms type -------------
-
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
 fn main(in: GBufferVertexOut) -> ColorTargetOut {
 
     /// Initializes color components
-    var output = vec4<f32>(0.0);    // RGBA
+    var output = vec4<f32>(0.0);
+    let uv = vec2<f32>(
+        (in.position.x + 1.0) * 0.5,
+        1.0 - (in.position.y + 1.0) * 0.5
+    );
 
 #   ifdef M_COLOR_BUFFER_ENABLED
     /// Samples color texture and modifies color components
-    let color = textureSample(color_tex, samp, in.uv);
+    let color = textureSample(color_tex, samp, uv);
     let ambient = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
     let diffuse = unpack4x8unorm(bitcast<u32>(color.g));    // Unholy bit casting...
     let specular = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
@@ -117,5 +111,6 @@ fn main(in: GBufferVertexOut) -> ColorTargetOut {
 #   endif
 
     // Done
-    return ColorTargetOut(output);
+    //return ColorTargetOut(output);
+    return ColorTargetOut(vec4<f32>(1.0, 0.0, 0.0, 1.0));
 }
