@@ -120,11 +120,7 @@ impl App {
         let light_mesh = LightMesh::new(&device, 8, 16);
         let mut point_lights = LightSet::new(&device, 128);
         point_lights.lights.push(PointLight::new(
-            [0.0, 50.0, 0.0],
-            [50.0, 10.0, 10.0]
-        ));
-        point_lights.lights.push(PointLight::new(
-            [0.0, -50.0, 0.0],
+            [0.0, 0.0, 0.0],
             [50.0, 10.0, 10.0]
         ));
         point_lights.compute_radius(5.0/256.0, 1.0, 0.7, 1.8);

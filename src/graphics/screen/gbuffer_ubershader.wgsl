@@ -27,9 +27,15 @@ struct CameraUni {
     proj_view: mat4x4<f32>;
 };
 
+[[block]]
+struct Size {
+    width: f32;
+    height: f32;
+};
+
 // ------------- GBuffer bind group -------------
-//[[group(M_GBUFFER_BIND_GROUP), binding(M_SIZE_BINDING)]]
-//var size:
+[[group(M_GBUFFER_BIND_GROUP), binding(M_SIZE_BINDING)]]
+var<uniform> gbuffer_size: Size;
 [[group(M_GBUFFER_BIND_GROUP), binding(M_SAMPLER_BINDING)]]
 var samp: sampler;
 [[group(M_GBUFFER_BIND_GROUP), binding(M_POSITION_TEXTURE_BINDING)]]
@@ -67,21 +73,10 @@ struct PointLight {
     color: vec3<f32>;
 };
 
-struct DirectionalLight {
-    direction: vec3<f32>;
-    color: vec3<f32>;
-};
-
 [[block]]
 struct PointLightSet {
     size: u32;
     lights: array<PointLight, 128>;
-};
-
-[[block]]
-struct DirectionalLightSet {
-    size: u32;
-    lights: array<DirectionalLight, 128>;
 };
 
 // ------------- Output type -------------
@@ -96,8 +91,8 @@ fn main(in: GBufferVertexOut) -> ColorTargetOut {
     /// Initializes color components
     var output = vec4<f32>(0.0);
     let uv = vec2<f32>(
-        (in.position.x + 1.0) * 0.5,
-        1.0 - (in.position.y + 1.0) * 0.5
+        in.position.x/gbuffer_size.width,
+        1.0 - in.position.y/gbuffer_size.height
     );
 
 #   ifdef M_COLOR_BUFFER_ENABLED
@@ -112,5 +107,5 @@ fn main(in: GBufferVertexOut) -> ColorTargetOut {
 
     // Done
     //return ColorTargetOut(output);
-    return ColorTargetOut(vec4<f32>(1.0, 0.0, 0.0, 1.0));
+    return ColorTargetOut(output);
 }
