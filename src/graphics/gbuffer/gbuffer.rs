@@ -9,7 +9,6 @@ pub struct GBuffer {
     depth_stencil: Option<TextureView>,
     color: Option<TextureView>,
     format: GBufferFormat,
-    sampler: Sampler,
     bind_group: BindGroup,
     bind_group_layout: BindGroupLayout,
     view_count: u32                     // Number of views. Useful for pre-allocating color attachment vector
@@ -25,16 +24,6 @@ impl GBuffer {
     /// Creates a GBuffer where each texture is of the specified size and have the formats specified
     /// in `format`.
     pub fn new(device: &Device, width: u32, height: u32, format: GBufferFormat) -> Self {
-        let sampler = device.create_sampler(&SamplerDescriptor {
-            label: None,
-            address_mode_u: AddressMode::ClampToEdge,
-            address_mode_v: AddressMode::ClampToEdge,
-            address_mode_w: AddressMode::ClampToEdge,
-            mag_filter: FilterMode::Nearest,
-            min_filter: FilterMode::Nearest,
-            mipmap_filter: FilterMode::Nearest,
-            ..Default::default()
-        });
         let position = device
             .create_texture(&Self::descriptor_of(width, height, format.position))
             .create_view(&TextureViewDescriptor::default());
@@ -53,7 +42,6 @@ impl GBuffer {
         });
         let (bind_group, bind_group_layout) = Self::create_bind_group(
             device,
-            &sampler,
             &position,
             &normal,
             color.as_ref()
@@ -67,7 +55,6 @@ impl GBuffer {
             depth_stencil,
             color,
             format,
-            sampler,
             bind_group,
             bind_group_layout,
             view_count
@@ -159,7 +146,6 @@ impl GBuffer {
 
     fn create_bind_group(
         device: &Device,
-        sampler: &Sampler,
         pos_view: &TextureView,
         nor_view: &TextureView,
         col_view: Option<&TextureView>
@@ -168,21 +154,9 @@ impl GBuffer {
         // Creates required layout entries
         let mut layout_entries = Vec::with_capacity(3);
         layout_entries.push(
-            // Sampler
-            BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::FRAGMENT,
-                ty: BindingType::Sampler {
-                    filtering: false,
-                    comparison: false
-                },
-                count: None
-            }
-        );
-        layout_entries.push(
             // Position
             BindGroupLayoutEntry {
-                binding: 1,
+                binding: 0,
                 visibility: ShaderStages::FRAGMENT,
                 ty: BindingType::Texture {
                     sample_type: TextureSampleType::Float { filterable: false },
@@ -195,7 +169,7 @@ impl GBuffer {
         layout_entries.push(
             // Normal
             BindGroupLayoutEntry {
-                binding: 2,
+                binding: 1,
                 visibility: ShaderStages::FRAGMENT,
                 ty: BindingType::Texture {
                     sample_type: TextureSampleType::Float { filterable: false },
@@ -210,14 +184,10 @@ impl GBuffer {
         let mut bind_group_entries = Vec::with_capacity(3);
         bind_group_entries.push(BindGroupEntry {
             binding: 0,
-            resource: BindingResource::Sampler(sampler)
-        });
-        bind_group_entries.push(BindGroupEntry {
-            binding: 1,
             resource: BindingResource::TextureView(pos_view)
         });
         bind_group_entries.push(BindGroupEntry {
-            binding: 2,
+            binding: 1,
             resource: BindingResource::TextureView(nor_view)
         });
 
@@ -226,7 +196,7 @@ impl GBuffer {
             layout_entries.push(
                 // Color
                 BindGroupLayoutEntry {
-                    binding: 3,
+                    binding: 2,
                     visibility: ShaderStages::FRAGMENT,
                     ty: BindingType::Texture {
                         sample_type: TextureSampleType::Float { filterable: false },
@@ -237,7 +207,7 @@ impl GBuffer {
                 },
             );
             bind_group_entries.push(BindGroupEntry {
-                binding: 3,
+                binding: 2,
                 resource: BindingResource::TextureView(col_view)
             });
         }

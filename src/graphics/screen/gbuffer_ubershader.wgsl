@@ -42,8 +42,6 @@ struct LightAttenuation {
 };
 
 // ------------- GBuffer bind group -------------
-[[group(M_GBUFFER_BIND_GROUP), binding(M_SAMPLER_BINDING)]]
-var samp: sampler;
 [[group(M_GBUFFER_BIND_GROUP), binding(M_POSITION_TEXTURE_BINDING)]]
 var pos_tex: texture_2d<f32>;
 [[group(M_GBUFFER_BIND_GROUP), binding(M_NORMAL_TEXTURE_BINDING)]]

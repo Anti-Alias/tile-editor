@@ -184,12 +184,11 @@ impl GBufferRenderer {
 
         // ---------- GBuffer macros -----------
         macros.insert(String::from("M_GBUFFER_BIND_GROUP"), String::from("0"));
-        macros.insert(String::from("M_SAMPLER_BINDING"), String::from("0"));
-        macros.insert(String::from("M_POSITION_TEXTURE_BINDING"), String::from("1"));
-        macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from("2"));
+        macros.insert(String::from("M_POSITION_TEXTURE_BINDING"), String::from("0"));
+        macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from("1"));
         if gbuffer_flags & GBuffer::COLOR_BUFFER_BIT != 0 {
             macros.insert(String::from("M_COLOR_BUFFER_ENABLED"), String::from("TRUE"));
-            macros.insert(String::from("M_COLOR_TEXTURE_BINDING"), String::from("3"));
+            macros.insert(String::from("M_COLOR_TEXTURE_BINDING"), String::from("2"));
         }
 
         // ---------- Light macros -----------
