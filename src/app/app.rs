@@ -128,7 +128,7 @@ impl App {
             [0.0, -150.0, 0.0],
             [0.0, i, 0.0]
         ));
-        point_lights.compute_radius(5.0/256.0, 1.0, 0.7, 1.8);
+        point_lights.compute_radius(20.0/256.0, 0.0, 0.0, 1.0);
         point_lights.flush(&queue);
 
         // Creates model->gbuffer renderer, then primes it with the model environment

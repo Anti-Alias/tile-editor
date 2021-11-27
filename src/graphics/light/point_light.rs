@@ -38,6 +38,7 @@ impl PointLight {
         let c = constant - imax/cutoff;
         let det = b*b - 4.0*a*c;
         self.radius = (-b + det.sqrt()) / 2.0*a;
+        log::debug!("Computed light radius of {}", self.radius);
     }
 
     /// The WGPU memory layout of a `PointLight` when stored in a vertex buffer, typically for instancing.

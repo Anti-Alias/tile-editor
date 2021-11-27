@@ -6,6 +6,11 @@
 #endif
 
 
+// This shader renders point lights specifically.
+// Ambient/directional lights are handled by a separate shader entirely.
+
+
+
 // ------------- Vertex input types -------------
 struct PointLightVertexIn {
     [[location(0)]] position: vec3<f32>;
@@ -30,14 +35,13 @@ struct CameraUni {
 };
 
 [[block]]
-struct Size {
-    width: f32;
-    height: f32;
+struct LightAttenuation {
+    constant: f32;
+    linear: f32;
+    quadratic: f32;
 };
 
 // ------------- GBuffer bind group -------------
-[[group(M_GBUFFER_BIND_GROUP), binding(M_SIZE_BINDING)]]
-var<uniform> gbuffer_size: Size;
 [[group(M_GBUFFER_BIND_GROUP), binding(M_SAMPLER_BINDING)]]
 var samp: sampler;
 [[group(M_GBUFFER_BIND_GROUP), binding(M_POSITION_TEXTURE_BINDING)]]
@@ -52,6 +56,10 @@ var color_tex: texture_2d<f32>;
 // ------------- Camera bind group -------------
 [[group(M_CAMERA_BIND_GROUP), binding(M_CAMERA_BINDING)]]
 var<uniform> camera: CameraUni;
+
+// ------------- Light attenuation bind group -------------
+[[group(M_LIGHT_ATT_BIND_GROUP), binding(M_LIGHT_ATT_BINDING)]]
+var<uniform> light_attenuation: LightAttenuation;
 
 // ------------- Entrypoint -------------
 [[stage(vertex)]]
@@ -89,22 +97,21 @@ struct ColorTargetOut {
 
 fn compute_lighting(vert: GBufferVertexOut) -> vec4<f32> {
 
-    // Converts framebuffer cooridnates to UV coordiantes
-    let uv = vec2<f32>(
-        vert.position.x / gbuffer_size.width,
-        vert.position.y / gbuffer_size.height
-    );
+    // Converts framebuffer coordinates to UV coordiantes
 
     // Unpacks components from color
-    let color = textureSample(color_tex, samp, uv);
+    let x: u32 = u32(vert.position.x);
+    let y: u32 = u32(vert.position.y);
+    let xy = vec2<i32>(i32(vert.position.x), i32(vert.position.y));
+    let color = textureLoad(color_tex, xy, 0);
     let ambient = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
     let diffuse = unpack4x8unorm(bitcast<u32>(color.g));    // Unholy bit casting...
     let specular = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
     let emissive = unpack4x8unorm(bitcast<u32>(color.a));   // Unholy bit casting...
 
     // Samples geom data
-    let fwp = textureSample(pos_tex, samp, uv);
-    let nv = textureSample(norm_tex, samp, uv);
+    let fwp = textureLoad(pos_tex, xy, 0);
+    let nv = textureLoad(norm_tex, xy, 0);
 
     // Computes lambertian part
     let frag_world_pos = vec3<f32>(fwp.x, fwp.y, fwp.z);        // Position of fragment
@@ -114,6 +121,9 @@ fn compute_lighting(vert: GBufferVertexOut) -> vec4<f32> {
     let costheta = max(0.0, dot(norm_vec, light_vec));
 
     // Computes light attenuation part
+    //let kc = light_attenuation.constant;
+    //let kl = light_attenuation.linear;
+    //let kq = light_attenuation.quadratic;
     let kc = 0.0;
     let kl = 0.0;
     let kq = 1.0;
