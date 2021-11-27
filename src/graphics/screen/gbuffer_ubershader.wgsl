@@ -19,6 +19,8 @@ struct PointLightInstanceIn {
 // ------------- Vertex output type -------------
 struct GBufferVertexOut {
     [[builtin(position)]] position: vec4<f32>;
+    [[location(0)]] light_position: vec3<f32>;
+    [[location(1)]] light_color: vec3<f32>;
 };
 
 // ------------- Uniform type(s) -------------
@@ -55,11 +57,11 @@ var<uniform> camera: CameraUni;
 [[stage(vertex)]]
 fn main(
     vertex: PointLightVertexIn,
-    instance: PointLightInstanceIn
+    light: PointLightInstanceIn
 ) -> GBufferVertexOut {
-    let model_pos = (vertex.position * instance.radius + instance.position);
+    let model_pos = (vertex.position * light.radius + light.position);
     let clip_pos = camera.proj_view * vec4<f32>(model_pos, 1.0);
-    return GBufferVertexOut(clip_pos);
+    return GBufferVertexOut(clip_pos, light.position, light.color);
 }
 
 
@@ -84,27 +86,58 @@ struct ColorTargetOut {
     [[location(0)]] color: vec4<f32>;
 };
 
-// ------------- Entrypoint -------------
-[[stage(fragment)]]
-fn main(in: GBufferVertexOut) -> ColorTargetOut {
 
-    /// Initializes color components
-    var output = vec4<f32>(0.0);
+fn compute_lighting(vert: GBufferVertexOut) -> vec4<f32> {
+
+    // Converts framebuffer cooridnates to UV coordiantes
     let uv = vec2<f32>(
-        in.position.x/gbuffer_size.width,
-        1.0 - in.position.y/gbuffer_size.height
+        vert.position.x / gbuffer_size.width,
+        vert.position.y / gbuffer_size.height
     );
 
-#   ifdef M_COLOR_BUFFER_ENABLED
-    /// Samples color texture and modifies color components
+    // Unpacks components from color
     let color = textureSample(color_tex, samp, uv);
     let ambient = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
     let diffuse = unpack4x8unorm(bitcast<u32>(color.g));    // Unholy bit casting...
     let specular = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
     let emissive = unpack4x8unorm(bitcast<u32>(color.a));   // Unholy bit casting...
-    output = ambient + diffuse + specular + emissive;
+
+    // Samples geom data
+    let fwp = textureSample(pos_tex, samp, uv);
+    let nv = textureSample(norm_tex, samp, uv);
+
+    // Computes lambertian part
+    let frag_world_pos = vec3<f32>(fwp.x, fwp.y, fwp.z);        // Position of fragment
+    let frag_to_light = vert.light_position - frag_world_pos;   // Vec from frag to light (not normalized)
+    let light_vec = normalize(frag_to_light);                   // Vec from frag to light origin (normalized)
+    let norm_vec = normalize(vec3<f32>(nv.x, nv.y, nv.z));      // Normal of fragment (normalized)
+    let costheta = max(0.0, dot(norm_vec, light_vec));
+
+    // Computes light attenuation part
+    let kc = 0.0;
+    let kl = 0.0;
+    let kq = 1.0;
+    let d = length(frag_to_light);
+    let att = 1.0 / (kc + kl*d + kq*d*d);
+    let light_color = vec4<f32>(vert.light_color, 1.0);
+
+    // Done
+    return diffuse * light_color * costheta * att;
+}
+
+// ------------- Entrypoint -------------
+[[stage(fragment)]]
+fn main(vert: GBufferVertexOut) -> ColorTargetOut {
+
+    // Initializes color components
+    var output = vec4<f32>(0.0);
+
+#   ifdef M_COLOR_BUFFER_ENABLED
+    // Samples color texture and modifies color components
+    output = compute_lighting(vert);
 #   endif
 
     // Done
     return ColorTargetOut(output);
+    //return ColorTargetOut(vec4<f32>(1.0, 0.0, 0.0, 1.0));
 }

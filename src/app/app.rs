@@ -1,4 +1,4 @@
-
+use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
 use cgmath::{Perspective, Point3, Vector3};
@@ -119,13 +119,14 @@ impl App {
         let model_instances = create_model_and_instances(&device, &queue);
         let light_mesh = LightMesh::new(&device, 8, 16);
         let mut point_lights = LightSet::new(&device, 128);
+        let i = 16000.0*3.0;
         point_lights.lights.push(PointLight::new(
-            [0.0, 50.0, 0.0],
-            [50.0, 10.0, 10.0]
+            [0.0, 150.0, 0.0],
+            [i, 0.0, 0.0]
         ));
         point_lights.lights.push(PointLight::new(
-            [0.0, -50.0, 0.0],
-            [50.0, 10.0, 10.0]
+            [0.0, -150.0, 0.0],
+            [0.0, i, 0.0]
         ));
         point_lights.compute_radius(5.0/256.0, 1.0, 0.7, 1.8);
         point_lights.flush(&queue);
@@ -199,15 +200,34 @@ impl App {
                         &camera
                     );
 
+                    // Moves lights
+                    for (i, light) in point_lights.lights.iter_mut().enumerate() {
+                        let theta = PI * t / (i+1) as f32;
+                        let light_pos = &mut light.position;
+                        light_pos[0] = f32::cos(theta / 2.0) * 400.0;
+                        light_pos[2] = f32::sin(theta / 2.0) * 400.0;
+                    }
+                    point_lights.flush(&queue);
+
                     // Moves camera
-                    let theta = std::f32::consts::PI * t;
                     let rad = 300.0_f32;
+                    let theta = PI / 4.0;
                     camera.move_to(Point3::new(
                         f32::cos(theta)*rad,
                         f32::sin(theta*2.0)*180.0_f32,
                         f32::sin(theta)*rad)
                     );
                     camera.look_at(Point3::new(0.0, 0.0, 0.0));
+                    /*
+                    let rad = 300.0_f32;
+                    let th = PI / 2.0;
+                    camera.move_to(Point3::new(
+                        f32::cos(th)*rad,
+                        f32::sin(th)*180.0_f32,
+                        f32::sin(th)*rad)
+                    );
+                    camera.look_at(Point3::new(0.0, 0.0, 0.0));
+                     */
 
                     // Updates/draws EGUI
                     platform.update_time(start_time.elapsed().as_secs_f64());
@@ -271,7 +291,7 @@ impl App {
 }
 
 const CAM_NEAR: f32 = 1.0;
-const CAM_FAR: f32 = 1000.0;
+const CAM_FAR: f32 = 8000.0;
 const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
 
 /*
