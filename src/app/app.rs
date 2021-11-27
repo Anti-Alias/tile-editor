@@ -26,7 +26,9 @@ pub struct App {
     title: String,
     width: u32,
     height: u32,
-    depth_stencil_format: TextureFormat
+    depth_stencil_format: TextureFormat,
+    is_ui_enabled: bool,
+    input_handler: Option<Box<dyn FnMut(App)>>
 }
 
 impl App {
@@ -36,7 +38,9 @@ impl App {
             title: String::from("App"),
             width: 640,
             height: 480,
-            depth_stencil_format: TextureFormat::Depth32Float
+            depth_stencil_format: TextureFormat::Depth32Float,
+            is_ui_enabled: true,
+            input_handler: None
         }
     }
 
@@ -53,7 +57,17 @@ impl App {
 
     pub fn depth_stencil_format(mut self, format: TextureFormat) -> Self {
         self.depth_stencil_format = format;
-        return self
+        self
+    }
+
+    pub fn input_handler(mut self, handler: impl FnMut(App) + 'static) -> Self {
+        self.input_handler = Some(Box::new(handler));
+        self
+    }
+
+    pub fn gui_enabled(mut self, enabled: bool) -> Self {
+        self.is_ui_enabled = enabled;
+        self
     }
 
     pub fn start(self) {
@@ -78,12 +92,6 @@ impl App {
         // Creates WGPU instance and friends
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
         let surface = unsafe { instance.create_surface(&window) };
-        /*
-        let adapter = instance
-            .enumerate_adapters(Backends::DX12)
-            .next()
-            .unwrap();
-        */
         let adapter = block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::HighPerformance,
             force_fallback_adapter: false,
@@ -230,30 +238,32 @@ impl App {
                      */
 
                     // Updates/draws EGUI
-                    platform.update_time(start_time.elapsed().as_secs_f64());
-                    platform.begin_frame();
-                    gui.update(&platform.context());
-                    let (_output, paint_commands) = platform.end_frame(Some(&window));
-                    let paint_jobs = platform.context().tessellate(paint_commands);
-                    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-                    let screen_descriptor = ScreenDescriptor {
-                        physical_width: surface_config.width,
-                        physical_height: surface_config.height,
-                        scale_factor: window.scale_factor() as f32,
-                    };
-                    egui_rpass.update_texture(&device, &queue, platform.context().texture().as_ref());
-                    egui_rpass.update_user_textures(&device, &queue);
-                    egui_rpass.update_buffers(&mut device, &mut queue, &paint_jobs, &screen_descriptor);
-                    egui_rpass.execute(
-                        &mut encoder,
-                        &surface_view,
-                        &paint_jobs,
-                        &screen_descriptor,
-                        None,
-                    ).unwrap();
+                    if self.is_ui_enabled {
+                        platform.update_time(start_time.elapsed().as_secs_f64());
+                        platform.begin_frame();
+                        gui.update(&platform.context());
+                        let (_output, paint_commands) = platform.end_frame(Some(&window));
+                        let paint_jobs = platform.context().tessellate(paint_commands);
+                        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+                        let screen_descriptor = ScreenDescriptor {
+                            physical_width: surface_config.width,
+                            physical_height: surface_config.height,
+                            scale_factor: window.scale_factor() as f32,
+                        };
+                        egui_rpass.update_texture(&device, &queue, platform.context().texture().as_ref());
+                        egui_rpass.update_user_textures(&device, &queue);
+                        egui_rpass.update_buffers(&mut device, &mut queue, &paint_jobs, &screen_descriptor);
+                        egui_rpass.execute(
+                            &mut encoder,
+                            &surface_view,
+                            &paint_jobs,
+                            &screen_descriptor,
+                            None,
+                        ).unwrap();
+                        // Submit the commands.
+                        queue.submit(iter::once(encoder.finish()));
+                    }
 
-                    // Submit the commands.
-                    queue.submit(iter::once(encoder.finish()));
                     surface_tex.present();
 
                     // Done with current loop
