@@ -69,28 +69,18 @@ impl GBufferRenderer {
                 view: screen,
                 resolve_target: None,
                 ops: Operations {
-                    load: LoadOp::Clear(Color { r: 0.0, g: 0.0, b: 0.0, a: 1.0 }),
+                    load: LoadOp::Clear(Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }),
                     store: true
                 }
             }
         ];
-        let depth_stencil_attachment = gbuffer.depth_stencil_view().map(|view| {
-            RenderPassDepthStencilAttachment {
-                view,
-                depth_ops: Some(Operations {
-                    load: LoadOp::Load,
-                    store: false
-                }),
-                stencil_ops: None
-            }
-        });
 
         // Render pass
         {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: None,
                 color_attachments,
-                depth_stencil_attachment
+                depth_stencil_attachment: None
             });
             let pipeline = &self.pipelines[&gbuffer.format()];
             let num_lights = lights.lights.len() as u32;
@@ -144,7 +134,14 @@ impl GBufferRenderer {
         let color_targets = [
             ColorTargetState {
                 format: screen_format,
-                blend: None,
+                blend: Some(BlendState {
+                    color: BlendComponent {
+                        src_factor: BlendFactor::One,
+                        dst_factor: BlendFactor::One,
+                        operation: BlendOperation::Add
+                    },
+                    alpha: BlendComponent::REPLACE
+                }),
                 write_mask: ColorWrites::ALL
             }
         ];
@@ -156,21 +153,12 @@ impl GBufferRenderer {
         let primitive = PrimitiveState {
             topology: PrimitiveTopology::TriangleList,
             strip_index_format: None,
-            front_face: Default::default(),
-            cull_mode: None,
+            front_face: FrontFace::Ccw,
+            cull_mode: Some(Face::Front),
             clamp_depth: false,
             polygon_mode: Default::default(),
             conservative: false
         };
-        let depth_stencil = gbuffer.format().depth_stencil().map(|format| {
-            DepthStencilState {
-                format,
-                depth_write_enabled: false,
-                depth_compare: CompareFunction::LessEqual,
-                stencil: Default::default(),
-                bias: Default::default()
-            }
-        });
         let multisample = MultisampleState {
             count: 1,
             mask: !0,
@@ -181,7 +169,7 @@ impl GBufferRenderer {
             layout: Some(&layout),
             vertex,
             primitive,
-            depth_stencil,
+            depth_stencil: None,
             multisample,
             fragment
         })

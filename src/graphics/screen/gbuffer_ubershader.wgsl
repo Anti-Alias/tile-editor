@@ -106,6 +106,5 @@ fn main(in: GBufferVertexOut) -> ColorTargetOut {
 #   endif
 
     // Done
-    //return ColorTargetOut(output);
     return ColorTargetOut(output);
 }
