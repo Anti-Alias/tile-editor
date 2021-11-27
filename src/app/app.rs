@@ -14,7 +14,7 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat, ModelEnvironment};
-use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
+use crate::graphics::light::{LightAttenuation, LightBundle, LightMesh, LightSet, PointLight};
 
 use crate::graphics::screen;
 use crate::graphics::screen::ScreenBuffer;
@@ -122,7 +122,7 @@ impl App {
         let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
         let mut gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
 
-        // Sets up environment to render (models, camera, lights, etc)
+        // Sets up environment to render (models, camera, lights, attenuation etc)
         let mut camera = create_camera(&device, size.width, size.height);
         let model_instances = create_model_and_instances(&device, &queue);
         let light_mesh = LightMesh::new(&device, 8, 16);
@@ -136,7 +136,9 @@ impl App {
             [0.0, -150.0, 0.0],
             [0.0, i, 0.0]
         ));
-        point_lights.compute_radius(20.0/256.0, 0.0, 0.0, 1.0);
+        let light_attenuation = LightAttenuation::new(&device, 0.0, 0.0, 0.8);
+        light_attenuation.flush(&queue);
+        point_lights.compute_radius_from_att(5.0/256.0, &light_attenuation);
         point_lights.flush(&queue);
 
         // Creates model->gbuffer renderer, then primes it with the model environment
@@ -152,7 +154,7 @@ impl App {
 
         // Creates gbuffer->screen renderer, then primes it
         let mut screen_renderer = screen::GBufferRenderer::new();
-        screen_renderer.prime(&device, surface_format, &gbuffer, &camera);
+        screen_renderer.prime(&device, surface_format, &gbuffer, &camera, &light_attenuation);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -205,7 +207,8 @@ impl App {
                         &gbuffer,
                         &point_lights,
                         &light_mesh,
-                        &camera
+                        &camera,
+                        &light_attenuation
                     );
 
                     // Moves lights

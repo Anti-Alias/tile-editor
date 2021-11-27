@@ -119,12 +119,9 @@ fn compute_lighting(vert: GBufferVertexOut) -> vec4<f32> {
     let costheta = max(0.0, dot(norm_vec, light_vec));
 
     // Computes light attenuation part
-    //let kc = light_attenuation.constant;
-    //let kl = light_attenuation.linear;
-    //let kq = light_attenuation.quadratic;
-    let kc = 0.0;
-    let kl = 0.0;
-    let kq = 1.0;
+    let kc = light_attenuation.constant;
+    let kl = light_attenuation.linear;
+    let kq = light_attenuation.quadratic;
     let d = length(frag_to_light);
     let att = 1.0 / (kc + kl*d + kq*d*d);
     let light_color = vec4<f32>(vert.light_color, 1.0);

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use wgpu::*;
 use crate::graphics::Camera;
 use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
-use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
+use crate::graphics::light::{LightAttenuation, LightBundle, LightMesh, LightSet, PointLight};
 use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
@@ -35,7 +35,8 @@ impl GBufferRenderer {
         device: &Device,
         screen_format: TextureFormat,
         gbuffer: &GBuffer,
-        camera: &Camera
+        camera: &Camera,
+        light_attenuation: &LightAttenuation
     ) {
 
         // Generates shader module if necessary
@@ -49,7 +50,7 @@ impl GBufferRenderer {
         // Generates pipeline if necessary
         self.pipelines
             .entry(gbuffer_format)
-            .or_insert_with(|| { Self::create_pipeline(device, module, screen_format, gbuffer, camera) });
+            .or_insert_with(|| { Self::create_pipeline(device, module, screen_format, gbuffer, camera, light_attenuation) });
     }
 
     /// Renders the gbuffer to the screen
@@ -61,7 +62,8 @@ impl GBufferRenderer {
         gbuffer: &GBuffer,
         lights: &LightSet<PointLight>,
         light_mesh: &LightMesh,
-        camera: &Camera
+        camera: &Camera,
+        light_attenuation: &LightAttenuation
     ) {
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
         let color_attachments = &[
@@ -89,6 +91,7 @@ impl GBufferRenderer {
             render_pass.set_vertex_buffer(1, lights.instance_slice());                          // Sets light instance data
             render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);                           // Sets bind group for GBuffer (collection of textures)
             render_pass.set_bind_group(1, camera.bind_group(), &[]);                            // Sets bind group for camera
+            render_pass.set_bind_group(2, light_attenuation.bind_group(), &[]);                 // Sets bind group for light attenuation
             render_pass.set_pipeline(pipeline);                                                 // Sets pipeline
             render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_lights)               // Draws!
         }
@@ -113,13 +116,15 @@ impl GBufferRenderer {
         module: &ShaderModule,
         screen_format: TextureFormat,
         gbuffer: &GBuffer,
-        camera: &Camera
+        camera: &Camera,
+        light_attenuation: &LightAttenuation
     ) -> RenderPipeline {
         let layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[
                 gbuffer.bind_group_layout(),
-                camera.bind_group_layout()
+                camera.bind_group_layout(),
+                light_attenuation.bind_group_layout()
             ],
             push_constant_ranges: &[]
         });

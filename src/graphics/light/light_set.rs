@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::*;
-use crate::graphics::light::PointLight;
+use crate::graphics::light::{LightAttenuation, PointLight};
 
 pub struct LightSet<L: Pod + Zeroable> {
     pub lights: Vec<L>,
@@ -58,6 +58,12 @@ impl LightSet<PointLight> {
     pub fn compute_radius(&mut self, cutoff: f32, constant: f32, linear: f32, quadratic: f32) {
         for light in &mut self.lights {
             light.compute_radius(cutoff, constant, linear, quadratic);
+        }
+    }
+
+    pub fn compute_radius_from_att(&mut self, cutoff: f32, attenuation: &LightAttenuation) {
+        for light in &mut self.lights {
+            light.compute_radius(cutoff, attenuation.constant, attenuation.linear, attenuation.quadratic);
         }
     }
 }
