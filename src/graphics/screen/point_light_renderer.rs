@@ -9,52 +9,31 @@ use crate::graphics::util::string_with_lines;
 
 /// Responsible for rendering point lights to a screen while sampling from a `GBuffer`.
 pub struct PointLightRenderer {
-    shader_source: String,                  // Source of shader code
-    modules: HashMap<u64, ShaderModule>,    // Flags (unused currently) -> module
-    pipelines: HashMap<u64, RenderPipeline>,// Flags -> pipeline,
+    pipeline: RenderPipeline,
     screen_format: TextureFormat            // Format of the screen that will be rendered to
 }
 
 impl PointLightRenderer {
 
-    /// Creates a new `GBufferRenderer` with a default shader
-    pub fn new(screen_format: TextureFormat)-> Self {
-        Self::create_from_shader(String::from(include_str!("point_light_ubershader.wgsl")), screen_format)
+    /// Creates a new `PointLightRenderer` with a default shader
+    pub fn new(device: &Device, screen_format: TextureFormat, gbuffer: &GBuffer, camera: &Camera)-> Self {
+        Self::create_from_shader(
+            device,
+            String::from(include_str!("point_light_ubershader.wgsl")),
+            screen_format,
+            gbuffer,
+            camera
+        )
     }
 
-    /// Creates a `GBufferRenderer` with the specified shader code
-    pub fn create_from_shader(shader_source: String, screen_format: TextureFormat) -> Self {
+    /// Creates a `PointLightRenderer` with the specified shader code
+    pub fn create_from_shader(device: &Device, shader_source: String, screen_format: TextureFormat, gbuffer: &GBuffer, camera: &Camera) -> Self {
+        let module = Self::create_module(device, &shader_source);
+        let pipeline = Self::create_pipeline(device, &module, screen_format, gbuffer, camera);
         Self {
-            shader_source,
-            modules: HashMap::new(),
-            pipelines: HashMap::new(),
+            pipeline,
             screen_format
         }
-    }
-
-    /// Primes the `GBufferRenderer` to render a `GBuffer` the the specified format
-    pub fn prime(
-        &mut self,
-        device: &Device,
-        gbuffer: &GBuffer,
-        camera: &Camera
-    ) {
-        let screen_format = self.screen_format;
-        let shader_source = self.shader_source.as_ref();
-        let module = self.modules
-            .entry(0)   // Flags not yet in use
-            .or_insert_with(|| { Self::create_module(device, shader_source) });
-        self.pipelines
-            .entry(0)   // Flags not yet in use
-            .or_insert_with(|| {
-                Self::create_pipeline(
-                    device,
-                    module,
-                    screen_format,
-                    gbuffer,
-                    camera
-                )}
-            );
     }
 
     /// Renders the gbuffer to the screen
@@ -87,14 +66,13 @@ impl PointLightRenderer {
                 color_attachments,
                 depth_stencil_attachment: None
             });
-            let pipeline = &self.pipelines[&0];                                                 // Flags not yet implemented
             let num_lights = lights.lights.len() as u32;
             render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
             render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
             render_pass.set_vertex_buffer(1, lights.instance_slice());                          // Sets light instance data
             render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);                           // Sets bind group for GBuffer (collection of textures)
             render_pass.set_bind_group(1, camera.bind_group(), &[]);                            // Sets bind group for camera
-            render_pass.set_pipeline(pipeline);                                                 // Sets pipeline
+            render_pass.set_pipeline(&self.pipeline);                                           // Sets pipeline
             render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_lights)               // Draws!
         }
 

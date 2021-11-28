@@ -145,8 +145,8 @@ impl App {
         point_lights.flush(&queue);
 
         // Creates model->gbuffer renderer, then primes it with the model environment
-        let mut gbuffer_renderer = gbuffer::ModelRenderer::new();
-        gbuffer_renderer.prime(
+        let mut model_renderer = gbuffer::ModelRenderer::new();
+        model_renderer.prime(
             &device,
             &ModelEnvironment {
                 instance_set: &model_instances,
@@ -154,9 +154,8 @@ impl App {
             }
         );
 
-        // Creates gbuffer->screen renderer, then primes it
-        let mut screen_renderer = screen::PointLightRenderer::new(surface_format);
-        screen_renderer.prime(&device, &gbuffer, &camera);
+        // Creates point light->screen renderer, then primes it
+        let mut point_light_renderer = screen::PointLightRenderer::new(&device, surface_format, &gbuffer, &camera);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -191,7 +190,7 @@ impl App {
 
                     // Renders models to gbuffer
                     camera.flush(&queue);
-                    gbuffer_renderer.render(
+                    model_renderer.render(
                         &device,
                         &queue,
                         &ModelEnvironment {
@@ -202,7 +201,7 @@ impl App {
                     );
 
                     // Renders gbuffer to screen
-                    screen_renderer.render(
+                    point_light_renderer.render(
                         &device,
                         &queue,
                         &surface_view,
