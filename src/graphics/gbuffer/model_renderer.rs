@@ -40,7 +40,8 @@ impl ModelRenderer {
         &self,
         device: &Device,
         queue: &Queue,
-        environment: &ModelEnvironment,
+        instances: &ModelInstanceSet,
+        camera: &Camera,
         gbuffer: &GBuffer
     ) {
 
@@ -49,48 +50,33 @@ impl ModelRenderer {
             label: Some("ModelRenderer encoder")
         });
 
-        // Adds render commands to encoder
-        self.render_environment_to_encoder(&mut encoder, environment, gbuffer);
+        // Begins render pass with gbuffer's attachments
+        {
+            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
+                label: Some("Model Renderer Render Pass"),
+                color_attachments: &gbuffer.color_attachments(),
+                depth_stencil_attachment: Some(gbuffer.depth_stencil_attachment())
+            });
+
+            // Draws all meshes within the model using render pass
+            self.render_with_render_pass(&mut render_pass, instances, camera);
+        }
 
         // Gets commands and writes them to queue
         let commands = encoder.finish();
         queue.submit(std::iter::once(commands));
     }
 
-    /// Renders a `Model` using an existing `CommandEncoder`
-    /// * `model` - Model to render
-    /// * `encoder` - Command encoder to write commands to
-    /// * `queue` - Queue to encode draw commands
-    /// * `gbuffer` - GBuffer to draw to
-    /// * `pipeline_provider` Provider of `RenderPipeline` objects
-    fn render_environment_to_encoder(
-        &self,
-        encoder: &mut CommandEncoder,
-        environment: &ModelEnvironment,
-        gbuffer: &GBuffer
-    ) {
-        // Begins render pass with gbuffer's attachments
-        let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-            label: Some("Model Renderer Render Pass"),
-            color_attachments: &gbuffer.color_attachments(),
-            depth_stencil_attachment: Some(gbuffer.depth_stencil_attachment())
-        });
-
-        // Draws all meshes within the model using render pass
-        self.render_with_render_pass(&mut render_pass, environment);
-    }
-
     fn render_with_render_pass<'a, 'b>(
         &'a self,
         render_pass: &mut RenderPass<'b>,
-        environment: &ModelEnvironment<'b>
+        instances: &'b ModelInstanceSet,
+        camera: &'b Camera
     ) where 'a: 'b {
 
         // Unpacks environment
-        let camera = &environment.camera;
-        let instance_set = environment.instance_set;
-        let model = &instance_set.model;
-        let instance_buffer = &instance_set.buffer;
+        let model = &instances.model;
+        let instance_buffer = &instances.buffer;
 
         // For all mesh/material associations...
         for (mesh, material) in model.iter() {
@@ -106,7 +92,7 @@ impl ModelRenderer {
                 .expect("Missing pipeline with features specified");
 
             // Configures render pass and draws instances
-            let num_instances = instance_set.len() as u32;
+            let num_instances = instances.len() as u32;
             render_pass.set_pipeline(pipeline);
             render_pass.set_bind_group(0, camera.bind_group(), &[]);
             render_pass.set_bind_group(1, material.bind_group(), &[]);
@@ -124,12 +110,9 @@ impl ModelRenderer {
     pub fn prime<'a>(
         &mut self,
         device: &Device,
-        environment: &ModelEnvironment<'a>
+        model: &Model,
+        camera: &Camera
     ) {
-        // Unpacks environment
-        let camera = environment.camera;
-        let model = &environment.instance_set.model;
-
         // Generates pipelines and shaders ahead of time
         let pipeline_provider = &mut self.pipeline_provider;
         let shader_provider = &mut self.shader_provider;

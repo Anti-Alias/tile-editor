@@ -144,14 +144,12 @@ impl App {
         point_lights.compute_radiuses(5.0/256.0);
         point_lights.flush(&queue);
 
-        // Creates model->gbuffer renderer, then primes it with the model environment
+        // Creates model->gbuffer renderer, then primes it
         let mut model_renderer = gbuffer::ModelRenderer::new();
         model_renderer.prime(
             &device,
-            &ModelEnvironment {
-                instance_set: &model_instances,
-                camera: &camera
-            }
+            &model_instances.model,
+            &camera
         );
 
         // Creates point light->screen renderer, then primes it
@@ -193,10 +191,8 @@ impl App {
                     model_renderer.render(
                         &device,
                         &queue,
-                        &ModelEnvironment {
-                            instance_set: &model_instances,
-                            camera: &camera
-                        },
+                        &model_instances,
+                        &camera,
                         &gbuffer
                     );
 
