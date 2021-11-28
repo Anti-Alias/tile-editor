@@ -51,19 +51,9 @@ impl LightSet<PointLight> {
 
     /// Computes each light's radius based on their intensity and light attenuation.
     /// See attenuation: https://learnopengl.com/Lighting/Light-casters
-    /// * `cutoff` - Cutoff attenuation value where light contribution is considered negligible. This value is usually close to 0, ie: 5.0/256.0
-    /// * `constant` - Constant value from the equation. This value is usually 1.0.
-    /// * `linear` - Linear value from the equation. Example from learnopengl.com uses 0.7
-    /// * `quadratic` - Quadratic value from the equation. Example from learnopengl.com uses 1.8
-    pub fn compute_radius(&mut self, cutoff: f32, constant: f32, linear: f32, quadratic: f32) {
+    pub fn compute_radiuses(&mut self, cutoff: f32) {
         for light in &mut self.lights {
-            light.compute_radius(cutoff, constant, linear, quadratic);
-        }
-    }
-
-    pub fn compute_radius_from_att(&mut self, cutoff: f32, attenuation: &LightAttenuation) {
-        for light in &mut self.lights {
-            light.compute_radius(cutoff, attenuation.constant, attenuation.linear, attenuation.quadratic);
+            light.compute_radius(cutoff);
         }
     }
 }

@@ -129,16 +129,23 @@ impl App {
         let i = 16000.0*3.0;
         point_lights.lights.push(PointLight::new(
             [0.0, 150.0, 0.0],
-            [i, 0.0, 0.0]
+            [i, 0.0, 0.0],
+            1.0,
+            0.0,
+            1.0
         ));
         point_lights.lights.push(PointLight::new(
             [0.0, -150.0, 0.0],
-            [0.0, i, 0.0]
+            [0.0, i, 0.0],
+            1.0,
+            0.0,
+            1.0
         ));
-        let light_attenuation = LightAttenuation::new(&device, 0.0, 0.0, 0.8);
+        let light_attenuation = LightAttenuation::new(&device, 0.0, 0.0, 1.0);
         light_attenuation.flush(&queue);
-        point_lights.compute_radius_from_att(5.0/256.0, &light_attenuation);
+        point_lights.compute_radiuses(5.0/256.0);
         point_lights.flush(&queue);
+        println!("Radius is: {}", point_lights.lights[0].radius);
 
         // Creates model->gbuffer renderer, then primes it with the model environment
         let mut gbuffer_renderer = gbuffer::ModelRenderer::new();

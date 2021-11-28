@@ -19,6 +19,9 @@ struct PointLightInstanceIn {
     [[location(1)]] position: vec3<f32>;
     [[location(2)]] radius: f32;
     [[location(3)]] color: vec3<f32>;
+    [[location(4)]] att_constant: f32;
+    [[location(5)]] att_linear: f32;
+    [[location(6)]] att_quadratic: f32;
 };
 
 // ------------- Vertex output type -------------
@@ -26,6 +29,9 @@ struct GBufferVertexOut {
     [[builtin(position)]] position: vec4<f32>;
     [[location(0)]] light_position: vec3<f32>;
     [[location(1)]] light_color: vec3<f32>;
+    [[location(2)]] light_att_constant: f32;
+    [[location(3)]] light_att_linear: f32;
+    [[location(4)]] light_att_quadratic: f32;
 };
 
 // ------------- Uniform type(s) -------------
@@ -65,7 +71,14 @@ fn main(
 ) -> GBufferVertexOut {
     let model_pos = (vertex.position * light.radius + light.position);
     let clip_pos = camera.proj_view * vec4<f32>(model_pos, 1.0);
-    return GBufferVertexOut(clip_pos, light.position, light.color);
+    return GBufferVertexOut(
+        clip_pos,
+        light.position,
+        light.color,
+        light.att_constant,
+        light.att_linear,
+        light.att_quadratic
+    );
 }
 
 
@@ -114,14 +127,14 @@ fn compute_lighting(vert: GBufferVertexOut) -> vec4<f32> {
     let frag_to_light = vert.light_position - frag_world_pos;   // Vec from frag to light (not normalized)
     let light_vec = normalize(frag_to_light);                   // Vec from frag to light origin (normalized)
     let norm_vec = normalize(vec3<f32>(nv.x, nv.y, nv.z));      // Normal of fragment (normalized)
-    let costheta = max(0.0, dot(norm_vec, light_vec));
+    let costheta = max(0.0, dot(norm_vec, light_vec));          // Computes dot product of light vec with normal vec
 
     // Computes light attenuation part
-    let kc = light_attenuation.constant;
-    let kl = light_attenuation.linear;
-    let kq = light_attenuation.quadratic;
+    let kc = vert.light_att_constant;
+    let kl = vert.light_att_linear;
+    let kq = vert.light_att_quadratic;
     let d = length(frag_to_light);
-    let att = 1.0 / (kc + kl*d + kq*d*d);
+    let att = 1.0 / (kc + d*(kl + kq*d));                       // More efficient than:    1.0 / (kc + kl*d + kq*d*d);
     let light_color = vec4<f32>(vert.light_color, 1.0);
 
     // Done
