@@ -70,22 +70,20 @@ impl ModelRenderer {
         gbuffer: &GBuffer
     ) {
         // Begins render pass with gbuffer's attachments
-        let attachments = gbuffer.attachments();
         let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
             label: Some("Model Renderer Render Pass"),
-            color_attachments: attachments.color_attachments(),
-            depth_stencil_attachment: attachments.depth_stencil_attachment()
+            color_attachments: &gbuffer.color_attachments(),
+            depth_stencil_attachment: Some(gbuffer.depth_stencil_attachment())
         });
 
         // Draws all meshes within the model using render pass
-        self.render_with_render_pass(&mut render_pass, environment, gbuffer.format());
+        self.render_with_render_pass(&mut render_pass, environment);
     }
 
     fn render_with_render_pass<'a, 'b>(
         &'a self,
         render_pass: &mut RenderPass<'b>,
-        environment: &ModelEnvironment<'b>,
-        gbuffer_format: GBufferFormat
+        environment: &ModelEnvironment<'b>
     ) where 'a: 'b {
 
         // Unpacks environment
@@ -99,10 +97,8 @@ impl ModelRenderer {
 
             // Gets appropriate pipeline for the set of features from material/gbuffer
             let features = ModelPipelineFeatures {
-                gbuffer_format,
                 shader_features: ModelShaderFeatures {
-                    material_flags: material.flags(),
-                    gbuffer_flags: gbuffer_format.flags()
+                    material_flags: material.flags()
                 }
             };
             let pipeline = &self.pipeline_provider
@@ -128,7 +124,6 @@ impl ModelRenderer {
     pub fn prime<'a>(
         &mut self,
         device: &Device,
-        gbuffer_format: GBufferFormat,
         environment: &ModelEnvironment<'a>
     ) {
         // Unpacks environment
@@ -140,10 +135,8 @@ impl ModelRenderer {
         let shader_provider = &mut self.shader_provider;
         for (_, material) in model.iter() {
             let features = ModelPipelineFeatures {
-                gbuffer_format,
                 shader_features: ModelShaderFeatures {
                     material_flags: material.flags(),
-                    gbuffer_flags: gbuffer_format.flags()
                 }
             };
             pipeline_provider.prime(

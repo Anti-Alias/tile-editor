@@ -2,15 +2,15 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::*;
 use crate::graphics::Camera;
-use crate::graphics::gbuffer::{GBuffer, GBufferFormat};
+use crate::graphics::gbuffer::GBuffer;
 use crate::graphics::light::{LightAttenuation, LightBundle, LightMesh, LightSet, PointLight};
 use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
 pub struct GBufferRenderer {
-    shader_source: String,                              // Source of shader code
-    modules: HashMap<u64, ShaderModule>,                // GBuffer flags -> module
-    pipelines: HashMap<GBufferFormat, RenderPipeline>   // GBufferFormat -> pipeline
+    shader_source: String,                  // Source of shader code
+    modules: HashMap<u64, ShaderModule>,    // Flags (unused currently) -> module
+    pipelines: HashMap<u64, RenderPipeline> // Flags -> pipeline
 }
 
 impl GBufferRenderer {
@@ -38,19 +38,22 @@ impl GBufferRenderer {
         camera: &Camera,
         light_attenuation: &LightAttenuation
     ) {
-
-        // Generates shader module if necessary
-        let gbuffer_format = gbuffer.format();
-        let gbuffer_flags = gbuffer_format.flags();
         let shader_source = self.shader_source.as_ref();
         let module = self.modules
-            .entry(gbuffer_flags)
-            .or_insert_with(|| { Self::create_module(device, shader_source, gbuffer_flags) });
-
-        // Generates pipeline if necessary
+            .entry(0)   // Flags not yet in use
+            .or_insert_with(|| { Self::create_module(device, shader_source) });
         self.pipelines
-            .entry(gbuffer_format)
-            .or_insert_with(|| { Self::create_pipeline(device, module, screen_format, gbuffer, camera, light_attenuation) });
+            .entry(0)   // Flags not yet in use
+            .or_insert_with(|| {
+                Self::create_pipeline(
+                    device,
+                    module,
+                    screen_format,
+                    gbuffer,
+                    camera,
+                    light_attenuation
+                )}
+            );
     }
 
     /// Renders the gbuffer to the screen
@@ -84,7 +87,7 @@ impl GBufferRenderer {
                 color_attachments,
                 depth_stencil_attachment: None
             });
-            let pipeline = &self.pipelines[&gbuffer.format()];
+            let pipeline = &self.pipelines[&0];                                                 // Flags not yet implemented
             let num_lights = lights.lights.len() as u32;
             render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
             render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
@@ -101,8 +104,8 @@ impl GBufferRenderer {
         queue.submit(std::iter::once(commands));
     }
 
-    fn create_module(device: &Device, source: &str, gbuffer_flags: u64) -> ShaderModule {
-        let source = Self::preprocess_source(source, gbuffer_flags);
+    fn create_module(device: &Device, source: &str) -> ShaderModule {
+        let source = Self::preprocess_source(source);
         log::info!("Preprocessed gbuffer shader source as:\n{}", string_with_lines(&source));
         let source = ShaderSource::Wgsl(Cow::from(source.as_str()));
         device.create_shader_module(&ShaderModuleDescriptor {
@@ -181,29 +184,23 @@ impl GBufferRenderer {
     }
 
 
-    fn preprocess_source(source: &str, gbuffer_flags: u64) -> String {
+    fn preprocess_source(source: &str) -> String {
 
         // Prepares empty preprocessor context
         let mut context = gpp::Context::new();
         let macros = &mut context.macros;
 
-        // ---------- GBuffer macros -----------
+        // Gbuffer bind group
         macros.insert(String::from("M_GBUFFER_BIND_GROUP"), String::from("0"));
         macros.insert(String::from("M_POSITION_TEXTURE_BINDING"), String::from("0"));
         macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from("1"));
-        if gbuffer_flags & GBuffer::COLOR_BUFFER_BIT != 0 {
-            macros.insert(String::from("M_COLOR_BUFFER_ENABLED"), String::from("TRUE"));
-            macros.insert(String::from("M_COLOR_TEXTURE_BINDING"), String::from("2"));
-        }
+        macros.insert(String::from("M_COLOR_TEXTURE_BINDING"), String::from("2"));
 
-        // ---------- Light macros -----------
-        macros.insert(String::from("M_LIGHT_BIND_GROUP"), String::from("0"));
-        macros.insert(String::from("M_POINT_LIGHT_BINDING"), String::from("0"));
-        macros.insert(String::from("M_DIRECTIONAL_LIGHT_BINDING"), String::from("1"));
-
+        // Camera bind group
         macros.insert(String::from("M_CAMERA_BIND_GROUP"), String::from("1"));
         macros.insert(String::from("M_CAMERA_BINDING"), String::from("0"));
 
+        // Light bind group
         macros.insert(String::from("M_LIGHT_ATT_BIND_GROUP"), String::from("2"));
         macros.insert(String::from("M_LIGHT_ATT_BINDING"), String::from("0"));
 

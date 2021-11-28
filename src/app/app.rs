@@ -13,7 +13,7 @@ use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
-use crate::graphics::gbuffer::{GBuffer, GBufferFormat, ModelEnvironment};
+use crate::graphics::gbuffer::{GBuffer, ModelEnvironment};
 use crate::graphics::light::{LightAttenuation, LightBundle, LightMesh, LightSet, PointLight};
 
 use crate::graphics::screen;
@@ -119,8 +119,7 @@ impl App {
         surface.configure(&device, &surface_config);
 
         // Creates GBuffer
-        let gbuffer_format = GBufferFormat::new(GBuffer::COLOR_BUFFER_BIT | GBuffer::DEPTH_STENCIL_BUFFER_BIT);
-        let mut gbuffer = GBuffer::new(&device, size.width, size.height, gbuffer_format);
+        let mut gbuffer = GBuffer::new(&device, size.width, size.height);
 
         // Sets up environment to render (models, camera, lights, attenuation etc)
         let mut camera = create_camera(&device, size.width, size.height);
@@ -145,7 +144,6 @@ impl App {
         let mut gbuffer_renderer = gbuffer::ModelRenderer::new();
         gbuffer_renderer.prime(
             &device,
-            gbuffer.format(),
             &ModelEnvironment {
                 instance_set: &model_instances,
                 camera: &camera
@@ -287,7 +285,7 @@ impl App {
                         if size.width != 0 { surface_config.width = size.width; }
                         if size.height != 0 { surface_config.height = size.height; }
                         surface.configure(&device, &surface_config);
-                        gbuffer.resize(&device, size.width, size.height);
+                        gbuffer = GBuffer::new(&device, size.width, size.height);
 
                         // Updates camera
                         update_camera(&mut camera, size.width, size.height);

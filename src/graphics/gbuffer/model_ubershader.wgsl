@@ -113,9 +113,7 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
 struct ColorTargetOut {
     [[location(M_POSITION_BUFFER_LOCATION)]] position: vec4<f32>;
     [[location(M_NORMAL_BUFFER_LOCATION)]] normal: vec4<f32>;
-#   ifdef M_COLOR_BUFFER_ENABLED
     [[location(M_COLOR_BUFFER_LOCATION)]] color: vec4<f32>;
-#   endif
 };
 
 
@@ -150,8 +148,6 @@ fn main(in: ModelVertexOut) -> ColorTargetOut {
     return ColorTargetOut(
         position,
         normal,
-#       ifdef M_COLOR_BUFFER_ENABLED
-        color,
-#       endif
+        color
     );
 }

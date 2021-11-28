@@ -6,126 +6,95 @@ use wgpu::util::{BufferInitDescriptor, DeviceExt};
 pub struct GBuffer {
     position: TextureView,
     normal: TextureView,
-    depth_stencil: Option<TextureView>,
-    color: Option<TextureView>,
-    format: GBufferFormat,
+    depth_stencil: TextureView,
+    color: TextureView,
     bind_group: BindGroup,
-    bind_group_layout: BindGroupLayout,
-    view_count: u32                     // Number of views. Useful for pre-allocating color attachment vector
+    bind_group_layout: BindGroupLayout
 }
 impl GBuffer {
 
-    /// Flag that determines if a depth/stencil buffer is enabled for a `GBuffer`
-    pub const DEPTH_STENCIL_BUFFER_BIT: u64 = 1;
+    pub const POSITION_FORMAT: TextureFormat = TextureFormat::Rgba32Float;
+    pub const NORMAL_FORMAT: TextureFormat = TextureFormat::Rgba32Float;
+    pub const COLOR_FORMAT: TextureFormat = TextureFormat::Rgba32Float;
+    pub const DEPTH_STENCIL_FORMAT: TextureFormat = TextureFormat::Depth32Float;
 
-    /// Flag that determines if a color buffer encoding diffuse, specular and emissive data is enabled for a `GBuffer`
-    pub const COLOR_BUFFER_BIT: u64 = 1 << 1;
-
-    /// Creates a GBuffer where each texture is of the specified size and have the formats specified
-    /// in `format`.
-    pub fn new(device: &Device, width: u32, height: u32, format: GBufferFormat) -> Self {
+    /// Creates a GBuffer.
+    pub fn new(device: &Device, width: u32, height: u32) -> Self {
         let position = device
-            .create_texture(&Self::descriptor_of(width, height, format.position))
+            .create_texture(&Self::descriptor_of(width, height, Self::POSITION_FORMAT))
             .create_view(&TextureViewDescriptor::default());
         let normal = device
-            .create_texture(&Self::descriptor_of(width, height, format.normal))
+            .create_texture(&Self::descriptor_of(width, height, Self::NORMAL_FORMAT))
             .create_view(&TextureViewDescriptor::default());
-        let depth_stencil = format.depth_stencil.map(|tex_form| {
-            device
-                .create_texture(&Self::descriptor_of(width, height, tex_form))
-                .create_view(&TextureViewDescriptor::default())
-        });
-        let color = format.color.map(|tex_form| {
-            device
-                .create_texture(&Self::descriptor_of(width, height, tex_form))
-                .create_view(&TextureViewDescriptor::default())
-        });
+        let color = device
+            .create_texture(&Self::descriptor_of(width, height, Self::COLOR_FORMAT))
+            .create_view(&TextureViewDescriptor::default());
+        let depth_stencil = device
+            .create_texture(&Self::descriptor_of(width, height, Self::DEPTH_STENCIL_FORMAT))
+            .create_view(&TextureViewDescriptor::default());
         let (bind_group, bind_group_layout) = Self::create_bind_group(
             device,
             &position,
             &normal,
-            color.as_ref()
+            &color
         );
-        let mut view_count = 2;
-        if color.is_some() { view_count += 1 };
-        log::info!("Created GBuffer with format {:?}", format);
+        log::info!("Created GBuffer");
         Self {
             position,
             normal,
             depth_stencil,
             color,
-            format,
             bind_group,
-            bind_group_layout,
-            view_count
+            bind_group_layout
         }
     }
 
     pub fn position_view(&self) -> &TextureView { &self.position }
     pub fn normal_view(&self) -> &TextureView { &self.normal }
-    pub fn depth_stencil_view(&self) -> Option<&TextureView> { self.depth_stencil.as_ref() }
-    pub fn color_view(&self) -> Option<&TextureView> { self.color.as_ref() }
-    pub fn format(&self) -> GBufferFormat { self.format }
+    pub fn depth_stencil_view(&self) -> &TextureView { &self.depth_stencil }
+    pub fn color_view(&self) -> &TextureView { &self.color }
     pub fn bind_group(&self) -> &BindGroup { &self.bind_group }
     pub fn bind_group_layout(&self) -> &BindGroupLayout { &self.bind_group_layout }
 
-    /// Both the color buffer and depth_stencil attachments
-    pub fn attachments(&self) -> GBufferAttachments {
-
-        // Creates color attachments
-        let mut color_attachments = Vec::<RenderPassColorAttachment>::with_capacity(self.view_count as usize);
+    pub fn color_attachments(&self) -> [RenderPassColorAttachment; 3] {
         let ops = Operations {
             load: LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }),
             store: true
         };
-        color_attachments.push (
+        [
             RenderPassColorAttachment {
                 view: &self.position,
                 resolve_target: None,
                 ops
-            }
-        );
-        color_attachments.push(
+            },
             RenderPassColorAttachment {
                 view: &self.normal,
                 resolve_target: None,
                 ops
-            }
-        );
-        if let Some(view) = &self.color {
-            color_attachments.push(RenderPassColorAttachment {
-                view,
+            },
+            RenderPassColorAttachment {
+                view: &self.color,
                 resolve_target: None,
                 ops
-            });
-        }
-
-        // Depth/stencil attachment
-        let depth_stencil_attachment = self.depth_stencil.as_ref().map(|view| {
-            RenderPassDepthStencilAttachment {
-                view,
-                depth_ops: Some(Operations {
-                    load: LoadOp::Clear(1.0),
-                    store: true
-                }),
-                stencil_ops: None
             }
-        });
+        ]
+    }
 
-        // Bundles attachments
-        GBufferAttachments {
-            color_attachments,
-            depth_stencil_attachment
+    /// Both the color buffer and depth_stencil attachments
+    pub fn depth_stencil_attachment(&self) -> RenderPassDepthStencilAttachment {
+        RenderPassDepthStencilAttachment {
+            view: &self.depth_stencil,
+            depth_ops: Some(Operations {
+                load: LoadOp::Clear(1.0),
+                store: true
+            }),
+            stencil_ops: None
         }
     }
 
     /// Resizes all of the textures in the gbuffer to conform to a new size
     pub fn resize(&mut self, device: &Device, width: u32, height: u32) {
-        *self = GBuffer::new(device, width, height, self.format);
-    }
-
-    fn optional_format(flags: u64, bit: u64, format: TextureFormat) -> Option<TextureFormat> {
-        if flags | bit != 0 { Some(format) } else { None }
+        *self = GBuffer::new(device, width, height);
     }
 
     fn descriptor_of<'a>(width: u32, height: u32, format: TextureFormat) -> TextureDescriptor<'a> {
@@ -148,12 +117,11 @@ impl GBuffer {
         device: &Device,
         pos_view: &TextureView,
         nor_view: &TextureView,
-        col_view: Option<&TextureView>
+        col_view: &TextureView
     ) -> (BindGroup, BindGroupLayout) {
 
         // Creates required layout entries
-        let mut layout_entries = Vec::with_capacity(3);
-        layout_entries.push(
+        let layout_entries = [
             // Position
             BindGroupLayoutEntry {
                 binding: 0,
@@ -165,8 +133,6 @@ impl GBuffer {
                 },
                 count: None
             },
-        );
-        layout_entries.push(
             // Normal
             BindGroupLayoutEntry {
                 binding: 1,
@@ -178,51 +144,45 @@ impl GBuffer {
                 },
                 count: None
             },
-        );
+            // Color
+            BindGroupLayoutEntry {
+                binding: 2,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
+                    sample_type: TextureSampleType::Float { filterable: false },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false
+                },
+                count: None
+            }
+        ];
 
         // Creates required bind group entries
-        let mut bind_group_entries = Vec::with_capacity(3);
-        bind_group_entries.push(BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(pos_view)
-        });
-        bind_group_entries.push(BindGroupEntry {
-            binding: 1,
-            resource: BindingResource::TextureView(nor_view)
-        });
-
-        // Adds optional entries
-        if let Some(col_view) = col_view {
-            layout_entries.push(
-                // Color
-                BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::Texture {
-                        sample_type: TextureSampleType::Float { filterable: false },
-                        view_dimension: TextureViewDimension::D2,
-                        multisampled: false
-                    },
-                    count: None
-                },
-            );
-            bind_group_entries.push(BindGroupEntry {
+        let mut bind_group_entries = [
+            BindGroupEntry {
+                binding: 0,
+                resource: BindingResource::TextureView(pos_view)
+            },
+            BindGroupEntry {
+                binding: 1,
+                resource: BindingResource::TextureView(nor_view)
+            },
+            BindGroupEntry {
                 binding: 2,
                 resource: BindingResource::TextureView(col_view)
-            });
-        }
-
+            }
+        ];
 
         // Creates layout and group, then finishes
         let layout_desc = BindGroupLayoutDescriptor {
             label: None,
-            entries: layout_entries.as_slice()
+            entries: &layout_entries
         };
         let layout = device.create_bind_group_layout(&layout_desc);
         let group_desc = BindGroupDescriptor {
             label: None,
             layout: &layout,
-            entries: bind_group_entries.as_slice()
+            entries: &bind_group_entries
         };
         let bind_group = device.create_bind_group(&group_desc);
         log::debug!("Created GBuffer bind group layout: {:#?}", layout_desc);
@@ -231,58 +191,8 @@ impl GBuffer {
     }
 }
 
-/// Represents the format of a `GBuffer`
-#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
-pub struct GBufferFormat {
-    position: TextureFormat,
-    normal: TextureFormat,
-    depth_stencil: Option<TextureFormat>,
-    color: Option<TextureFormat>,
-    flags: u64
-}
-
-impl GBufferFormat {
-    pub fn new(flags: u64) -> GBufferFormat {
-        let position = TextureFormat::Rgba32Float;
-        let normal = TextureFormat::Rgba32Float;
-        let mut f = 0;
-        let mut color = None;
-        let mut depth_stencil = None;
-        if flags & GBuffer::COLOR_BUFFER_BIT != 0 {
-            color = Some(TextureFormat::Rgba32Float);
-            f |= GBuffer::COLOR_BUFFER_BIT;
-        }
-        if flags & GBuffer::DEPTH_STENCIL_BUFFER_BIT != 0 {
-            depth_stencil = Some(TextureFormat::Depth32Float);
-            f |= GBuffer::DEPTH_STENCIL_BUFFER_BIT;
-        }
-        GBufferFormat {
-            position,
-            normal,
-            depth_stencil,
-            color,
-            flags: f
-        }
-    }
-    pub fn position(&self) -> TextureFormat { self.position }
-    pub fn normal(&self) -> TextureFormat { self.normal }
-    pub fn depth_stencil(&self) -> Option<TextureFormat> { self.depth_stencil }
-    pub fn color(&self) -> Option<TextureFormat> { self.color }
-    pub fn flags(&self) -> u64 { self.flags }
-}
-
 /// Represents color attachments and depth-stencil attachments of a `GBuffer`.
 pub struct GBufferAttachments<'a> {
-    color_attachments: Vec<RenderPassColorAttachment<'a>>,
-    depth_stencil_attachment: Option<RenderPassDepthStencilAttachment<'a>>
-}
-
-impl<'a> GBufferAttachments<'a> {
-    pub fn color_attachments(&self) -> &[RenderPassColorAttachment<'a>] {
-        self.color_attachments.as_slice()
-    }
-
-    pub fn depth_stencil_attachment(&self) -> Option<RenderPassDepthStencilAttachment<'a>> {
-        self.depth_stencil_attachment.clone()
-    }
+    pub color_attachments: [RenderPassColorAttachment<'a>; 3],
+    pub depth_stencil_attachment: RenderPassDepthStencilAttachment<'a>
 }

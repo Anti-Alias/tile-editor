@@ -7,8 +7,7 @@ use crate::graphics::util::string_with_lines;
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct ModelShaderFeatures {
-    pub material_flags: u64,
-    pub gbuffer_flags: u64
+    pub material_flags: u64
 }
 
 
@@ -65,7 +64,6 @@ impl ModelShaderProvider {
         let mut context = gpp::Context::new();
         let macros = &mut context.macros;
         let mat_flags = features.material_flags;
-        let gbuffer_flags = features.gbuffer_flags;
 
         // ---------- Bind group macros -----------
         macros.insert(String::from("M_CAMERA_BIND_GROUP"), String::from("0"));
@@ -113,12 +111,7 @@ impl ModelShaderProvider {
         // ----------- GBuffer macros -----------
         macros.insert(String::from("M_POSITION_BUFFER_LOCATION"), String::from("0"));
         macros.insert(String::from("M_NORMAL_BUFFER_LOCATION"), String::from("1"));
-        let mut current_location = 2;
-        if gbuffer_flags & GBuffer::COLOR_BUFFER_BIT != 0 {
-            macros.insert(String::from("M_COLOR_BUFFER_ENABLED"), String::from("TRUE"));
-            macros.insert(String::from("M_COLOR_BUFFER_LOCATION"), String::from(current_location.to_string()));
-            current_location += 1;
-        }
+        macros.insert(String::from("M_COLOR_BUFFER_LOCATION"), String::from("2"));
 
         // Returns preprocessed string
         gpp::process_str(source, &mut context).unwrap()

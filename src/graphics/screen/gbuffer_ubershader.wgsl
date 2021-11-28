@@ -46,10 +46,8 @@ struct LightAttenuation {
 var pos_tex: texture_2d<f32>;
 [[group(M_GBUFFER_BIND_GROUP), binding(M_NORMAL_TEXTURE_BINDING)]]
 var norm_tex: texture_2d<f32>;
-#ifdef M_COLOR_BUFFER_ENABLED
 [[group(M_GBUFFER_BIND_GROUP), binding(M_COLOR_TEXTURE_BINDING)]]
 var color_tex: texture_2d<f32>;
-#endif
 
 // ------------- Camera bind group -------------
 [[group(M_CAMERA_BIND_GROUP), binding(M_CAMERA_BINDING)]]
@@ -137,10 +135,8 @@ fn main(vert: GBufferVertexOut) -> ColorTargetOut {
     // Initializes color components
     var output = vec4<f32>(0.0);
 
-#   ifdef M_COLOR_BUFFER_ENABLED
     // Samples color texture and modifies color components
     output = compute_lighting(vert);
-#   endif
 
     // Done
     return ColorTargetOut(output);

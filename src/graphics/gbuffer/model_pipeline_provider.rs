@@ -8,7 +8,6 @@ use crate::graphics::gbuffer::*;
 /// Represents a permutation of features a pipeline should have
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub struct ModelPipelineFeatures {
-    pub gbuffer_format: GBufferFormat,
     pub shader_features: ModelShaderFeatures
 }
 
@@ -39,7 +38,7 @@ impl ModelPipelineProvider {
             .entry(features)
             .or_insert_with(|| {
                 let shader = shader_provider.prime(device, &features.shader_features);
-                let pipeline = Self::create_pipeline(device, &shader, &features, bind_group_layouts);
+                let pipeline = Self::create_pipeline(device, &shader, bind_group_layouts);
                 log::info!("Created new pipeline");
                 pipeline
             })
@@ -53,7 +52,6 @@ impl ModelPipelineProvider {
     fn create_pipeline(
         device: &Device,
         module: &ShaderModule,
-        features: &ModelPipelineFeatures,
         bind_group_layouts: &[&BindGroupLayout]
     ) -> RenderPipeline {
 
@@ -71,20 +69,34 @@ impl ModelPipelineProvider {
                 ModelInstance::layout()
             ]
         };
-        let color_target_states = Self::create_color_target_states(&features.gbuffer_format);
-        let depth_stencil_state = features.gbuffer_format.depth_stencil().map(|format| {
-            DepthStencilState {
-                format,
-                depth_write_enabled: true,
-                depth_compare: CompareFunction::LessEqual,
-                stencil: StencilState::default(),
-                bias: DepthBiasState::default()
+        let color_target_states = [
+            ColorTargetState {
+                format: GBuffer::POSITION_FORMAT,
+                blend: None,
+                write_mask: ColorWrites::ALL
+            },
+            ColorTargetState {
+                format: GBuffer::NORMAL_FORMAT,
+                blend: None,
+                write_mask: ColorWrites::ALL
+            },
+            ColorTargetState {
+                format: GBuffer::COLOR_FORMAT,
+                blend: None,
+                write_mask: ColorWrites::ALL
             }
+        ];
+        let depth_stencil_state =  Some(DepthStencilState {
+            format: GBuffer::DEPTH_STENCIL_FORMAT,
+            depth_write_enabled: true,
+            depth_compare: CompareFunction::LessEqual,
+            stencil: StencilState::default(),
+            bias: DepthBiasState::default()
         });
         let fragment = Some(FragmentState {
             module,
             entry_point: "main",
-            targets: color_target_states.as_slice()
+            targets: &color_target_states
         });
         let primitive = PrimitiveState {
             topology: PrimitiveTopology::TriangleList,
@@ -102,7 +114,7 @@ impl ModelPipelineProvider {
         };
 
         // Creates pipeline with layout and states
-        device.create_render_pipeline(&RenderPipelineDescriptor {
+        let pipeline = device.create_render_pipeline(&RenderPipelineDescriptor {
             label: Some("Model Render Pipeline"),
             layout: Some(&layout),
             vertex,
@@ -110,29 +122,7 @@ impl ModelPipelineProvider {
             primitive,
             depth_stencil: depth_stencil_state,
             multisample
-        })
-    }
-
-    fn create_color_target_states(format: &GBufferFormat) -> Vec<ColorTargetState> {
-        let mut targets = vec![
-            ColorTargetState {
-                format: format.position(),
-                blend: None,
-                write_mask: ColorWrites::ALL
-            },
-            ColorTargetState {
-                format: format.normal(),
-                blend: None,
-                write_mask: ColorWrites::ALL
-            }
-        ];
-        if let Some(format) = format.color() {
-            targets.push(ColorTargetState {
-                format,
-                blend: None,
-                write_mask: ColorWrites::ALL
-            });
-        }
-        targets
+        });
+        pipeline
     }
 }
