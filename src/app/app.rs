@@ -14,7 +14,7 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, ModelEnvironment};
-use crate::graphics::light::{LightAttenuation, LightMesh, LightSet, PointLight};
+use crate::graphics::light::{LightMesh, LightSet, PointLight};
 
 use crate::graphics::screen;
 use crate::graphics::screen::ScreenBuffer;
@@ -141,8 +141,6 @@ impl App {
             0.0,
             1.0
         ));
-        let light_attenuation = LightAttenuation::new(&device, 0.0, 0.0, 1.0);
-        light_attenuation.flush(&queue);
         point_lights.compute_radiuses(5.0/256.0);
         point_lights.flush(&queue);
         println!("Radius is: {}", point_lights.lights[0].radius);
@@ -159,7 +157,7 @@ impl App {
 
         // Creates gbuffer->screen renderer, then primes it
         let mut screen_renderer = screen::GBufferRenderer::new();
-        screen_renderer.prime(&device, surface_format, &gbuffer, &camera, &light_attenuation);
+        screen_renderer.prime(&device, surface_format, &gbuffer, &camera);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -212,8 +210,7 @@ impl App {
                         &gbuffer,
                         &point_lights,
                         &light_mesh,
-                        &camera,
-                        &light_attenuation
+                        &camera
                     );
 
                     // Moves lights

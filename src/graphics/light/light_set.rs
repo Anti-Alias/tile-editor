@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::*;
-use crate::graphics::light::{LightAttenuation, PointLight};
+use crate::graphics::light::PointLight;
 
 pub struct LightSet<L: Pod + Zeroable> {
     pub lights: Vec<L>,

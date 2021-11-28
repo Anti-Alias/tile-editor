@@ -40,13 +40,6 @@ struct CameraUni {
     proj_view: mat4x4<f32>;
 };
 
-[[block]]
-struct LightAttenuation {
-    constant: f32;
-    linear: f32;
-    quadratic: f32;
-};
-
 // ------------- GBuffer bind group -------------
 [[group(M_GBUFFER_BIND_GROUP), binding(M_POSITION_TEXTURE_BINDING)]]
 var pos_tex: texture_2d<f32>;
@@ -58,10 +51,6 @@ var color_tex: texture_2d<f32>;
 // ------------- Camera bind group -------------
 [[group(M_CAMERA_BIND_GROUP), binding(M_CAMERA_BINDING)]]
 var<uniform> camera: CameraUni;
-
-// ------------- Light attenuation bind group -------------
-[[group(M_LIGHT_ATT_BIND_GROUP), binding(M_LIGHT_ATT_BINDING)]]
-var<uniform> light_attenuation: LightAttenuation;
 
 // ------------- Entrypoint -------------
 [[stage(vertex)]]
