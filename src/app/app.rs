@@ -156,8 +156,8 @@ impl App {
         );
 
         // Creates gbuffer->screen renderer, then primes it
-        let mut screen_renderer = screen::GBufferRenderer::new();
-        screen_renderer.prime(&device, surface_format, &gbuffer, &camera);
+        let mut screen_renderer = screen::GBufferPointLightRenderer::new(surface_format);
+        screen_renderer.prime(&device, &gbuffer, &camera);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));

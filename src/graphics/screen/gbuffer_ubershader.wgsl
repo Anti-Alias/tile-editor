@@ -24,14 +24,12 @@ struct PointLightInstanceIn {
     [[location(6)]] att_quadratic: f32;
 };
 
-// ------------- Vertex output type -------------
+// ------------- Vertex output type (fragment) -------------
 struct GBufferVertexOut {
     [[builtin(position)]] position: vec4<f32>;
     [[location(0)]] light_position: vec3<f32>;
     [[location(1)]] light_color: vec3<f32>;
-    [[location(2)]] light_att_constant: f32;
-    [[location(3)]] light_att_linear: f32;
-    [[location(4)]] light_att_quadratic: f32;
+    [[location(2)]] light_coeff: vec3<f32>;
 };
 
 // ------------- Uniform type(s) -------------
@@ -64,9 +62,7 @@ fn main(
         clip_pos,
         light.position,
         light.color,
-        light.att_constant,
-        light.att_linear,
-        light.att_quadratic
+        vec3<f32>(light.att_constant, light.att_linear, light.att_quadratic)
     );
 }
 
@@ -119,14 +115,14 @@ fn compute_lighting(vert: GBufferVertexOut) -> vec4<f32> {
     let costheta = max(0.0, dot(norm_vec, light_vec));          // Computes dot product of light vec with normal vec
 
     // Computes light attenuation part
-    let kc = vert.light_att_constant;
-    let kl = vert.light_att_linear;
-    let kq = vert.light_att_quadratic;
-    let d = length(frag_to_light);
-    let att = 1.0 / (kc + d*(kl + kq*d));                       // More efficient than:    1.0 / (kc + kl*d + kq*d*d);
-    let light_color = vec4<f32>(vert.light_color, 1.0);
+    let d = length(frag_to_light);      // Distance of fragment's position to the light's origin
+    let c = vert.light_coeff.x;         // Constant
+    let l = vert.light_coeff.y;         // Linear
+    let q = vert.light_coeff.z;         // Quadratic
+    let att = 1.0 / (c + d*(l + q*d));  // Attenuation
 
     // Done
+    let light_color = vec4<f32>(vert.light_color, 1.0);
     return diffuse * light_color * costheta * att;
 }
 

@@ -7,25 +7,28 @@ use crate::graphics::light::{LightMesh, LightSet, PointLight};
 use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
-pub struct GBufferRenderer {
+/// Responsible for rendering point lights to a screen while sampling from a `GBuffer`.
+pub struct GBufferPointLightRenderer {
     shader_source: String,                  // Source of shader code
     modules: HashMap<u64, ShaderModule>,    // Flags (unused currently) -> module
-    pipelines: HashMap<u64, RenderPipeline> // Flags -> pipeline
+    pipelines: HashMap<u64, RenderPipeline>,// Flags -> pipeline,
+    screen_format: TextureFormat            // Format of the screen that will be rendered to
 }
 
-impl GBufferRenderer {
+impl GBufferPointLightRenderer {
 
     /// Creates a new `GBufferRenderer` with a default shader
-    pub fn new()-> Self {
-        Self::create_from_shader(String::from(include_str!("gbuffer_ubershader.wgsl")))
+    pub fn new(screen_format: TextureFormat)-> Self {
+        Self::create_from_shader(String::from(include_str!("gbuffer_ubershader.wgsl")), screen_format)
     }
 
     /// Creates a `GBufferRenderer` with the specified shader code
-    pub fn create_from_shader(shader_source: String) -> Self {
+    pub fn create_from_shader(shader_source: String, screen_format: TextureFormat) -> Self {
         Self {
             shader_source,
             modules: HashMap::new(),
-            pipelines: HashMap::new()
+            pipelines: HashMap::new(),
+            screen_format
         }
     }
 
@@ -33,10 +36,10 @@ impl GBufferRenderer {
     pub fn prime(
         &mut self,
         device: &Device,
-        screen_format: TextureFormat,
         gbuffer: &GBuffer,
         camera: &Camera
     ) {
+        let screen_format = self.screen_format;
         let shader_source = self.shader_source.as_ref();
         let module = self.modules
             .entry(0)   // Flags not yet in use
