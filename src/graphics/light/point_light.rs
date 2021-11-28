@@ -5,12 +5,19 @@ use crate::graphics::ModelInstance;
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Pod, Zeroable)]
 pub struct PointLight {
+    /// Position of the light
     pub position: [f32; 3],
+
+    /// Radius of the light
     pub radius: f32,
+
+    /// Color of the lights
     pub color: [f32; 3],
-    pub att_constant: f32,
-    pub att_linear: f32,
-    pub att_quadratic: f32,
+
+    /// Attenuation coefficients (constant, linear, quadratic respectively)
+    pub coefficients: [f32; 3],
+
+    // Padding for uniform buffer
     _pad0: u32,
     _pad1: u32
 }
@@ -21,17 +28,13 @@ impl PointLight {
     pub fn new(
         position: [f32; 3],
         color: [f32; 3],
-        att_constant: f32,
-        att_linear: f32,
-        att_quadratic: f32
+        coefficients: [f32; 3]
     ) -> Self {
         Self {
             position,
             radius: 0.0,
             color,
-            att_constant,
-            att_linear,
-            att_quadratic,
+            coefficients,
             _pad0: 0,
             _pad1: 0
         }
@@ -45,12 +48,28 @@ impl PointLight {
             position,
             radius: 0.0,
             color,
-            att_constant: 0.0,
-            att_linear: 0.0,
-            att_quadratic: 1.0,
+            coefficients: [0.0, 0.0, 1.0],
             _pad0: 0,
             _pad1: 0
         }
+    }
+
+    pub fn constant(&self) -> f32 {
+        self.coefficients[0]
+    }
+
+    pub fn linear(&self) -> f32 {
+        self.coefficients[1]
+    }
+
+    pub fn quadratic(&self) -> f32 {
+        self.coefficients[2]
+    }
+
+    pub fn set_attenuation(&mut self, constant: f32, linear: f32, quadratic: f32) {
+        self.coefficients[0] = constant;
+        self.coefficients[1] = linear;
+        self.coefficients[2] = quadratic;
     }
 
     /// Computes the light's radius based on its intensity and light attenuation.
@@ -59,9 +78,9 @@ impl PointLight {
         let imax = self.color[0]
             .max(self.color[1])
             .max(self.color[2]);
-        let a = self.att_quadratic;
-        let b = self.att_linear;
-        let c = self.att_constant - imax/cutoff;
+        let a = self.quadratic();
+        let b = self.linear();
+        let c = self.constant() - imax/cutoff;
         let det = b*b - 4.0*a*c;
         self.radius = (-b + det.sqrt()) / 2.0*a;
         log::debug!("Computed light radius of {}", self.radius);
@@ -91,23 +110,11 @@ impl PointLight {
                     offset: std::mem::size_of::<[f32; 4]>() as BufferAddress,
                     shader_location: 3
                 },
-                // Attenuation Constant
+                // Attenuation Constant, Linear, Quadratic
                 VertexAttribute {
-                    format: VertexFormat::Float32,
+                    format: VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 7]>() as BufferAddress,
                     shader_location: 4
-                },
-                // Attenuation Linear
-                VertexAttribute {
-                    format: VertexFormat::Float32,
-                    offset: std::mem::size_of::<[f32; 8]>() as BufferAddress,
-                    shader_location: 5
-                },
-                // Attenuation Quadratic
-                VertexAttribute {
-                    format: VertexFormat::Float32,
-                    offset: std::mem::size_of::<[f32; 9]>() as BufferAddress,
-                    shader_location: 6
                 }
             ]
         }

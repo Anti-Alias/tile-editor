@@ -126,20 +126,11 @@ impl App {
         let model_instances = create_model_and_instances(&device, &queue);
         let light_mesh = LightMesh::new(&device, 8, 16);
         let mut point_lights = LightSet::new(&device, 128);
-        let i = 16000.0*3.0;
+        let i = 16000.0;
         point_lights.lights.push(PointLight::new(
-            [0.0, 150.0, 0.0],
-            [i, 0.0, 0.0],
-            1.0,
-            0.0,
-            1.0
-        ));
-        point_lights.lights.push(PointLight::new(
-            [0.0, -150.0, 0.0],
-            [0.0, i, 0.0],
-            1.0,
-            0.0,
-            1.0
+            [0.0, 100.0, 0.0],  // Position
+            [i, i, i],          // Color
+            [1.0, 0.0, 1.0]     // Attenuation
         ));
         point_lights.compute_radiuses(5.0/256.0);
         point_lights.flush(&queue);
@@ -211,15 +202,16 @@ impl App {
                     light_renderer.render(
                         &device,
                         &queue,
-                        &surface_view
+                        &surface_view,
+                        &gbuffer
                     );
 
                     // Moves lights
                     for (i, light) in point_lights.lights.iter_mut().enumerate() {
                         let theta = PI * t / (i+1) as f32;
                         let light_pos = &mut light.position;
-                        light_pos[0] = f32::cos(theta / 2.0) * 400.0;
-                        light_pos[2] = f32::sin(theta / 2.0) * 400.0;
+                        light_pos[0] = f32::cos(theta / 2.0) * 200.0;
+                        light_pos[2] = f32::sin(theta / 2.0) * 200.0;
                     }
                     point_lights.flush(&queue);
 

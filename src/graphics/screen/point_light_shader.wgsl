@@ -6,9 +6,8 @@
 #endif
 
 
-// This shader renders point lights specifically.
-// Ambient/directional lights are handled by a separate shader entirely.
-
+// This shader renders point lights (light volumes) to the screen.
+// Samples from textures in a GBuffer.
 
 
 // ------------- Vertex input types -------------
@@ -19,9 +18,7 @@ struct PointLightInstanceIn {
     [[location(1)]] position: vec3<f32>;
     [[location(2)]] radius: f32;
     [[location(3)]] color: vec3<f32>;
-    [[location(4)]] att_constant: f32;
-    [[location(5)]] att_linear: f32;
-    [[location(6)]] att_quadratic: f32;
+    [[location(4)]] coefficients: vec3<f32>;
 };
 
 // ------------- Vertex output type (fragment) -------------
@@ -62,7 +59,7 @@ fn main(
         clip_pos,
         light.position,
         light.color,
-        vec3<f32>(light.att_constant, light.att_linear, light.att_quadratic)
+        light.coefficients
     );
 }
 
@@ -89,52 +86,46 @@ struct ColorTargetOut {
 };
 
 
-fn compute_lighting(vert: GBufferVertexOut) -> vec4<f32> {
+fn compute_lighting(frag: GBufferVertexOut) -> vec4<f32> {
 
     // Converts framebuffer coordinates to UV coordiantes
 
     // Unpacks components from color
-    let x: u32 = u32(vert.position.x);
-    let y: u32 = u32(vert.position.y);
-    let xy = vec2<i32>(i32(vert.position.x), i32(vert.position.y));
+    let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
     let color = textureLoad(color_tex, xy, 0);
     let ambient = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
     let diffuse = unpack4x8unorm(bitcast<u32>(color.g));    // Unholy bit casting...
     let specular = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
     let emissive = unpack4x8unorm(bitcast<u32>(color.a));   // Unholy bit casting...
 
-    // Samples geom data
-    let fwp = textureLoad(pos_tex, xy, 0);
-    let nv = textureLoad(norm_tex, xy, 0);
-
     // Computes lambertian part
-    let frag_world_pos = vec3<f32>(fwp.x, fwp.y, fwp.z);        // Position of fragment
-    let frag_to_light = vert.light_position - frag_world_pos;   // Vec from frag to light (not normalized)
+    let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;       // Position of fragment
+    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz); // Normal of fragment (normalized)
+    let frag_to_light = frag.light_position - frag_world_pos;   // Vec from frag to light (not normalized)
     let light_vec = normalize(frag_to_light);                   // Vec from frag to light origin (normalized)
-    let norm_vec = normalize(vec3<f32>(nv.x, nv.y, nv.z));      // Normal of fragment (normalized)
     let costheta = max(0.0, dot(norm_vec, light_vec));          // Computes dot product of light vec with normal vec
 
     // Computes light attenuation part
     let d = length(frag_to_light);      // Distance of fragment's position to the light's origin
-    let c = vert.light_coeff.x;         // Constant
-    let l = vert.light_coeff.y;         // Linear
-    let q = vert.light_coeff.z;         // Quadratic
+    let c = frag.light_coeff.x;         // Constant
+    let l = frag.light_coeff.y;         // Linear
+    let q = frag.light_coeff.z;         // Quadratic
     let att = 1.0 / (c + d*(l + q*d));  // Attenuation
 
     // Done
-    let light_color = vec4<f32>(vert.light_color, 1.0);
+    let light_color = vec4<f32>(frag.light_color, 1.0);
     return diffuse * light_color * costheta * att;
 }
 
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
-fn main(vert: GBufferVertexOut) -> ColorTargetOut {
+fn main(frag: GBufferVertexOut) -> ColorTargetOut {
 
     // Initializes color components
     var output = vec4<f32>(0.0);
 
     // Samples color texture and modifies color components
-    output = compute_lighting(vert);
+    output = compute_lighting(frag);
 
     // Done
     return ColorTargetOut(output);
