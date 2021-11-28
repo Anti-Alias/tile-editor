@@ -8,18 +8,18 @@ use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
 /// Responsible for rendering point lights to a screen while sampling from a `GBuffer`.
-pub struct GBufferPointLightRenderer {
+pub struct PointLightRenderer {
     shader_source: String,                  // Source of shader code
     modules: HashMap<u64, ShaderModule>,    // Flags (unused currently) -> module
     pipelines: HashMap<u64, RenderPipeline>,// Flags -> pipeline,
     screen_format: TextureFormat            // Format of the screen that will be rendered to
 }
 
-impl GBufferPointLightRenderer {
+impl PointLightRenderer {
 
     /// Creates a new `GBufferRenderer` with a default shader
     pub fn new(screen_format: TextureFormat)-> Self {
-        Self::create_from_shader(String::from(include_str!("gbuffer_ubershader.wgsl")), screen_format)
+        Self::create_from_shader(String::from(include_str!("point_light_ubershader.wgsl")), screen_format)
     }
 
     /// Creates a `GBufferRenderer` with the specified shader code

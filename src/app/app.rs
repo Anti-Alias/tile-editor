@@ -8,7 +8,7 @@ use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use pollster::block_on;
-use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor};
+use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor, SurfaceConfiguration};
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
 
@@ -109,7 +109,7 @@ impl App {
         // Applies initial WGPU surface configuration
         let size = window.inner_size();
         let surface_format = surface.get_preferred_format(&adapter).unwrap();
-        let mut surface_config = wgpu::SurfaceConfiguration {
+        let mut surface_config = SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width: size.width as u32,
@@ -143,7 +143,6 @@ impl App {
         ));
         point_lights.compute_radiuses(5.0/256.0);
         point_lights.flush(&queue);
-        println!("Radius is: {}", point_lights.lights[0].radius);
 
         // Creates model->gbuffer renderer, then primes it with the model environment
         let mut gbuffer_renderer = gbuffer::ModelRenderer::new();
@@ -156,7 +155,7 @@ impl App {
         );
 
         // Creates gbuffer->screen renderer, then primes it
-        let mut screen_renderer = screen::GBufferPointLightRenderer::new(surface_format);
+        let mut screen_renderer = screen::PointLightRenderer::new(surface_format);
         screen_renderer.prime(&device, &gbuffer, &camera);
 
         // Sets up EGUI
