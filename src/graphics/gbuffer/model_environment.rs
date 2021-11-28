@@ -1,5 +1,4 @@
 use crate::graphics::{Camera, ModelInstanceSet};
-use crate::graphics::light::{LightBundle};
 
 /// Represents data needed for a `ModelRenderer` to render a set of model instances.
 pub struct ModelEnvironment<'a> {

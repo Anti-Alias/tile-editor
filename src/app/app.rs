@@ -14,7 +14,7 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, ModelEnvironment};
-use crate::graphics::light::{LightAttenuation, LightBundle, LightMesh, LightSet, PointLight};
+use crate::graphics::light::{LightAttenuation, LightMesh, LightSet, PointLight};
 
 use crate::graphics::screen;
 use crate::graphics::screen::ScreenBuffer;

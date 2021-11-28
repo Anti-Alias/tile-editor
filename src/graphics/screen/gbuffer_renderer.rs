@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use wgpu::*;
 use crate::graphics::Camera;
 use crate::graphics::gbuffer::GBuffer;
-use crate::graphics::light::{LightAttenuation, LightBundle, LightMesh, LightSet, PointLight};
+use crate::graphics::light::{LightAttenuation, LightMesh, LightSet, PointLight};
 use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
