@@ -154,6 +154,7 @@ impl App {
 
         // Creates point light->screen renderer, then primes it
         let mut point_light_renderer = screen::PointLightRenderer::new(&device, surface_format, &gbuffer, &camera);
+        let mut light_renderer = screen::LightRenderer::new(&device, surface_format, &gbuffer);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -196,7 +197,7 @@ impl App {
                         &gbuffer
                     );
 
-                    // Renders gbuffer to screen
+                    // Renders point lights to screen using gbuffer
                     point_light_renderer.render(
                         &device,
                         &queue,
@@ -205,6 +206,12 @@ impl App {
                         &point_lights,
                         &light_mesh,
                         &camera
+                    );
+
+                    light_renderer.render(
+                        &device,
+                        &queue,
+                        &surface_view
                     );
 
                     // Moves lights

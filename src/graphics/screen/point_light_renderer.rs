@@ -7,10 +7,9 @@ use crate::graphics::light::{LightMesh, LightSet, PointLight};
 use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
-/// Responsible for rendering point lights to a screen while sampling from a `GBuffer`.
+/// Responsible for rendering point lights to a screen using a `GBuffer`.
 pub struct PointLightRenderer {
-    pipeline: RenderPipeline,
-    screen_format: TextureFormat            // Format of the screen that will be rendered to
+    pipeline: RenderPipeline
 }
 
 impl PointLightRenderer {
@@ -19,7 +18,7 @@ impl PointLightRenderer {
     pub fn new(device: &Device, screen_format: TextureFormat, gbuffer: &GBuffer, camera: &Camera)-> Self {
         Self::create_from_shader(
             device,
-            String::from(include_str!("point_light_ubershader.wgsl")),
+            String::from(include_str!("point_light_shader.wgsl")),
             screen_format,
             gbuffer,
             camera
@@ -32,7 +31,6 @@ impl PointLightRenderer {
         let pipeline = Self::create_pipeline(device, &module, screen_format, gbuffer, camera);
         Self {
             pipeline,
-            screen_format
         }
     }
 
@@ -157,7 +155,6 @@ impl PointLightRenderer {
             fragment
         })
     }
-
 
     fn preprocess_source(source: &str) -> String {
 
