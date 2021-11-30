@@ -3,7 +3,6 @@ use std::iter;
 use std::time::Instant;
 use cgmath::{Perspective, Point3, Vector3};
 
-
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
@@ -14,7 +13,7 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, ModelEnvironment};
-use crate::graphics::light::{LightMesh, LightSet, PointLight};
+use crate::graphics::light::{AmbientLight, LightMesh, LightSet, PointLight, LightBundle, DirectionalLight};
 
 use crate::graphics::screen;
 use crate::graphics::screen::ScreenBuffer;
@@ -118,34 +117,37 @@ impl App {
         };
         surface.configure(&device, &surface_config);
 
-        // Creates GBuffer
+        // Creates GBuffer and loads model
         let mut gbuffer = GBuffer::new(&device, size.width, size.height);
 
-        // Sets up environment to render (models, camera, lights, attenuation etc)
+        // Sets up model (with instances), camera and lights
+        let model_instances = create_model_instances(&device, &queue);
         let mut camera = create_camera(&device, size.width, size.height);
-        let model_instances = create_model_and_instances(&device, &queue);
-        let light_mesh = LightMesh::new(&device, 8, 16);
-        let mut point_lights = LightSet::new(&device, 128);
-        let i = 16000.0;
-        point_lights.lights.push(PointLight::new(
-            [0.0, 100.0, 0.0],  // Position
-            [i, i, i],          // Color
-            [1.0, 0.0, 1.0]     // Attenuation
-        ));
-        point_lights.compute_radiuses(5.0/256.0);
-        point_lights.flush(&queue);
+        let (mut light_bundle, mut light_mesh) = create_lights(&device, &queue);
 
-        // Creates model->gbuffer renderer, then primes it
+        // Creates model-> gbuffer renderer, then primes it
         let mut model_renderer = gbuffer::ModelRenderer::new();
         model_renderer.prime(
             &device,
             &model_instances.model,
-            &camera
+            camera.bind_group_layout()
         );
 
-        // Creates point light->screen renderer, then primes it
-        let mut point_light_renderer = screen::PointLightRenderer::new(&device, surface_format, &gbuffer, &camera);
-        let mut light_renderer = screen::LightRenderer::new(&device, surface_format, &gbuffer);
+        // Creates point_light -> screen renderer
+        let mut point_light_renderer = screen::PointLightRenderer::new(
+            &device,
+            surface_format,
+            gbuffer.bind_group_layout(),
+            camera.bind_group_layout()
+        );
+
+        // Creates ambient/directional_light -> screen renderer
+        let mut light_renderer = screen::LightRenderer::new(
+            &device,
+            surface_format,
+            gbuffer.bind_group_layout(),
+            light_bundle.bind_group_layout()
+        );
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -168,6 +170,7 @@ impl App {
 
             match event {
                 RedrawRequested(..) => {
+
 
                     // Gets texture view of surface
                     let surface_tex = match surface.get_current_texture() {
@@ -194,7 +197,7 @@ impl App {
                         &queue,
                         &surface_view,
                         &gbuffer,
-                        &point_lights,
+                        &light_bundle.point_lights,
                         &light_mesh,
                         &camera
                     );
@@ -203,10 +206,12 @@ impl App {
                         &device,
                         &queue,
                         &surface_view,
-                        &gbuffer
+                        gbuffer.bind_group(),
+                        light_bundle.bind_group()
                     );
 
                     // Moves lights
+                    let point_lights = &mut light_bundle.point_lights;
                     for (i, light) in point_lights.lights.iter_mut().enumerate() {
                         let theta = PI * t / (i+1) as f32;
                         let light_pos = &mut light.position;
@@ -216,24 +221,22 @@ impl App {
                     point_lights.flush(&queue);
 
                     // Moves camera
+                    //let rad = 300.0_f32;
+                    //let theta = PI / 4.0;
+                    //camera.move_to(Point3::new(
+//                        f32::cos(theta)*rad,
+//                        f32::sin(theta*2.0)*180.0_f32,
+//                        f32::sin(theta)*rad)
+//                    );
+  //                  camera.look_at(Point3::new(0.0, 0.0, 0.0));
                     let rad = 300.0_f32;
-                    let theta = PI / 4.0;
-                    camera.move_to(Point3::new(
-                        f32::cos(theta)*rad,
-                        f32::sin(theta*2.0)*180.0_f32,
-                        f32::sin(theta)*rad)
-                    );
-                    camera.look_at(Point3::new(0.0, 0.0, 0.0));
-                    /*
-                    let rad = 300.0_f32;
-                    let th = PI / 2.0;
+                    let th = t * PI / 2.0;
                     camera.move_to(Point3::new(
                         f32::cos(th)*rad,
                         f32::sin(th)*180.0_f32,
                         f32::sin(th)*rad)
                     );
                     camera.look_at(Point3::new(0.0, 0.0, 0.0));
-                     */
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -366,7 +369,40 @@ fn update_camera(camera: &mut Camera, width: u32, height: u32) {
     });
 }
 
-fn create_model_and_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
+fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
+
+    // Creates light mesh
+    let light_mesh = LightMesh::new(&device, 8, 16);
+
+    // Gets light sets
+    let mut light_bundle = LightBundle::create(&device, 64, 64, 64);
+    let point_lights = &mut light_bundle.point_lights;
+    let ambient_lights = &mut light_bundle.ambient_lights;
+    let directional_lights = &mut light_bundle.directional_lights;
+
+    // Adds point light(s)
+    let intensity = 16000.0;
+    point_lights.lights.push(PointLight::new(
+        [0.0, 100.0, 0.0],                  // Position
+        [intensity, intensity, intensity],  // Color
+        [1.0, 0.0, 1.0]                     // Attenuation
+    ));
+    point_lights.compute_radiuses(5.0/256.0);
+
+    // Adds directional light(s)
+    let bri = 60.0/255.0;
+    directional_lights.lights.push(DirectionalLight::new([-1.0, -2.0, 1.0], [bri, 0.0, 0.0]));
+    directional_lights.lights.push(DirectionalLight::new([0.0, 2.0, -1.0], [0.0, 0.0, bri*3.0]));
+
+    // Adds ambient light(s)
+    ambient_lights.lights.push(AmbientLight::new([0.05, 0.05, 0.05]));
+
+    // Done
+    light_bundle.flush(queue);
+    (light_bundle, light_mesh)
+}
+
+fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Creates texture from image
     use image::io::Reader as ImageReader;
@@ -386,7 +422,7 @@ fn create_model_and_instances(device: &Device, queue: &Queue) -> ModelInstanceSe
         associations: vec![(0, 0)]
     };
 
-    // Creates model instances and returns instance set
+    // Joins model with instance data and returns
     ModelInstanceSet::new(&device, model, vec![
         ModelInstance {
             world: [

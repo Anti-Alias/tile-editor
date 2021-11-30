@@ -9,8 +9,38 @@
 // This shader renders ambient and directional lights.
 // Samples from textures in a GBuffer.
 
+struct PointLight {
+    position: vec3<f32>;
+    radius: f32;
+    color: vec3<f32>;
+    coefficients: vec3<f32>;
+};
+
+struct DirectionalLight {
+    direction: vec3<f32>;
+    color: vec3<f32>;
+};
+
 struct AmbientLight {
     color: vec3<f32>;
+};
+
+[[block]]
+struct PointLightSet {
+    length: i32;
+    lights: array<PointLight, 64>;
+};
+
+[[block]]
+struct DirectionalLightSet {
+    length: i32;
+    lights: array<DirectionalLight, 64>;
+};
+
+[[block]]
+struct AmbientLightSet {
+    length: i32;
+    lights: array<AmbientLight, 64>;
 };
 
 
@@ -41,9 +71,12 @@ var color_tex: texture_2d<f32>;
 
 
 // ------------- Light bind group -------------
-var<private> ambient_lights: array<AmbientLight, 1> = array<AmbientLight, 1>(
-    AmbientLight(vec3<f32>(0.05, 0.05, 0.05))
-);
+[[group(M_LIGHT_BUNDLE_BIND_GROUP), binding(M_POINT_LIGHT_BINDING)]]
+var<uniform> point_light_set: PointLightSet;
+[[group(M_LIGHT_BUNDLE_BIND_GROUP), binding(M_DIRECTIONAL_LIGHT_BINDING)]]
+var<uniform> directional_light_set: DirectionalLightSet;
+[[group(M_LIGHT_BUNDLE_BIND_GROUP), binding(M_AMBIENT_LIGHT_BINDING)]]
+var<uniform> ambient_light_set: AmbientLightSet;
 
 [[stage(vertex)]]
 fn main(
@@ -62,15 +95,26 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
     let ambient = unpack4x8unorm(bitcast<u32>(color.r));        // Unholy bit casting...
     let diffuse = unpack4x8unorm(bitcast<u32>(color.g)).rgb;    // Unholy bit casting...
     let specular = unpack4x8unorm(bitcast<u32>(color.b));       // Unholy bit casting...
-    let emissive = unpack4x8unorm(bitcast<u32>(color.a));       // Unholy bit casting...
+    let emissive = unpack4x8unorm(bitcast<u32>(color.a)).rgb;   // Unholy bit casting...
 
     // Accumulates ambient lights
-    var output = vec3<f32>(0.0);
-    for(var i: i32=0; i<1; i=i+1) {
-        let light = ambient_lights[i];
-        output = output + diffuse * light.color;
+    var light_sum = vec3<f32>(0.0);
+    for(var i: i32=0; i<ambient_light_set.length; i=i+1) {
+        let light = ambient_light_set.lights[i];
+        light_sum = light_sum + light.color;
     }
 
-    // Done
+    // Accumulates directional lights (lambertial)
+    let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;       // Position of fragment
+    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz); // Normal of fragment (normalized)
+    for(var i: i32=0; i<directional_light_set.length; i=i+1) {
+        let light = directional_light_set.lights[i];
+        let light_vec = normalize(-light.direction);                // Vec from frag to light origin (normalized)
+        let costheta = max(0.0, dot(norm_vec, light_vec));          // Computes dot product of light vec with normal vec
+        light_sum = light_sum + light.color * costheta;
+    }
+
+    // Adds emissive light
+    let output = diffuse * light_sum + emissive;
     return vec4<f32>(output, 1.0);
 }

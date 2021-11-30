@@ -8,27 +8,42 @@ use crate::graphics::screen::ScreenBuffer;
 use crate::graphics::util::string_with_lines;
 
 /// Responsible for rendering point lights to a screen using a `GBuffer`.
-pub struct PointLightRenderer {
-    pipeline: RenderPipeline
-}
+pub struct PointLightRenderer { pipeline: RenderPipeline }
 
 impl PointLightRenderer {
 
     /// Creates a new `PointLightRenderer` with a default shader
-    pub fn new(device: &Device, screen_format: TextureFormat, gbuffer: &GBuffer, camera: &Camera)-> Self {
+    pub fn new(
+        device: &Device,
+        screen_format: TextureFormat,
+        gbuffer_bind_group_layout: &BindGroupLayout,
+        camera_bind_group_layout: &BindGroupLayout
+    )-> Self {
         Self::create_from_shader(
             device,
             String::from(include_str!("point_light_shader.wgsl")),
             screen_format,
-            gbuffer,
-            camera
+            gbuffer_bind_group_layout,
+            camera_bind_group_layout
         )
     }
 
     /// Creates a `PointLightRenderer` with the specified shader code
-    pub fn create_from_shader(device: &Device, shader_source: String, screen_format: TextureFormat, gbuffer: &GBuffer, camera: &Camera) -> Self {
+    pub fn create_from_shader(
+        device: &Device,
+        shader_source: String,
+        screen_format: TextureFormat,
+        gbuffer_bind_group_layout: &BindGroupLayout,
+        camera_bind_group_layout: &BindGroupLayout
+    ) -> Self {
         let module = Self::create_module(device, &shader_source);
-        let pipeline = Self::create_pipeline(device, &module, screen_format, gbuffer, camera);
+        let pipeline = Self::create_pipeline(
+            device,
+            &module,
+            screen_format,
+            gbuffer_bind_group_layout,
+            camera_bind_group_layout
+        );
         Self {
             pipeline,
         }
@@ -93,14 +108,14 @@ impl PointLightRenderer {
         device: &Device,
         module: &ShaderModule,
         screen_format: TextureFormat,
-        gbuffer: &GBuffer,
-        camera: &Camera
+        gbuffer_bind_group_layout: &BindGroupLayout,
+        camera_bind_group_layout: &BindGroupLayout
     ) -> RenderPipeline {
         let layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[
-                gbuffer.bind_group_layout(),
-                camera.bind_group_layout()
+                gbuffer_bind_group_layout,
+                camera_bind_group_layout
             ],
             push_constant_ranges: &[]
         });

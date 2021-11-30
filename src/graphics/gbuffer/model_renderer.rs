@@ -111,7 +111,7 @@ impl ModelRenderer {
         &mut self,
         device: &Device,
         model: &Model,
-        camera: &Camera
+        camera_bind_group_layout: &BindGroupLayout
     ) {
         // Generates pipelines and shaders ahead of time
         let pipeline_provider = &mut self.pipeline_provider;
@@ -127,7 +127,7 @@ impl ModelRenderer {
                 features,
                 shader_provider,
                 &[
-                    camera.bind_group_layout(),
+                    camera_bind_group_layout,
                     material.bind_group_layout(),
                 ]
             );

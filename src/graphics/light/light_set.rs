@@ -29,7 +29,7 @@ impl<L: Pod + Zeroable> LightSet<L> {
 
     /// Flushes any updates to the lights on the CPU to the GPU
     pub fn flush(&self, queue: &Queue) {
-        let header = [self.lights.len(), 0, 0, 0];                                  // length, pad, pad, pad
+        let header = [self.lights.len() as i32, 0, 0, 0];                           // length, pad, pad, pad
         queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&header));         // bytes 0-16 (length)
         queue.write_buffer(&self.buffer, 16, bytemuck::cast_slice(&self.lights));   // bytes 16-? (light data)
     }

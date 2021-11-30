@@ -5,31 +5,54 @@ use crate::graphics::Camera;
 use crate::graphics::util::string_with_lines;
 
 /// Responsible for rendering ambient and directional lights to a screen using a `GBuffer`.
-pub struct LightRenderer {
-    pipeline: RenderPipeline
-}
+pub struct LightRenderer { pipeline: RenderPipeline }
 
 impl LightRenderer {
 
     /// Creates a new `LightRenderer` with a default shader
-    pub fn new(device: &Device, screen_format: TextureFormat, gbuffer: &GBuffer)-> Self {
+    pub fn new(
+        device: &Device,
+        screen_format: TextureFormat,
+        gbuffer_bind_group_layout: &BindGroupLayout,
+        light_bundle_bind_group_layout: &BindGroupLayout
+    )-> Self {
         Self::create_from_shader(
             device,
             String::from(include_str!("light_shader.wgsl")),
             screen_format,
-            gbuffer
+            gbuffer_bind_group_layout,
+            light_bundle_bind_group_layout
         )
     }
 
     /// Creates a `LightRenderer` with the specified shader code
-    pub fn create_from_shader(device: &Device, shader_source: String, screen_format: TextureFormat, gbuffer: &GBuffer) -> Self {
+    pub fn create_from_shader(
+        device: &Device,
+        shader_source: String,
+        screen_format: TextureFormat,
+        gbuffer_bind_group_layout: &BindGroupLayout,
+        light_bundle_bind_group_layout: &BindGroupLayout
+    ) -> Self {
         let module = Self::create_module(device, &shader_source);
-        let pipeline = Self::create_pipeline(device, &module, screen_format, gbuffer);
+        let pipeline = Self::create_pipeline(
+            device,
+            &module,
+            screen_format,
+            gbuffer_bind_group_layout,
+            light_bundle_bind_group_layout
+        );
         Self { pipeline }
     }
 
     /// Renders ambient and diffuse lights to the screen using a `GBuffer`.
-    pub fn render(&self, device: &Device, queue: &Queue, screen: &TextureView, gbuffer: &GBuffer) {
+    pub fn render(
+        &self,
+        device: &Device,
+        queue: &Queue,
+        screen: &TextureView,
+        gbuffer_bind_group: &BindGroup,
+        light_bundle_bind_group: &BindGroup
+    ) {
 
         let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
         let color_attachments = &[
@@ -50,7 +73,8 @@ impl LightRenderer {
                 color_attachments,
                 depth_stencil_attachment: None
             });
-            render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);
+            render_pass.set_bind_group(0, gbuffer_bind_group, &[]);
+            render_pass.set_bind_group(1, light_bundle_bind_group, &[]);
             render_pass.set_pipeline(&self.pipeline);   // Sets pipeline
             render_pass.draw(0..6, 0..1);               // Draws!
         }
@@ -74,11 +98,15 @@ impl LightRenderer {
         device: &Device,
         module: &ShaderModule,
         screen_format: TextureFormat,
-        gbuffer: &GBuffer
+        gbuffer_bind_group_layout: &BindGroupLayout,
+        light_bundle_bind_group_layout: &BindGroupLayout
     ) -> RenderPipeline {
         let layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Light Rnederer Pipeline Layout"),
-            bind_group_layouts: &[gbuffer.bind_group_layout()],
+            bind_group_layouts: &[
+                gbuffer_bind_group_layout,
+                light_bundle_bind_group_layout
+            ],
             push_constant_ranges: &[]
         });
         let vertex = VertexState {
@@ -136,6 +164,12 @@ impl LightRenderer {
         macros.insert(String::from("M_POSITION_TEXTURE_BINDING"), String::from("0"));
         macros.insert(String::from("M_NORMAL_TEXTURE_BINDING"), String::from("1"));
         macros.insert(String::from("M_COLOR_TEXTURE_BINDING"), String::from("2"));
+
+        // Light bundle bind group
+        macros.insert(String::from("M_LIGHT_BUNDLE_BIND_GROUP"), String::from("1"));
+        macros.insert(String::from("M_POINT_LIGHT_BINDING"), String::from("0"));
+        macros.insert(String::from("M_DIRECTIONAL_LIGHT_BINDING"), String::from("1"));
+        macros.insert(String::from("M_AMBIENT_LIGHT_BINDING"), String::from("2"));
 
         // Returns preprocessed string
         gpp::process_str(source, &mut context).unwrap()
