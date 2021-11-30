@@ -39,6 +39,7 @@ struct ModelVertexOut {
 // ------------- Uniform type(s) -------------
 [[block]]
 struct CameraUni {
+    eye: vec3<f32>;
     proj_view: mat4x4<f32>;
 };
 

@@ -1,5 +1,6 @@
 use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, PerspectiveFov};
 use wgpu::*;
+use bytemuck::{Pod, Zeroable};
 
 
 /// Represents a camera.
@@ -95,7 +96,7 @@ impl Camera {
     ) -> Self {
         let buffer = device.create_buffer(&BufferDescriptor {
             label: Some("Projection View Buffer"),
-            size: std::mem::size_of::<[f32; 16]>() as BufferAddress,
+            size: std::mem::size_of::<RawData>() as BufferAddress,
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             mapped_at_creation: false
         });
@@ -177,8 +178,12 @@ impl Camera {
     pub fn flush(&self, queue: &Queue) {
         let view = Matrix4::look_to_rh(self.eye, self.direction, self.up);
         let proj_view = self.coordinate_system * self.projection * view;
-        let proj_view: [[f32; 4]; 4] = proj_view.into();
-        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(&[proj_view]));
+        let raw_data = RawData {
+            eye: self.eye.into(),
+            pad: 0,
+            proj_view: proj_view.into()
+        };
+        queue.write_buffer(&self.buffer, 0, bytemuck::bytes_of(&raw_data));
     }
 
     /// Reference to projection-view buffer.
@@ -202,4 +207,12 @@ impl Camera {
     pub fn bind_group_layout(&self) -> &BindGroupLayout {
         &self.bind_group_layout
     }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+struct RawData {
+    pub eye: [f32; 3],
+    pub pad: u32,
+    pub proj_view: [[f32; 4]; 4]
 }

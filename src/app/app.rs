@@ -221,22 +221,9 @@ impl App {
                     point_lights.flush(&queue);
 
                     // Moves camera
-                    //let rad = 300.0_f32;
-                    //let theta = PI / 4.0;
-                    //camera.move_to(Point3::new(
-//                        f32::cos(theta)*rad,
-//                        f32::sin(theta*2.0)*180.0_f32,
-//                        f32::sin(theta)*rad)
-//                    );
-  //                  camera.look_at(Point3::new(0.0, 0.0, 0.0));
-                    let rad = 300.0_f32;
-                    let th = t * PI / 2.0;
-                    camera.move_to(Point3::new(
-                        f32::cos(th)*rad,
-                        f32::sin(th)*180.0_f32,
-                        f32::sin(th)*rad)
-                    );
-                    camera.look_at(Point3::new(0.0, 0.0, 0.0));
+                    //move_camera(&mut camera, t);
+                    move_camera(&mut camera, 1.5);
+
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -354,6 +341,17 @@ fn create_camera(device: &Device, width: u32, height: u32) -> Camera {
     cam
 }
 
+fn move_camera(camera: &mut Camera, t: f32) {
+    let rad = 300.0_f32;
+    let th = t * PI / 2.0;
+    camera.move_to(Point3::new(
+        f32::cos(th)*rad,
+        f32::sin(th)*180.0_f32,
+        f32::sin(th)*rad)
+    );
+    camera.look_at(Point3::new(0.0, 0.0, 0.0));
+}
+
 fn update_camera(camera: &mut Camera, width: u32, height: u32) {
     let sw = width as f32;
     let sh = height as f32;
@@ -391,8 +389,8 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
 
     // Adds directional light(s)
     let bri = 60.0/255.0;
-    directional_lights.lights.push(DirectionalLight::new([-1.0, -2.0, 1.0], [bri, 0.0, 0.0]));
-    directional_lights.lights.push(DirectionalLight::new([0.0, 2.0, -1.0], [0.0, 0.0, bri*3.0]));
+    directional_lights.lights.push(DirectionalLight::new([-1.0, 0.0, 0.0], [bri, 0.0, 0.0]));       // Red light pointing left (illuminates right site)
+    directional_lights.lights.push(DirectionalLight::new([1.0, 0.0, 0.0], [0.0, 0.0, bri*3.0]));    // Blue light pointing right (illuminates left side)
 
     // Adds ambient light(s)
     ambient_lights.lights.push(AmbientLight::new([0.05, 0.05, 0.05]));
@@ -402,17 +400,24 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     (light_bundle, light_mesh)
 }
 
-fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
-    // Creates texture from image
+fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue) -> Texture {
     use image::io::Reader as ImageReader;
-    let diffuse_img = ImageReader::open("assets/cubemap/diffuse.png")
+    let img = ImageReader::open(file_name)
         .unwrap()
         .decode()
         .unwrap();
-    let diffuse_tex = Texture::from_image(device, queue, &diffuse_img, None);
+    Texture::from_image(device, queue, &img, None)
+}
+
+fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
+
+    // Creates texture from image
+    let diffuse_tex = create_tex_from_file("assets/cubemap/diffuse.png", device, queue);
+    let specular_tex = create_tex_from_file("assets/cubemap/specular.png", device, queue);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
+        .specular(specular_tex)
         .build(&device);
 
     // Creates cube model
