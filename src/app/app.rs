@@ -392,7 +392,7 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     // Adds point light(s)
     let intensity = 16000.0;
     point_lights.lights.push(PointLight::new(
-        [0.0, 100.0, 0.0],                  // Position
+        [0.0, 150.0, 0.0],                  // Position
         [intensity, intensity, intensity],  // Color
         [1.0, 0.0, 1.0]                     // Attenuation
     ));
@@ -425,10 +425,10 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Creates texture from image
     let diffuse_tex = create_tex_from_file("assets/cubemap/diffuse.png", device, queue);
-    let specular_tex = create_tex_from_file("assets/cubemap/specular.png", device, queue);
+    //let specular_tex = create_tex_from_file("assets/cubemap/specular.png", device, queue);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
-        .specular(specular_tex)
+        //.specular(specular_tex)
         .build(&device);
 
     // Creates cube model

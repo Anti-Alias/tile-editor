@@ -125,8 +125,7 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
 
         // Computes specular part
         let h = normalize(light_vec + view_vec);
-        let specdot = max(dot(h, norm_vec), 0.0);
-        let spec = pow(specdot, 512.0);
+        let spec = pow(max(dot(h, norm_vec), 0.0), 32.0);
 
         // Adds to sum
         spec_sum = spec_sum + light.color * specular * spec;
