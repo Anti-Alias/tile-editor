@@ -122,7 +122,11 @@ impl App {
 
         // Sets up model (with instances), camera and lights
         let model_instances = create_model_instances(&device, &queue);
-        let mut camera = create_camera(&device, size.width, size.height);
+        let mut camera = create_camera(
+            &device,
+            size.width as f32,
+            size.height as f32
+        );
         let (mut light_bundle, mut light_mesh) = create_lights(&device, &queue);
 
         // Creates model-> gbuffer renderer, then primes it
@@ -146,7 +150,8 @@ impl App {
             &device,
             surface_format,
             gbuffer.bind_group_layout(),
-            light_bundle.bind_group_layout()
+            light_bundle.bind_group_layout(),
+            camera.bind_group_layout()
         );
 
         // Sets up EGUI
@@ -206,23 +211,18 @@ impl App {
                         &device,
                         &queue,
                         &surface_view,
-                        gbuffer.bind_group(),
-                        light_bundle.bind_group()
+                        &gbuffer,
+                        &light_bundle,
+                        &camera
                     );
 
                     // Moves lights
-                    let point_lights = &mut light_bundle.point_lights;
-                    for (i, light) in point_lights.lights.iter_mut().enumerate() {
-                        let theta = PI * t / (i+1) as f32;
-                        let light_pos = &mut light.position;
-                        light_pos[0] = f32::cos(theta / 2.0) * 200.0;
-                        light_pos[2] = f32::sin(theta / 2.0) * 200.0;
-                    }
-                    point_lights.flush(&queue);
+                    move_lights(&mut light_bundle, t);
+                    light_bundle.flush(&queue);
 
                     // Moves camera
-                    //move_camera(&mut camera, t);
-                    move_camera(&mut camera, 1.5);
+                    move_camera(&mut camera, 150.0, -t*0.5);
+                    //move_camera(&mut camera, 150.0, 1.5);
 
 
                     // Updates/draws EGUI
@@ -275,7 +275,7 @@ impl App {
                         gbuffer = GBuffer::new(&device, size.width, size.height);
 
                         // Updates camera
-                        update_camera(&mut camera, size.width, size.height);
+                        update_camera(&mut camera, size.width as f32, size.height as f32);
                     }
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
@@ -318,7 +318,7 @@ fn update_camera(camera: &mut Camera, width: u32, height: u32) {
 }
 */
 
-fn create_camera(device: &Device, width: u32, height: u32) -> Camera {
+fn create_camera(device: &Device, width: f32, height: f32) -> Camera {
     let sw = width as f32;
     let sh = height as f32;
     let hw = sw / 2.0;
@@ -341,18 +341,7 @@ fn create_camera(device: &Device, width: u32, height: u32) -> Camera {
     cam
 }
 
-fn move_camera(camera: &mut Camera, t: f32) {
-    let rad = 300.0_f32;
-    let th = t * PI / 2.0;
-    camera.move_to(Point3::new(
-        f32::cos(th)*rad,
-        f32::sin(th)*180.0_f32,
-        f32::sin(th)*rad)
-    );
-    camera.look_at(Point3::new(0.0, 0.0, 0.0));
-}
-
-fn update_camera(camera: &mut Camera, width: u32, height: u32) {
+fn update_camera(camera: &mut Camera, width: f32, height: f32) {
     let sw = width as f32;
     let sh = height as f32;
     let hw = sw / 2.0;
@@ -365,6 +354,28 @@ fn update_camera(camera: &mut Camera, width: u32, height: u32) {
         near: CAM_NEAR,
         far: CAM_FAR
     });
+}
+
+fn move_lights(light_bundle: &mut LightBundle, t: f32) {
+    let rad = 200.0;
+    let point_lights = &mut light_bundle.point_lights;
+    for (i, light) in point_lights.lights.iter_mut().enumerate() {
+        let theta = PI * t / (i+1) as f32;
+        let light_pos = &mut light.position;
+        light_pos[0] = f32::cos(theta / 2.0) * rad;
+        light_pos[2] = f32::sin(theta / 2.0) * rad;
+    }
+}
+
+fn move_camera(camera: &mut Camera, y: f32, t: f32) {
+    let rad = 300.0_f32;
+    let th = t * PI / 2.0;
+    camera.move_to(Point3::new(
+        f32::cos(th)*rad,
+        y + f32::sin(th)*180.0_f32,
+        f32::sin(th)*rad)
+    );
+    camera.look_at(Point3::new(0.0, 0.0, 0.0));
 }
 
 fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
@@ -388,12 +399,12 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     point_lights.compute_radiuses(5.0/256.0);
 
     // Adds directional light(s)
-    let bri = 60.0/255.0;
-    directional_lights.lights.push(DirectionalLight::new([-1.0, 0.0, 0.0], [bri, 0.0, 0.0]));       // Red light pointing left (illuminates right site)
-    directional_lights.lights.push(DirectionalLight::new([1.0, 0.0, 0.0], [0.0, 0.0, bri*3.0]));    // Blue light pointing right (illuminates left side)
+    let db = 10.0/255.0;
+    directional_lights.lights.push(DirectionalLight::new([-1.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
 
     // Adds ambient light(s)
-    ambient_lights.lights.push(AmbientLight::new([0.05, 0.05, 0.05]));
+    let ab = 2.0/255.0;
+    ambient_lights.lights.push(AmbientLight::new([ab, ab, ab]));
 
     // Done
     light_bundle.flush(queue);
@@ -431,7 +442,7 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
     ModelInstanceSet::new(&device, model, vec![
         ModelInstance {
             world: [
-                [1.0, 0.0, 0.0, 0.0],
+                [2.0, 0.0, 0.0, 0.0],
                 [0.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 1.0, 0.0],
                 [100.0, 0.0, 0.0, 1.0]
@@ -441,8 +452,16 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
             world: [
                 [1.0, 0.0, 0.0, 0.0],
                 [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 4.0, 0.0],
                 [-100.0, 0.0, 0.0, 1.0]
+            ]
+        },
+        ModelInstance {
+            world: [
+                [20.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 20.0, 0.0],
+                [0.0, -100.0, 0.0, 1.0]
             ]
         }
     ])

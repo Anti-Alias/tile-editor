@@ -87,47 +87,45 @@ struct ColorTargetOut {
 };
 
 
-fn compute_lighting(frag: GBufferVertexOut) -> vec4<f32> {
+fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
 
     // Converts framebuffer coordinates to UV coordiantes
 
     // Unpacks components from color
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
     let color = textureLoad(color_tex, xy, 0);
-    let ambient = unpack4x8unorm(bitcast<u32>(color.r));    // Unholy bit casting...
-    let diffuse = unpack4x8unorm(bitcast<u32>(color.g));    // Unholy bit casting...
-    let specular = unpack4x8unorm(bitcast<u32>(color.b));   // Unholy bit casting...
+    let ambient = unpack4x8unorm(bitcast<u32>(color.r));        // Unholy bit casting...
+    let diffuse = unpack4x8unorm(bitcast<u32>(color.g)).rgb;    // Unholy bit casting...
+    let specular = unpack4x8unorm(bitcast<u32>(color.b)).rgb;   // Unholy bit casting...
 
     // Computes lambertian part
     let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;       // Position of fragment
-    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz); // Normal of fragment (normalized)
+    let norm_vec = textureLoad(norm_tex, xy, 0).xyz;            // Normal of fragment (normalized)
     let frag_to_light = frag.light_position - frag_world_pos;   // Vec from frag to light (not normalized)
-    let light_vec = normalize(frag_to_light);                   // Vec from frag to light origin (normalized)
+    let d = length(frag_to_light);                              // Distance of fragment's position to the light's origin
+    let light_vec = frag_to_light / d;                          // Normalized frag-to-light vector
     let costheta = max(0.0, dot(norm_vec, light_vec));          // Computes dot product of light vec with normal vec
-
-    // Computes light attenuation part
-    let d = length(frag_to_light);      // Distance of fragment's position to the light's origin
     let c = frag.light_coeff.x;         // Constant
     let l = frag.light_coeff.y;         // Linear
     let q = frag.light_coeff.z;         // Quadratic
     let att = 1.0 / (c + d*(l + q*d));  // Attenuation
 
+    // Computes specular part
+    let frag_to_camera = camera.eye - frag_world_pos;
+    let h = normalize(frag_to_camera + frag_to_light);
+    let spec = pow(max(dot(h, norm_vec), 0.0), 32.0);
+
     // Done
-    let light_color = vec4<f32>(frag.light_color, 1.0);
-    return diffuse * light_color * costheta * att;
+    return diffuse*frag.light_color*costheta*att + specular*spec;
 }
 
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
 fn main(frag: GBufferVertexOut) -> ColorTargetOut {
 
-    // Initializes color components
-    var output = vec4<f32>(0.0);
-
     // Samples color texture and modifies color components
-    output = compute_lighting(frag);
+    let output = compute_lighting(frag);
 
     // Done
-    return ColorTargetOut(output);
-    //return ColorTargetOut(vec4<f32>(1.0, 0.0, 0.0, 1.0));
+    return ColorTargetOut(vec4<f32>(output, 1.0));
 }
