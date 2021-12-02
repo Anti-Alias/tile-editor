@@ -93,6 +93,7 @@ fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
 
     // Unpacks components from color
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
+    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz);
     let color = textureLoad(color_tex, xy, 0);
     let diffuse_bits = bitcast<u32>(color.g);
     let specular_gloss_bits = bitcast<u32>(color.b);
@@ -104,7 +105,6 @@ fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
 
     // Computes lambertian part
     let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;       // Position of fragment
-    let norm_vec = textureLoad(norm_tex, xy, 0).xyz;            // Normal of fragment (normalized)
     let frag_to_light = frag.light_position - frag_world_pos;   // Vec from frag to light (not normalized)
     let d = length(frag_to_light);                              // Distance of fragment's position to the light's origin
     let light_vec = frag_to_light / d;                          // Normalized frag-to-light vector

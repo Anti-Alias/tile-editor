@@ -462,20 +462,19 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Joins model with instance data and returns
     ModelInstanceSet::new(&device, model, vec![
-        ModelInstance {
-            world: Matrix4::from_translation((Vector3::new(100.0, 0.0, 0.0))).into()
-        },
-        ModelInstance {
-            world: Matrix4::from_translation(Vector3::new(-100.0, 0.0, 0.0)).into()
-        },
-        ModelInstance {
-            world: Matrix4::identity()
-                .translate(Vector3::new(0.0, 100.0, 0.0))
-                .scale(Vector3::new(2.0, 0.1, 2.0))
+        ModelInstance::new(
+            Matrix4::identity().translate(Vector3::new(100.0, 0.0, 0.0))
+        ),
+        ModelInstance::new(
+            Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))
+        ),
+        ModelInstance::new(
+            Matrix4::identity()
+                .translate(Vector3::new(0.0, 50.0, 0.0))
                 .rotate_degrees(Vector3::new(1.0, 0.0, 0.0).normalize(), 45.0)
                 .rotate_degrees(Vector3::new(0.0, 0.0, 1.0).normalize(), 45.0)
                 .into()
-        }
+        )
     ])
 }
 
@@ -500,11 +499,11 @@ fn create_marble_floor_instance(device: &Device, queue: &Queue) -> ModelInstance
 
     // Joins model with instance data and returns
     ModelInstanceSet::new(&device, model, vec![
-        ModelInstance {
-            world: Matrix4::identity()
+        ModelInstance::new(
+            Matrix4::identity()
                 .translate(Vector3::new(0.0, -200.0, -0.0))
                 .scale(Vector3::new(100.0, 1.0, 100.0))
                 .into()
-        }
+        )
     ])
 }

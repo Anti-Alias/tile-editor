@@ -19,10 +19,16 @@ struct ModelVertexIn {
 
 // ------------- Instance input type -------------
 struct ModelInstanceIn {
-    [[location(4)]] col0: vec4<f32>;
-    [[location(5)]] col1: vec4<f32>;
-    [[location(6)]] col2: vec4<f32>;
-    [[location(7)]] col3: vec4<f32>;
+    // Model matrix columns
+    [[location(4)]] m_col0: vec4<f32>;
+    [[location(5)]] m_col1: vec4<f32>;
+    [[location(6)]] m_col2: vec4<f32>;
+    [[location(7)]] m_col3: vec4<f32>;
+
+    // Normal matrix columns
+    [[location(8)]] n_col0: vec3<f32>;
+    [[location(9)]] n_col1: vec3<f32>;
+    [[location(10)]] n_col2: vec3<f32>;
 };
 
 
@@ -94,15 +100,15 @@ var emi_samp: sampler;
 [[stage(vertex)]]
 fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
     let model_mat = mat4x4<f32>(
-        instance.col0,
-        instance.col1,
-        instance.col2,
-        instance.col3
+        instance.m_col0,
+        instance.m_col1,
+        instance.m_col2,
+        instance.m_col3
     );
     let norm_mat = mat3x3<f32>(
-        model_mat[0].xyz,
-        model_mat[1].xyz,
-        model_mat[2].xyz,
+        instance.n_col0,
+        instance.n_col1,
+        instance.n_col2,
     );
     let model_pos = model_mat * vec4<f32>(vertex.position, 1.0);
     let position = camera.proj_view * model_pos;

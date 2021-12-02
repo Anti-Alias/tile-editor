@@ -102,6 +102,7 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
 
     // Samples from GBuffer
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
+    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz);
     let color = textureLoad(color_tex, xy, 0);
     let diffuse_bits = bitcast<u32>(color.g);
     let specular_gloss_bits = bitcast<u32>(color.b);
@@ -116,7 +117,6 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
     var light_sum = vec3<f32>(0.0);
     var spec_sum = vec3<f32>(0.0);
     let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;       // Position of fragment
-    let norm_vec = textureLoad(norm_tex, xy, 0).xyz;            // Normal of fragment
     let view_vec = normalize(camera.eye - frag_world_pos);
     for(var i: i32=0; i<directional_light_set.length; i=i+1) {
 

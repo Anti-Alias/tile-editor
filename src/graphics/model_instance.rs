@@ -1,20 +1,36 @@
 use wgpu::*;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use bytemuck::{Pod, Zeroable};
-use cgmath::Matrix4;
+use cgmath::{InnerSpace, Matrix, Matrix3, Matrix4, SquareMatrix, Transform, Vector3};
 use crate::graphics::Model;
 
 /// Represents the instance data of a `Model`.
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
 pub struct ModelInstance {
-    pub world: [[f32; 4]; 4]
+    pub world: [[f32; 4]; 4],
+    normal: [[f32; 3]; 3]
 }
 
 impl ModelInstance {
 
     pub fn new(world: Matrix4<f32>) -> Self {
-        Self { world: world.into() }
+        let mut result = Self {
+            world: world.into(),
+            normal: Matrix3::identity().into()
+        };
+        result.compute_normal();
+        result
+    }
+
+    pub fn compute_normal(&mut self) {
+        let world_mat = Matrix4::from(self.world).invert().unwrap().transpose();
+        let inv_tran = Matrix3::new(
+            world_mat.x.x, world_mat.x.y, world_mat.x.z,
+            world_mat.y.x, world_mat.y.y, world_mat.y.z,
+            world_mat.z.x, world_mat.z.y, world_mat.z.z
+        );
+        self.normal = inv_tran.into();
     }
 
     /// The WGPU memory layout of a buffer storing a `ModelInstance`
@@ -23,6 +39,7 @@ impl ModelInstance {
             array_stride: std::mem::size_of::<ModelInstance>() as BufferAddress,
             step_mode: VertexStepMode::Instance,
             attributes: &[
+                // Model matrix
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
                     offset: 0,
@@ -42,6 +59,23 @@ impl ModelInstance {
                     format: VertexFormat::Float32x4,
                     offset: std::mem::size_of::<[f32; 12]>() as BufferAddress,
                     shader_location: 7
+                },
+
+                // Normal matrix
+                VertexAttribute {
+                    format: VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 16]>() as BufferAddress,
+                    shader_location: 8
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 19]>() as BufferAddress,
+                    shader_location: 9
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x3,
+                    offset: std::mem::size_of::<[f32; 22]>() as BufferAddress,
+                    shader_location: 10
                 }
             ]
         }
