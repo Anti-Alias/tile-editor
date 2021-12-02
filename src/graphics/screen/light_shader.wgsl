@@ -103,11 +103,14 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
     // Samples from GBuffer
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
     let color = textureLoad(color_tex, xy, 0);
-    let ambient = unpack4x8unorm(bitcast<u32>(color.r));        // Unholy bit casting...
-    let diffuse = unpack4x8unorm(bitcast<u32>(color.g)).rgb;    // Unholy bit casting...
-    let specular = unpack4x8unorm(bitcast<u32>(color.b)).rgb;   // Unholy bit casting...
-    let emissive = unpack4x8unorm(bitcast<u32>(color.a)).rgb;   // Unholy bit casting...
-    let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;       // Position of fragment
+    let diffuse_bits = bitcast<u32>(color.g);
+    let specular_gloss_bits = bitcast<u32>(color.b);
+    let specular_bits = specular_gloss_bits & 0x00FFFFFFu;
+    let gloss_bits = (specular_gloss_bits & 0xFF000000u) >> 24u;
+    let diffuse_col = unpack4x8unorm(diffuse_bits).rgb;
+    let specular_col = unpack4x8unorm(specular_bits).rgb;
+    let gloss = f32(gloss_bits);
+    let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;
 
     // Accumulates lights
     var light_sum = vec3<f32>(0.0);
@@ -125,10 +128,10 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
 
         // Computes specular part
         let h = normalize(light_vec + view_vec);
-        let spec = pow(max(dot(h, norm_vec), 0.0), 32.0);
+        let spec = pow(max(dot(h, norm_vec), 0.0), gloss);
 
         // Adds to sum
-        spec_sum = spec_sum + light.color * specular * spec;
+        spec_sum = spec_sum + light.color * specular_col * spec;
     }
 
     // Accumulates ambient lights
@@ -138,5 +141,5 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
     }
 
     // Adds emissive light
-    return vec4<f32>(diffuse*light_sum + spec_sum + emissive, 1.0);
+    return vec4<f32>(diffuse_col*light_sum + spec_sum, 1.0);
 }

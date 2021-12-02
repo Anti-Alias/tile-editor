@@ -8,6 +8,7 @@ pub struct Material {
     ambient: Option<Texture>,
     diffuse: Option<Texture>,
     specular: Option<Texture>,
+    gloss: Option<Texture>,
     emissive: Option<Texture>,
     bind_group: BindGroup,
     bind_group_layout: BindGroupLayout,
@@ -21,7 +22,8 @@ impl Material {
     pub const AMBIENT_BIT: u64 = 1 << 1;
     pub const DIFFUSE_BIT: u64 = 1 << 2;
     pub const SPECULAR_BIT: u64 = 1 << 3;
-    pub const EMISSIVE_BIT: u64 = 1 << 4;
+    pub const GLOSS_BIT: u64 = 1 << 4;
+    pub const EMISSIVE_BIT: u64 = 1 << 5;
 
     /// Diffuse texture
     pub fn diffuse(&self) -> Option<&Texture> {
@@ -33,13 +35,18 @@ impl Material {
         self.specular.as_ref()
     }
 
+    /// Gloss texture
+    pub fn gloss(&self) -> Option<&Texture> {
+        self.gloss.as_ref()
+    }
+
     /// Normal texture
     pub fn normal(&self) -> Option<&Texture> {
         self.normal.as_ref()
     }
 
     /// Bit pattern where each bit determines the presence of a texture in the material.
-    /// Bit order starting from LSB: NORMAL, AMBIENT, DIFFUSE, SPECULAR, EMISSIVE.
+    /// Bit order starting from LSB: NORMAL, AMBIENT, DIFFUSE, SPECULAR, GLOSS, EMISSIVE.
     /// IE:
     ///     ...001 = NORMAL
     ///     ...010 = AMBIENT
@@ -66,6 +73,7 @@ pub struct MaterialBuilder {
     ambient: Option<Texture>,
     diffuse: Option<Texture>,
     specular: Option<Texture>,
+    gloss: Option<Texture>,
     emissive: Option<Texture>,
     flags: u64
 }
@@ -86,7 +94,7 @@ impl MaterialBuilder {
 
     /// Adds an ambient texture
     pub fn ambient(mut self, ambient: Texture) -> Self {
-        self.normal = Some(ambient);
+        self.ambient = Some(ambient);
         self.flags |= Material::AMBIENT_BIT;
         self
     }
@@ -105,9 +113,16 @@ impl MaterialBuilder {
         self
     }
 
+    /// Adds a gloss texture
+    pub fn gloss(mut self, gloss: Texture) -> Self {
+        self.gloss = Some(gloss);
+        self.flags |= Material::GLOSS_BIT;
+        self
+    }
+
     /// Adds an emissive texture
-    pub fn emissive(mut self, normal: Texture) -> Self {
-        self.normal = Some(normal);
+    pub fn emissive(mut self, emissive: Texture) -> Self {
+        self.emissive = Some(emissive);
         self.flags |= Material::EMISSIVE_BIT;
         self
     }
@@ -121,6 +136,7 @@ impl MaterialBuilder {
             ambient: self.ambient,
             diffuse: self.diffuse,
             specular: self.specular,
+            gloss: self.gloss,
             emissive: self.emissive,
             bind_group,
             bind_group_layout,
@@ -133,6 +149,7 @@ impl MaterialBuilder {
         let mut count = 0;
         if self.diffuse.is_some() { count += 1; }
         if self.specular.is_some() { count += 1; }
+        if self.gloss.is_some() { count += 1; }
         if self.normal.is_some() { count += 1; }
         count
     }
@@ -176,6 +193,9 @@ impl MaterialBuilder {
         }
         if let Some(specular) = self.specular.as_ref() {
             Self::add_entries(&mut bind_group_entries, specular);
+        }
+        if let Some(gloss) = self.gloss.as_ref() {
+            Self::add_entries(&mut bind_group_entries, gloss);
         }
         if let Some(normal) = self.normal.as_ref() {
             Self::add_entries(&mut bind_group_entries, normal);

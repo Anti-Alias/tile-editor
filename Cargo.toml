@@ -24,3 +24,4 @@ nfd = "0.0.4"
 gpp = "0.6.2"
 crevice = { version = "0.8", features = [ "cgmath" ]}
 futures-lite = "1.12"
+rand = "0.8.0"

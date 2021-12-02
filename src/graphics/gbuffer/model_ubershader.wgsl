@@ -71,11 +71,15 @@ var diff_tex: texture_2d<f32>;
 var diff_samp: sampler;
 #endif
 
-#ifdef M_SPECULAR_MATERIAL_ENABLED
+#ifdef M_SPECULAR_GLOSS_ENABLED
 [[group(M_MATERIAL_BIND_GROUP), binding(M_SPECULAR_TEXTURE_BINDING)]]
 var spec_tex: texture_2d<f32>;
 [[group(M_MATERIAL_BIND_GROUP), binding(M_SPECULAR_SAMPLER_BINDING)]]
 var spec_samp: sampler;
+[[group(M_MATERIAL_BIND_GROUP), binding(M_GLOSS_TEXTURE_BINDING)]]
+var gloss_tex: texture_2d<f32>;
+[[group(M_MATERIAL_BIND_GROUP), binding(M_GLOSS_SAMPLER_BINDING)]]
+var gloss_samp: sampler;
 #endif
 
 #ifdef M_EMISSIVE_MATERIAL_ENABLED
@@ -117,6 +121,51 @@ struct ColorTargetOut {
     [[location(M_COLOR_BUFFER_LOCATION)]] color: vec4<f32>;
 };
 
+fn sample_ambient(in: ModelVertexOut) -> f32 {
+#   ifdef M_AMBIENT_MATERIAL_ENABLED
+    let ambient = textureSample(amb_tex, amb_samp, in.uv);
+    return bitcast<f32>(pack4x8unorm(ambient));  // Unholy bit casting...
+#   else
+    return 0.0;
+#endif
+}
+
+fn sample_diffuse(in: ModelVertexOut) -> f32 {
+#   ifdef M_DIFFUSE_MATERIAL_ENABLED
+    let diffuse = in.color * textureSample(diff_tex, diff_samp, in.uv);
+    return bitcast<f32>(pack4x8unorm(diffuse));  // Unholy bit casting...
+#   else
+    return 0.0;
+#   endif
+}
+
+fn sample_specular_gloss(in: ModelVertexOut) -> f32 {
+#   ifdef M_SPECULAR_GLOSS_ENABLED
+
+    // Samples specular and gloss, then trims them
+    var specColor = textureSample(spec_tex, spec_samp, in.uv);
+    let glossColor = textureSample(gloss_tex, gloss_samp, in.uv);
+    let glossGray = (glossColor.r + glossColor.g + glossColor.b)/3.0;
+
+    // Packs specular and gloss into ints
+    let specPacked = pack4x8unorm(specColor) & 0x00FFFFFFu;             // uint (r, g, b, 0)
+    let glossPacked = (u32(glossGray * 255.0) << 24u) & 0xFF000000u;    // uint (0, 0, 0, gloss)
+    return bitcast<f32>(specPacked + glossPacked);                      // Unholy bit casting...
+#   else
+    return 0.0;
+#   endif
+}
+
+fn sample_emissive(in: ModelVertexOut) -> f32 {
+#   ifdef M_EMISSIVE_MATERIAL_ENABLED
+    let emissive = textureSample(emi_tex, emi_samp, in.uv);
+    return bitcast<f32>(pack4x8unorm(emissive)); // Unholy bit casting...
+#   else
+    return 0.0;
+#   endif
+}
+
+
 
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
@@ -125,25 +174,13 @@ fn main(in: ModelVertexOut) -> ColorTargetOut {
     // Variables to write out to color targets
     let position = in.model_position;       // X, Y, Z, <unused>
     let normal = vec4<f32>(in.normal, 1.0); // X, Y, Z, <unused>
-    var color = vec4<f32>(0.0);             // ambient(rgba), diffuse(rgba), specular(rgba), emissive(rgba)
+    var color = vec4<f32>(0.0);             // ambient(rgba), diffuse(rgba), specular(red, green, blue, gloss), emissive(rgba)
 
-    // Alters those variables based on the material used
-#   ifdef M_AMBIENT_MATERIAL_ENABLED
-    let ambient = textureSample(amb_tex, amb_samp, in.uv);
-    color.r = bitcast<f32>(pack4x8unorm(ambient));  // Unholy bit casting...
-#   endif
-#   ifdef M_DIFFUSE_MATERIAL_ENABLED
-    let diffuse = in.color * textureSample(diff_tex, diff_samp, in.uv);
-    color.g = bitcast<f32>(pack4x8unorm(diffuse));  // Unholy bit casting...
-#   endif
-#   ifdef M_SPECULAR_MATERIAL_ENABLED
-    let specular = textureSample(spec_tex, spec_samp, in.uv);
-    color.b = bitcast<f32>(pack4x8unorm(specular)); // Unholy bit casting...
-#   endif
-#   ifdef M_EMISSIVE_MATERIAL_ENABLED
-    let emissive = textureSample(emi_tex, emi_samp, in.uv);
-    color.a = bitcast<f32>(pack4x8unorm(emissive)); // Unholy bit casting...
-#   endif
+    // Sample from textures and write encoded value to color
+    color.r = sample_ambient(in);
+    color.g = sample_diffuse(in);
+    color.b = sample_specular_gloss(in);
+    color.a = sample_emissive(in);
 
     // Outputs variables to color targets
     return ColorTargetOut(

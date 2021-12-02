@@ -95,9 +95,16 @@ impl ModelShaderProvider {
         }
         if mat_flags & Material::SPECULAR_BIT != 0 {
             macros.insert(String::from("M_SPECULAR_MATERIAL_ENABLED"), String::from("TRUE"));
+        }
+        if mat_flags & (Material::GLOSS_BIT | Material::SPECULAR_BIT) == Material::GLOSS_BIT | Material::SPECULAR_BIT {
+            macros.insert(String::from("M_SPECULAR_GLOSS_ENABLED"), String::from("TRUE"));
             macros.insert(String::from("M_SPECULAR_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
             macros.insert(String::from("M_SPECULAR_SAMPLER_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+            macros.insert(String::from("M_GLOSS_TEXTURE_BINDING"), String::from(current_binding.to_string()));
+            current_binding += 1;
+            macros.insert(String::from("M_GLOSS_SAMPLER_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
         }
         if mat_flags & Material::EMISSIVE_BIT != 0 {

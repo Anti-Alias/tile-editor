@@ -1,6 +1,7 @@
 use wgpu::*;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use bytemuck::{Pod, Zeroable};
+use cgmath::Matrix4;
 use crate::graphics::Model;
 
 /// Represents the instance data of a `Model`.
@@ -11,6 +12,10 @@ pub struct ModelInstance {
 }
 
 impl ModelInstance {
+
+    pub fn new(world: Matrix4<f32>) -> Self {
+        Self { world: world.into() }
+    }
 
     /// The WGPU memory layout of a buffer storing a `ModelInstance`
     pub fn layout<'a>() -> VertexBufferLayout<'a> {

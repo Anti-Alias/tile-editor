@@ -1,26 +1,6 @@
+use cgmath::{BaseFloat, Deg, Matrix4, Rad, Vector3};
 use wgpu::{Device, Extent3d, Surface, SurfaceConfiguration, Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages, TextureView, TextureViewDescriptor};
 
-
-/// Creates a wgpu depth texture from a surface config
-pub fn create_surface_depth_texture(device: &Device, _format: &TextureFormat, config: &SurfaceConfiguration) -> Texture {
-    device.create_texture(&TextureDescriptor {
-        label: None,
-        size: Extent3d {
-            width: config.width,
-            height: config.height,
-            depth_or_array_layers: 1
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format: TextureFormat::Depth32Float,
-        usage: TextureUsages::RENDER_ATTACHMENT | TextureUsages::TEXTURE_BINDING
-    })
-}
-
-pub fn get_texture_view_of_surface(surface: &Surface) -> TextureView {
-    surface.get_current_texture().unwrap().texture.create_view(&TextureViewDescriptor::default())
-}
 
 /// Adds line numbers to multi-line strings
 pub fn string_with_lines(source: &str) -> String {
@@ -32,4 +12,30 @@ pub fn string_with_lines(source: &str) -> String {
         result.push('\n');
     }
     result
+}
+
+pub trait Matrix4Ext<S: BaseFloat> {
+    fn translate(self, vector: Vector3<S>) -> Self;
+    fn rotate(self, axis: Vector3<S>, rotation: impl Into<Rad<S>>) -> Self;
+    fn rotate_radians(self, axis: Vector3<S>, radians: S) -> Self;
+    fn rotate_degrees(self, axis: Vector3<S>, degrees: S) -> Self;
+    fn scale(self, scale: Vector3<S>) -> Self;
+}
+
+impl<S: BaseFloat> Matrix4Ext<S> for Matrix4<S> {
+    fn translate(self, translation: Vector3<S>) -> Self {
+        self * Matrix4::from_translation(translation)
+    }
+    fn rotate(self, axis: Vector3<S>, rotation: impl Into<Rad<S>>) -> Self {
+        self * Matrix4::from_axis_angle(axis, rotation)
+    }
+    fn rotate_radians(self, axis: Vector3<S>, radians: S) -> Self {
+        self * Matrix4::from_axis_angle(axis, Rad(radians))
+    }
+    fn rotate_degrees(self, axis: Vector3<S>, degrees: S) -> Self {
+        self * Matrix4::from_axis_angle(axis, Deg(degrees))
+    }
+    fn scale(self, scale: Vector3<S>) -> Self {
+        self * Matrix4::from_nonuniform_scale(scale.x, scale.y, scale.z)
+    }
 }

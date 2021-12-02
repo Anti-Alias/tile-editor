@@ -56,11 +56,15 @@ impl GBuffer {
     pub fn bind_group(&self) -> &BindGroup { &self.bind_group }
     pub fn bind_group_layout(&self) -> &BindGroupLayout { &self.bind_group_layout }
 
-    pub fn color_attachments(&self) -> [RenderPassColorAttachment; 3] {
-        let ops = Operations {
-            load: LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }),
-            store: true
-        };
+    pub fn color_attachments(&self, clear: bool) -> [RenderPassColorAttachment; 3] {
+
+        // Determines load operation
+        let load =
+            if clear { LoadOp::Clear(wgpu::Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }) }
+            else { LoadOp::Load };
+        let ops = Operations { load, store: true };
+
+        // Returns attachments
         [
             RenderPassColorAttachment {
                 view: &self.position,
@@ -81,13 +85,11 @@ impl GBuffer {
     }
 
     /// Both the color buffer and depth_stencil attachments
-    pub fn depth_stencil_attachment(&self) -> RenderPassDepthStencilAttachment {
+    pub fn depth_stencil_attachment(&self, clear: bool) -> RenderPassDepthStencilAttachment {
+        let load = if clear { LoadOp::Clear(1.0)} else { LoadOp::Load };
         RenderPassDepthStencilAttachment {
             view: &self.depth_stencil,
-            depth_ops: Some(Operations {
-                load: LoadOp::Clear(1.0),
-                store: true
-            }),
+            depth_ops: Some(Operations { load, store: true }),
             stencil_ops: None
         }
     }

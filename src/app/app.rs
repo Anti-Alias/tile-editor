@@ -1,12 +1,14 @@
 use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
-use cgmath::{Perspective, Point3, Vector3};
+use cgmath::{BaseFloat, Deg, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3};
 
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use pollster::block_on;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor, SurfaceConfiguration};
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
@@ -14,10 +16,10 @@ use winit::event_loop::ControlFlow;
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer, ModelEnvironment};
 use crate::graphics::light::{AmbientLight, LightMesh, LightSet, PointLight, LightBundle, DirectionalLight};
-
 use crate::graphics::screen;
 use crate::graphics::screen::ScreenBuffer;
 use crate::gui::{GUI, Editor};
+use crate::graphics::util::Matrix4Ext;
 
 /// Represents the application as a whole.
 /// Draws an EGUI interface on top of the map renderer
@@ -122,6 +124,7 @@ impl App {
 
         // Sets up model (with instances), camera and lights
         let model_instances = create_model_instances(&device, &queue);
+        let floor_instance = create_marble_floor_instance(&device, &queue);
         let mut camera = create_camera(
             &device,
             size.width as f32,
@@ -134,6 +137,11 @@ impl App {
         model_renderer.prime(
             &device,
             &model_instances.model,
+            camera.bind_group_layout()
+        );
+        model_renderer.prime(
+            &device,
+            &floor_instance.model,
             camera.bind_group_layout()
         );
 
@@ -193,7 +201,16 @@ impl App {
                         &queue,
                         &model_instances,
                         &camera,
-                        &gbuffer
+                        &gbuffer,
+                        true
+                    );
+                    model_renderer.render(
+                        &device,
+                        &queue,
+                        &floor_instance,
+                        &camera,
+                        &gbuffer,
+                        false
                     );
 
                     // Renders point lights to screen using gbuffer
@@ -217,11 +234,11 @@ impl App {
                     );
 
                     // Moves lights
-                    move_lights(&mut light_bundle, t);
+                    //move_lights(&mut light_bundle, 0.0);
                     light_bundle.flush(&queue);
 
                     // Moves camera
-                    move_camera(&mut camera, 150.0, -t*0.5);
+                    move_camera(&mut camera, 150.0, -t);
                     //move_camera(&mut camera, 150.0, 1.5);
 
 
@@ -390,20 +407,20 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     let directional_lights = &mut light_bundle.directional_lights;
 
     // Adds point light(s)
-    let intensity = 16000.0;
+    let intensity = 32000.0;
     point_lights.lights.push(PointLight::new(
-        [0.0, 150.0, 0.0],                  // Position
-        [intensity, intensity, intensity],  // Color
-        [1.0, 0.0, 1.0]                     // Attenuation
+        [0.0, 160.0, 150.0],                   // Position
+        [intensity, intensity, intensity],      // Color
+        [1.0, 0.0, 1.0]                         // Attenuation
     ));
     point_lights.compute_radiuses(5.0/256.0);
 
     // Adds directional light(s)
-    let db = 10.0/255.0;
+    let db = 255.0/255.0;
     directional_lights.lights.push(DirectionalLight::new([-1.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
 
     // Adds ambient light(s)
-    let ab = 2.0/255.0;
+    let ab = 5.0/255.0;
     ambient_lights.lights.push(AmbientLight::new([ab, ab, ab]));
 
     // Done
@@ -413,12 +430,15 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
 
 
 fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue) -> Texture {
+    log::info!("Loading texture '{}'...", file_name);
     use image::io::Reader as ImageReader;
     let img = ImageReader::open(file_name)
         .unwrap()
         .decode()
         .unwrap();
-    Texture::from_image(device, queue, &img, None)
+    let tex = Texture::from_image(device, queue, &img, None);
+    log::info!("Finished loading texture '{}'...", file_name);
+    tex
 }
 
 fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
@@ -441,28 +461,43 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
     // Joins model with instance data and returns
     ModelInstanceSet::new(&device, model, vec![
         ModelInstance {
-            world: [
-                [2.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 1.0, 0.0],
-                [100.0, 0.0, 0.0, 1.0]
-            ]
+            world: Matrix4::from_translation((Vector3::new(100.0, 0.0, 0.0))).into()
         },
         ModelInstance {
-            world: [
-                [1.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 4.0, 0.0],
-                [-100.0, 0.0, 0.0, 1.0]
-            ]
+            world: Matrix4::from_translation(Vector3::new(-100.0, 0.0, 0.0)).into()
         },
         ModelInstance {
-            world: [
-                [20.0, 0.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [0.0, 0.0, 20.0, 0.0],
-                [0.0, -100.0, 0.0, 1.0]
-            ]
+            world: Matrix4::from_translation(Vector3::new(0.0, 100.0, 0.0)).into()
+        }
+    ])
+}
+
+fn create_marble_floor_instance(device: &Device, queue: &Queue) -> ModelInstanceSet {
+
+    // Creates texture from image
+    let diffuse_tex = create_tex_from_file("assets/cubemap/marble_diffuse.png", device, queue);
+    let specular_tex = create_tex_from_file("assets/cubemap/marble_specular.png", device, queue);
+    let gloss_tex = create_tex_from_file("assets/cubemap/marble_gloss.png", device, queue);
+    let material = MaterialBuilder::new()
+        .diffuse(diffuse_tex)
+        .specular(specular_tex)
+        .gloss(gloss_tex)
+        .build(&device);
+
+    // Creates cube model
+    let model = Model {
+        meshes: vec![Mesh::cube(&device, Color::WHITE, Vector3::new(100.0, 100.0, 100.0))],
+        materials: vec![material],
+        associations: vec![(0, 0)]
+    };
+
+    // Joins model with instance data and returns
+    ModelInstanceSet::new(&device, model, vec![
+        ModelInstance {
+            world: Matrix4::identity()
+                .translate(Vector3::new(0.0, -200.0, -0.0))
+                .scale(Vector3::new(100.0, 1.0, 100.0))
+                .into()
         }
     ])
 }

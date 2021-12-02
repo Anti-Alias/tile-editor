@@ -42,7 +42,8 @@ impl ModelRenderer {
         queue: &Queue,
         instances: &ModelInstanceSet,
         camera: &Camera,
-        gbuffer: &GBuffer
+        gbuffer: &GBuffer,
+        clear: bool
     ) {
 
         // Creates encoder
@@ -54,8 +55,8 @@ impl ModelRenderer {
         {
             let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
                 label: Some("Model Renderer Render Pass"),
-                color_attachments: &gbuffer.color_attachments(),
-                depth_stencil_attachment: Some(gbuffer.depth_stencil_attachment())
+                color_attachments: &gbuffer.color_attachments(clear),
+                depth_stencil_attachment: Some(gbuffer.depth_stencil_attachment(clear))
             });
 
             // Draws all meshes within the model using render pass
