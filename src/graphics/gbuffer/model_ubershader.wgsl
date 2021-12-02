@@ -99,12 +99,18 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
         instance.col2,
         instance.col3
     );
+    let norm_mat = mat3x3<f32>(
+        model_mat[0].xyz,
+        model_mat[1].xyz,
+        model_mat[2].xyz,
+    );
     let model_pos = model_mat * vec4<f32>(vertex.position, 1.0);
     let position = camera.proj_view * model_pos;
+    let norm = norm_mat * vertex.normal;
     return ModelVertexOut(
        position,
        model_pos,
-       vertex.normal,
+       norm,
        vertex.color,
        vertex.uv
    );
@@ -152,7 +158,7 @@ fn sample_specular_gloss(in: ModelVertexOut) -> f32 {
     let glossPacked = (u32(glossGray * 255.0) << 24u) & 0xFF000000u;    // uint (0, 0, 0, gloss)
     return bitcast<f32>(specPacked + glossPacked);                      // Unholy bit casting...
 #   else
-    return 0.0;
+    return bitcast<f32>(0x01000000);
 #   endif
 }
 

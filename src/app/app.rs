@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
-use cgmath::{BaseFloat, Deg, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3};
+use cgmath::{BaseFloat, Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3};
 
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -407,6 +407,7 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     let directional_lights = &mut light_bundle.directional_lights;
 
     // Adds point light(s)
+    /*
     let intensity = 32000.0;
     point_lights.lights.push(PointLight::new(
         [0.0, 160.0, 150.0],                   // Position
@@ -414,10 +415,11 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
         [1.0, 0.0, 1.0]                         // Attenuation
     ));
     point_lights.compute_radiuses(5.0/256.0);
+     */
 
     // Adds directional light(s)
     let db = 255.0/255.0;
-    directional_lights.lights.push(DirectionalLight::new([-1.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
+    directional_lights.lights.push(DirectionalLight::new([0.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
 
     // Adds ambient light(s)
     let ab = 5.0/255.0;
@@ -467,7 +469,12 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
             world: Matrix4::from_translation(Vector3::new(-100.0, 0.0, 0.0)).into()
         },
         ModelInstance {
-            world: Matrix4::from_translation(Vector3::new(0.0, 100.0, 0.0)).into()
+            world: Matrix4::identity()
+                .translate(Vector3::new(0.0, 100.0, 0.0))
+                .scale(Vector3::new(2.0, 0.1, 2.0))
+                .rotate_degrees(Vector3::new(1.0, 0.0, 0.0).normalize(), 45.0)
+                .rotate_degrees(Vector3::new(0.0, 0.0, 1.0).normalize(), 45.0)
+                .into()
         }
     ])
 }
