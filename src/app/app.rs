@@ -448,9 +448,11 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
     // Creates texture from image
     let diffuse_tex = create_tex_from_file("assets/cubemap/diffuse.png", device, queue);
     let emissive_tex = create_tex_from_file("assets/cubemap/emissive.png", device, queue);
+    let normal_tex = create_tex_from_file("assets/cubemap/normal.png", device, queue);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .emissive(emissive_tex)
+        .normal(normal_tex)
         .build(&device);
 
     // Creates cube model

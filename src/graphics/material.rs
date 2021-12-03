@@ -180,7 +180,7 @@ impl MaterialBuilder {
                 count: None
             });
         }
-        log::debug!("Created bind group layout entries: {:?}", entries);
+        log::debug!("Created bind group layout entries: {:#?}", entries);
         device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some("Material Bind Group Layout"),
             entries: entries.as_slice()
@@ -189,6 +189,12 @@ impl MaterialBuilder {
 
     fn create_bind_group(&self, layout: &BindGroupLayout, device: &Device) -> BindGroup {
         let mut bind_group_entries = Vec::new();
+        if let Some(normal) = self.normal.as_ref() {
+            Self::add_entries(&mut bind_group_entries, normal);
+        }
+        if let Some(ambient) = self.ambient.as_ref() {
+            Self::add_entries(&mut bind_group_entries, ambient);
+        }
         if let Some(diffuse) = self.diffuse.as_ref() {
             Self::add_entries(&mut bind_group_entries, diffuse);
         }
@@ -201,10 +207,7 @@ impl MaterialBuilder {
         if let Some(emissive) = self.emissive.as_ref() {
             Self::add_entries(&mut bind_group_entries, emissive);
         }
-        if let Some(normal) = self.normal.as_ref() {
-            Self::add_entries(&mut bind_group_entries, normal);
-        }
-        log::debug!("Created bind group entries: {:?}", bind_group_entries);
+        log::debug!("Created bind group entries: {:#?}", bind_group_entries);
         device.create_bind_group(&BindGroupDescriptor {
             label: Some("Material Bind Group"),
             layout,
