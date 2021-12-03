@@ -20,3 +20,4 @@ pub mod gbuffer;
 pub mod screen;
 pub mod light;
 pub mod util;
+pub mod scene;

@@ -56,11 +56,6 @@ impl App {
         self
     }
 
-    pub fn depth_stencil_format(mut self, format: TextureFormat) -> Self {
-        self.depth_stencil_format = format;
-        self
-    }
-
     pub fn input_handler(mut self, handler: impl FnMut(App) + 'static) -> Self {
         self.input_handler = Some(Box::new(handler));
         self
@@ -119,7 +114,7 @@ impl App {
         };
         surface.configure(&device, &surface_config);
 
-        // Creates GBuffer and loads model
+        // Creates GBuffer
         let mut gbuffer = GBuffer::new(&device, size.width, size.height);
 
         // Sets up model (with instances), camera and lights
