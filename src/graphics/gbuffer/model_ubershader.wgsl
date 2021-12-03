@@ -177,6 +177,15 @@ fn sample_emissive(in: ModelVertexOut) -> f32 {
 #   endif
 }
 
+fn sample_normal(in: ModelVertexOut) -> f32 {
+#   ifdef M_NORMAL_MATERIAL_ENABLED
+    let norm = textureSample(norm_tex, norm_samp, in.uv);
+    return bitcast<f32>(pack4x8unorm(norm));
+#   else
+    return 0.0;
+#   endif
+}
+
 
 
 // ------------- Entrypoint -------------
