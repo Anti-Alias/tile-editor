@@ -61,24 +61,32 @@ impl Mesh {
             ModelVertex {
                 position: [-0.5, -0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x1, y2]
             },
             ModelVertex {
                 position: [0.5, -0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x2, y2]
             },
             ModelVertex {
                 position: [0.5, 0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x2, y1]
             },
             ModelVertex {
                 position: [-0.5, 0.5, 0.5],
                 normal: [0.0, 0.0, 1.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x1, y1]
             },
@@ -87,24 +95,32 @@ impl Mesh {
             ModelVertex {
                 position: [-0.5, -0.5, -0.5],
                 normal: [-1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x0, y2]
             },
             ModelVertex {
                 position: [-0.5, -0.5, 0.5],
                 normal: [-1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x1, y2]
             },
             ModelVertex {
                 position: [-0.5, 0.5, 0.5],
                 normal: [-1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x1, y1]
             },
             ModelVertex {
                 position: [-0.5, 0.5, -0.5],
                 normal: [-1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x0, y1]
             },
@@ -113,24 +129,32 @@ impl Mesh {
             ModelVertex {
                 position: [0.5, -0.5, 0.5],
                 normal: [1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, -1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x2, y2]
             },
             ModelVertex {
                 position: [0.5, -0.5, -0.5],
                 normal: [1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, -1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x3, y2]
             },
             ModelVertex {
                 position: [0.5, 0.5, -0.5],
                 normal: [1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, -1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x3, y1]
             },
             ModelVertex {
                 position: [0.5, 0.5, 0.5],
                 normal: [1.0, 0.0, 0.0],
+                tangent: [0.0, 0.0, -1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x2, y1]
             },
@@ -139,24 +163,32 @@ impl Mesh {
             ModelVertex {
                 position: [-0.5, -0.5, 0.5],
                 normal: [0.0, -1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, 1.0],
                 color: rgba,
                 uv: [x1, y2]
             },
             ModelVertex {
                 position: [-0.5, -0.5, -0.5],
                 normal: [0.0, -1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, 1.0],
                 color: rgba,
                 uv: [x1, y3]
             },
             ModelVertex {
                 position: [0.5, -0.5, -0.5],
                 normal: [0.0, -1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, 1.0],
                 color: rgba,
                 uv: [x2, y3]
             },
             ModelVertex {
                 position: [0.5, -0.5, 0.5],
                 normal: [0.0, -1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, 1.0],
                 color: rgba,
                 uv: [x2, y2]
             },
@@ -165,24 +197,32 @@ impl Mesh {
             ModelVertex {
                 position: [-0.5, 0.5, 0.5],
                 normal: [0.0, 1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, -1.0],
                 color: rgba,
                 uv: [x1, y1]
             },
             ModelVertex {
                 position: [0.5, 0.5, 0.5],
                 normal: [0.0, 1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, -1.0],
                 color: rgba,
                 uv: [x2, y1]
             },
             ModelVertex {
                 position: [0.5, 0.5, -0.5],
                 normal: [0.0, 1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, -1.0],
                 color: rgba,
                 uv: [x2, y0]
             },
             ModelVertex {
                 position: [-0.5, 0.5, -0.5],
                 normal: [0.0, 1.0, 0.0],
+                tangent: [1.0, 0.0, 0.0],
+                bitangent: [0.0, 0.0, -1.0],
                 color: rgba,
                 uv: [x1, y0]
             },
@@ -191,24 +231,32 @@ impl Mesh {
             ModelVertex {
                 position: [0.5, -0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
+                tangent: [-1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 1.0],
                 color: rgba,
                 uv: [x3, y2]
             },
             ModelVertex {
                 position: [-0.5, -0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
+                tangent: [-1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 1.0],
                 color: rgba,
                 uv: [x4, y2]
             },
             ModelVertex {
                 position: [-0.5, 0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
+                tangent: [-1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 1.0],
                 color: rgba,
                 uv: [x4, y1]
             },
             ModelVertex {
                 position: [0.5, 0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
+                tangent: [-1.0, 0.0, 0.0],
+                bitangent: [0.0, 1.0, 1.0],
                 color: rgba,
                 uv: [x3, y1]
             },

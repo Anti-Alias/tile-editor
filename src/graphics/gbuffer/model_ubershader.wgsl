@@ -12,23 +12,25 @@
 struct ModelVertexIn {
     [[location(0)]] position: vec3<f32>;
     [[location(1)]] normal: vec3<f32>;
-    [[location(2)]] color: vec4<f32>;
-    [[location(3)]] uv: vec2<f32>;
+    [[location(2)]] tangent: vec3<f32>;
+    [[location(3)]] bitangent: vec3<f32>;
+    [[location(4)]] color: vec4<f32>;
+    [[location(5)]] uv: vec2<f32>;
 };
 
 
 // ------------- Instance input type -------------
 struct ModelInstanceIn {
     // Model matrix columns
-    [[location(4)]] m_col0: vec4<f32>;
-    [[location(5)]] m_col1: vec4<f32>;
-    [[location(6)]] m_col2: vec4<f32>;
-    [[location(7)]] m_col3: vec4<f32>;
+    [[location(6)]] m_col0: vec4<f32>;
+    [[location(7)]] m_col1: vec4<f32>;
+    [[location(8)]] m_col2: vec4<f32>;
+    [[location(9)]] m_col3: vec4<f32>;
 
     // Normal matrix columns
-    [[location(8)]] n_col0: vec3<f32>;
-    [[location(9)]] n_col1: vec3<f32>;
-    [[location(10)]] n_col2: vec3<f32>;
+    [[location(10)]] n_col0: vec3<f32>;
+    [[location(11)]] n_col1: vec3<f32>;
+    [[location(12)]] n_col2: vec3<f32>;
 };
 
 

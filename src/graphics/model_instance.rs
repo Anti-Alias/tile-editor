@@ -43,39 +43,39 @@ impl ModelInstance {
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
                     offset: 0,
-                    shader_location: 4
-                },
-                VertexAttribute {
-                    format: VertexFormat::Float32x4,
-                    offset: std::mem::size_of::<[f32; 4]>() as BufferAddress,
-                    shader_location: 5
-                },
-                VertexAttribute {
-                    format: VertexFormat::Float32x4,
-                    offset: std::mem::size_of::<[f32; 8]>() as BufferAddress,
                     shader_location: 6
                 },
                 VertexAttribute {
                     format: VertexFormat::Float32x4,
-                    offset: std::mem::size_of::<[f32; 12]>() as BufferAddress,
+                    offset: std::mem::size_of::<[f32; 4]>() as BufferAddress,
                     shader_location: 7
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: std::mem::size_of::<[f32; 8]>() as BufferAddress,
+                    shader_location: 8
+                },
+                VertexAttribute {
+                    format: VertexFormat::Float32x4,
+                    offset: std::mem::size_of::<[f32; 12]>() as BufferAddress,
+                    shader_location: 9
                 },
 
                 // Normal matrix
                 VertexAttribute {
                     format: VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 16]>() as BufferAddress,
-                    shader_location: 8
+                    shader_location: 10
                 },
                 VertexAttribute {
                     format: VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 19]>() as BufferAddress,
-                    shader_location: 9
+                    shader_location: 11
                 },
                 VertexAttribute {
                     format: VertexFormat::Float32x3,
                     offset: std::mem::size_of::<[f32; 22]>() as BufferAddress,
-                    shader_location: 10
+                    shader_location: 12
                 }
             ]
         }

@@ -238,9 +238,7 @@ impl App {
                     light_bundle.flush(&queue);
 
                     // Moves camera
-                    move_camera(&mut camera, 150.0, -t);
-                    //move_camera(&mut camera, 150.0, 1.5);
-
+                    move_camera(&mut camera, 150.0, t);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
