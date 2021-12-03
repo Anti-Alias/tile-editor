@@ -234,11 +234,12 @@ impl App {
                     );
 
                     // Moves lights
-                    //move_lights(&mut light_bundle, 0.0);
+                    move_lights(&mut light_bundle, t);
                     light_bundle.flush(&queue);
 
                     // Moves camera
-                    move_camera(&mut camera, 150.0, t);
+                    //move_camera(&mut camera, 150.0, t, 200.0);
+                    move_camera(&mut camera, 150.0, 3.0, 200.0);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -382,8 +383,7 @@ fn move_lights(light_bundle: &mut LightBundle, t: f32) {
     }
 }
 
-fn move_camera(camera: &mut Camera, y: f32, t: f32) {
-    let rad = 300.0_f32;
+fn move_camera(camera: &mut Camera, y: f32, t: f32, rad: f32) {
     let th = t * PI / 2.0;
     camera.move_to(Point3::new(
         f32::cos(th)*rad,
@@ -407,7 +407,7 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     // Adds point light(s)
     let intensity = 20000.0;
     point_lights.lights.push(PointLight::new(
-        [0.0, 120.0, 150.0],                   // Position
+        [0.0, 50.0, 150.0],                   // Position
         [intensity, intensity, intensity],     // Color
         [1.0, 0.0, 1.0]                        // Attenuation
     ));

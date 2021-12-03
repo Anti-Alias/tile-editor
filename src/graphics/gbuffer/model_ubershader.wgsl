@@ -39,8 +39,10 @@ struct ModelVertexOut {
     [[builtin(position)]] position: vec4<f32>;
     [[location(0)]] model_position: vec4<f32>;
     [[location(1)]] normal: vec3<f32>;
-    [[location(2)]] color: vec4<f32>;
-    [[location(3)]] uv: vec2<f32>;
+    [[location(2)]] tangent: vec3<f32>;
+    [[location(3)]] bitangent: vec3<f32>;
+    [[location(4)]] color: vec4<f32>;
+    [[location(5)]] uv: vec2<f32>;
 };
 
 
@@ -114,11 +116,15 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
     );
     let model_pos = model_mat * vec4<f32>(vertex.position, 1.0);
     let position = camera.proj_view * model_pos;
-    let norm = norm_mat * vertex.normal;
+    let normal = norm_mat * vertex.normal;
+    let tangent = norm_mat * vertex.tangent;
+    let bitangent = norm_mat * vertex.bitangent;
     return ModelVertexOut(
        position,
        model_pos,
-       norm,
+       normal,
+       tangent,
+       bitangent,
        vertex.color,
        vertex.uv
    );
@@ -179,12 +185,14 @@ fn sample_emissive(in: ModelVertexOut) -> f32 {
 #   endif
 }
 
-fn sample_normal(in: ModelVertexOut) -> f32 {
+fn sample_normal(in: ModelVertexOut, normal: vec3<f32>, tangent: vec3<f32>, bitangent: vec3<f32>) -> vec3<f32> {
 #   ifdef M_NORMAL_MATERIAL_ENABLED
-    let norm = textureSample(norm_tex, norm_samp, in.uv);
-    return bitcast<f32>(pack4x8unorm(norm));
+    let tbn = mat3x3<f32>(in.tangent, in.bitangent, in.normal);
+    var norm_texel = textureSample(norm_tex, norm_samp, in.uv).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
+    norm_texel.z = clamp(norm_texel.z, 0.0, 1.0);
+    return tbn * norm_texel;
 #   else
-    return 0.0;
+    return normal;
 #   endif
 }
 
@@ -195,20 +203,21 @@ fn sample_normal(in: ModelVertexOut) -> f32 {
 fn main(in: ModelVertexOut) -> ColorTargetOut {
 
     // Variables to write out to color targets
-    let position = in.model_position;       // X, Y, Z, <unused>
-    let normal = vec4<f32>(in.normal, 1.0); // X, Y, Z, <unused>
-    var color = vec4<f32>(0.0);             // ambient(rgba), diffuse(rgba), specular(red, green, blue, gloss), emissive(rgba)
+    let position = in.model_position;               // X, Y, Z, <unused>
+    let face_normal = vec4<f32>(in.normal, 1.0);    // X, Y, Z, <unused>
+    var color = vec4<f32>(0.0);                     // ambient(rgba), diffuse(rgba), specular(red, green, blue, gloss), emissive(rgba)
 
     // Sample from textures and write encoded value to color
     color.r = sample_ambient(in);
     color.g = sample_diffuse(in);
     color.b = sample_specular_gloss(in);
     color.a = sample_emissive(in);
+    let normal = sample_normal(in, in.normal, in.tangent, in.bitangent);
 
     // Outputs variables to color targets
     return ColorTargetOut(
         position,
-        normal,
+        vec4<f32>(normal, 1.0),
         color
     );
 }
