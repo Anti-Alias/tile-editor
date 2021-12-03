@@ -422,7 +422,7 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
      */
 
     // Adds ambient light(s)
-    let ab = 2.0/255.0;
+    let ab = 5.0/255.0;
     ambient_lights.lights.push(AmbientLight::new([ab, ab, ab]));
 
     // Done

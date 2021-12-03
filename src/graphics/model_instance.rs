@@ -25,13 +25,12 @@ impl ModelInstance {
     }
 
     pub fn compute_normal(&mut self) {
-        let world_mat = Matrix4::from(self.world).invert().unwrap().transpose();
-        let inv_tran = Matrix3::new(
-            world_mat.x.x, world_mat.x.y, world_mat.x.z,
-            world_mat.y.x, world_mat.y.y, world_mat.y.z,
-            world_mat.z.x, world_mat.z.y, world_mat.z.z
+        let world3 = Matrix3::new(
+            self.world[0][0], self.world[0][1], self.world[0][2],
+            self.world[1][0], self.world[1][1], self.world[1][2],
+            self.world[2][0], self.world[2][1], self.world[2][2]
         );
-        self.normal = inv_tran.into();
+        self.normal = world3.invert().unwrap().transpose().into();
     }
 
     /// The WGPU memory layout of a buffer storing a `ModelInstance`
