@@ -124,7 +124,7 @@ impl App {
 
         // Sets up model (with instances), camera and lights
         let model_instances = create_model_instances(&device, &queue);
-        let floor_instance = create_marble_floor_instance(&device, &queue);
+        let floor_instance = create_wood_floor_instance(&device, &queue);
         let mut camera = create_camera(
             &device,
             size.width as f32,
@@ -407,7 +407,6 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     let directional_lights = &mut light_bundle.directional_lights;
 
     // Adds point light(s)
-    /*
     let intensity = 32000.0;
     point_lights.lights.push(PointLight::new(
         [0.0, 160.0, 150.0],                   // Position
@@ -415,11 +414,12 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
         [1.0, 0.0, 1.0]                         // Attenuation
     ));
     point_lights.compute_radiuses(5.0/256.0);
-     */
 
     // Adds directional light(s)
     let db = 255.0/255.0;
+    /*
     directional_lights.lights.push(DirectionalLight::new([0.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
+     */
 
     // Adds ambient light(s)
     let ab = 5.0/255.0;
@@ -461,29 +461,27 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
     };
 
     // Joins model with instance data and returns
-    ModelInstanceSet::new(&device, model, vec![
-        ModelInstance::new(
-            Matrix4::identity().translate(Vector3::new(100.0, 0.0, 0.0))
-        ),
-        ModelInstance::new(
-            Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))
-        ),
-        ModelInstance::new(
-            Matrix4::identity()
-                .translate(Vector3::new(0.0, 50.0, 0.0))
-                .rotate_degrees(Vector3::new(1.0, 0.0, 0.0).normalize(), 45.0)
-                .rotate_degrees(Vector3::new(0.0, 0.0, 1.0).normalize(), 45.0)
-                .into()
-        )
-    ])
+    let mut mis = ModelInstanceSet::new(device, model, 4);
+    mis
+        .push(ModelInstance::new(Matrix4::identity().translate(Vector3::new(100.0, 0.0, 0.0))))
+        .push(ModelInstance::new(Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))))
+        .push(ModelInstance::new(Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))))
+        .push(ModelInstance::new(Matrix4::identity()
+            .translate(Vector3::new(0.0, 70.0, 0.0))
+            .rotate_degrees(Vector3::new(1.0, 0.0, 0.0).normalize(), 45.0)
+            .rotate_degrees(Vector3::new(0.0, 0.0, 1.0).normalize(), 45.0)
+            .into()
+        ));
+    mis.flush(queue);
+    mis
 }
 
-fn create_marble_floor_instance(device: &Device, queue: &Queue) -> ModelInstanceSet {
+fn create_wood_floor_instance(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Creates texture from image
-    let diffuse_tex = create_tex_from_file("assets/cubemap/marble_diffuse.png", device, queue);
-    let specular_tex = create_tex_from_file("assets/cubemap/marble_specular.png", device, queue);
-    let gloss_tex = create_tex_from_file("assets/cubemap/marble_gloss.png", device, queue);
+    let diffuse_tex = create_tex_from_file("assets/cubemap/wood_diffuse.png", device, queue);
+    let specular_tex = create_tex_from_file("assets/cubemap/wood_specular.png", device, queue);
+    let gloss_tex = create_tex_from_file("assets/cubemap/wood_gloss.png", device, queue);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .specular(specular_tex)
@@ -498,12 +496,12 @@ fn create_marble_floor_instance(device: &Device, queue: &Queue) -> ModelInstance
     };
 
     // Joins model with instance data and returns
-    ModelInstanceSet::new(&device, model, vec![
-        ModelInstance::new(
-            Matrix4::identity()
-                .translate(Vector3::new(0.0, -200.0, -0.0))
-                .scale(Vector3::new(100.0, 1.0, 100.0))
-                .into()
-        )
-    ])
+    let mut mis = ModelInstanceSet::new(&device, model, 1);
+    mis.push(ModelInstance::new(Matrix4::identity()
+        .translate(Vector3::new(0.0, -200.0, -0.0))
+        .scale(Vector3::new(10.0, 1.0, 10.0))
+        .into()
+    ));
+    mis.flush(queue);
+    mis
 }

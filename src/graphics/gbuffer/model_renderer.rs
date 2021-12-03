@@ -77,7 +77,6 @@ impl ModelRenderer {
 
         // Unpacks environment
         let model = &instances.model;
-        let instance_buffer = &instances.buffer;
 
         // For all mesh/material associations...
         for (mesh, material) in model.iter() {
@@ -98,7 +97,7 @@ impl ModelRenderer {
             render_pass.set_bind_group(0, camera.bind_group(), &[]);
             render_pass.set_bind_group(1, material.bind_group(), &[]);
             render_pass.set_vertex_buffer(Self::VERTEX_BUFFER_SLOT, mesh.vertices.slice(..));
-            render_pass.set_vertex_buffer(Self::INSTANCE_BUFFER_SLOT, instance_buffer.slice(..));
+            render_pass.set_vertex_buffer(Self::INSTANCE_BUFFER_SLOT, instances.buffer_slice());
             render_pass.set_index_buffer(mesh.indices.slice(..), IndexFormat::Uint32);
             render_pass.draw_indexed(0..mesh.num_indices, 0, 0..num_instances);
         }

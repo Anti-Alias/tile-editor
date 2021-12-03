@@ -1,3 +1,4 @@
+use std::ops::Index;
 use wgpu::*;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use bytemuck::{Pod, Zeroable};
@@ -85,8 +86,8 @@ impl ModelInstance {
 /// Represents a `Model` and a set of instances.
 pub struct ModelInstanceSet {
     pub model: Model,
-    pub instances: Vec<ModelInstance>,
-    pub buffer: Buffer
+    instances: Vec<ModelInstance>,
+    buffer: Buffer
 }
 
 impl ModelInstanceSet {
@@ -94,12 +95,14 @@ impl ModelInstanceSet {
     /// Creates a new set
     /// * `device` - Device used to allocate buffer that houses model instances on the GPU
     /// * `model` - Main model to render
-    /// * `instances` - Initial set of instances of said model to render
-    pub fn new(device: &Device, model: Model, instances: Vec<ModelInstance>) -> ModelInstanceSet {
-        let buffer = device.create_buffer_init(&BufferInitDescriptor {
-            label: None,
-            contents: bytemuck::cast_slice(&instances),
-            usage: BufferUsages::VERTEX
+    /// * `max_instances` The maximum number of instances allowed
+    pub fn new(device: &Device, model: Model, max_instances: usize) -> ModelInstanceSet {
+        let instances = Vec::with_capacity(max_instances as usize);
+        let buffer = device.create_buffer(&BufferDescriptor {
+            label: Some("Model Instance Buffer"),
+            size: (std::mem::size_of::<ModelInstance>() * max_instances) as BufferAddress,
+            usage: BufferUsages::VERTEX | BufferUsages::COPY_DST,
+            mapped_at_creation: false
         });
         ModelInstanceSet {
             model,
@@ -108,18 +111,63 @@ impl ModelInstanceSet {
         }
     }
 
+    /// Adds a `ModelInstance`
+    pub fn push(&mut self, instance: ModelInstance) -> &mut Self {
+        self.check_capacity();
+        self.instances.push(instance);
+        self
+    }
+
+    /// Adds a `ModelInstance` at the specified index
+    pub fn insert(&mut self, index: usize, instance: ModelInstance) -> &mut Self {
+        self.check_capacity();
+        self.instances.insert(index, instance);
+        self
+    }
+
+    /// Removes a `ModelInstance` at the specified index
+    pub fn remove(&mut self, index: usize) -> ModelInstance {
+        self.instances.swap_remove(index)
+    }
+
     /// Number of instances stored
     pub fn len(&self) -> usize {
         self.instances.len()
     }
 
-    /// Buffer slice of all data
-    pub fn buffer_slice(&self) -> BufferSlice {
-        self.buffer.slice(..)
+    pub fn iter(&self) -> impl Iterator<Item=&ModelInstance> {
+        self.instances.iter()
     }
 
-    /// All instance data currently stored
-    pub fn instances(&self) -> &[ModelInstance] {
-        &self.instances[..]
+    pub fn iter_mut(&mut self) -> impl Iterator<Item=&mut ModelInstance> {
+        self.instances.iter_mut()
+    }
+
+    /// Maximum number of instances that can be stored
+    pub fn capacity(&self) -> usize {
+        self.instances.capacity()
+    }
+
+    /// Buffer slice of all data
+    pub fn buffer_slice(&self) -> BufferSlice {
+        let end = (std::mem::size_of::<ModelInstance>() * self.instances.capacity()) as BufferAddress;
+        self.buffer.slice(0..end)
+    }
+
+    pub fn flush(&self, queue: &Queue) {
+        queue.write_buffer(&self.buffer, 0, bytemuck::cast_slice(self.instances.as_slice()));
+    }
+
+    fn check_capacity(&self) {
+        if self.len() == self.capacity() {
+            panic!("ModelInstanceSet reached max capacity {}. Cannot exceed.", self.capacity());
+        }
+    }
+}
+
+impl Index<usize> for ModelInstanceSet {
+    type Output = ModelInstance;
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.instances[index]
     }
 }

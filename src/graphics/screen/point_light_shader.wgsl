@@ -118,7 +118,7 @@ fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
     // Computes specular part
     let frag_to_camera = camera.eye - frag_world_pos;
     let h = normalize(frag_to_camera + frag_to_light);
-    let spec = pow(max(dot(h, norm_vec), 0.0), gloss);
+    let spec = pow(max(dot(h, norm_vec), 0.0), gloss*2.0);
     let specular = frag.light_color * specular_col * spec * att;
 
     // Done
