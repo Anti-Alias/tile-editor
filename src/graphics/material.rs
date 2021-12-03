@@ -150,6 +150,7 @@ impl MaterialBuilder {
         if self.diffuse.is_some() { count += 1; }
         if self.specular.is_some() { count += 1; }
         if self.gloss.is_some() { count += 1; }
+        if self.emissive.is_some() { count += 1; }
         if self.normal.is_some() { count += 1; }
         count
     }
@@ -196,6 +197,9 @@ impl MaterialBuilder {
         }
         if let Some(gloss) = self.gloss.as_ref() {
             Self::add_entries(&mut bind_group_entries, gloss);
+        }
+        if let Some(emissive) = self.emissive.as_ref() {
+            Self::add_entries(&mut bind_group_entries, emissive);
         }
         if let Some(normal) = self.normal.as_ref() {
             Self::add_entries(&mut bind_group_entries, normal);

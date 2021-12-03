@@ -159,10 +159,10 @@ fn sample_specular_gloss(in: ModelVertexOut) -> f32 {
     let glossColor = textureSample(gloss_tex, gloss_samp, in.uv);
     let glossGray = (glossColor.r + glossColor.g + glossColor.b)/3.0;
 
-    // Packs specular and gloss into ints
-    let specPacked = pack4x8unorm(specColor) & 0x00FFFFFFu;             // uint (r, g, b, 0)
-    let glossPacked = (u32(glossGray * 255.0) << 24u) & 0xFF000000u;    // uint (0, 0, 0, gloss)
-    return bitcast<f32>(specPacked + glossPacked);                      // Unholy bit casting...
+    // Packs specular and gloss into ints. Mind the endianness :)
+    let specPacked = pack4x8unorm(specColor) & 0x00FFFFFFu;             // uint (spec_r, spec_g, spec_b, 0    )
+    let glossPacked = (u32(glossGray * 255.0) << 24u) & 0xFF000000u;    // uint (0,      0,      0,      gloss)
+    return bitcast<f32>(specPacked + glossPacked);                      // uint (spec_r, spec_g, spec_b, gloss)
 #   else
     return bitcast<f32>(0x01000000);
 #   endif
@@ -171,7 +171,7 @@ fn sample_specular_gloss(in: ModelVertexOut) -> f32 {
 fn sample_emissive(in: ModelVertexOut) -> f32 {
 #   ifdef M_EMISSIVE_MATERIAL_ENABLED
     let emissive = textureSample(emi_tex, emi_samp, in.uv);
-    return bitcast<f32>(pack4x8unorm(emissive)); // Unholy bit casting...
+    return bitcast<f32>(pack4x8unorm(emissive));
 #   else
     return 0.0;
 #   endif
