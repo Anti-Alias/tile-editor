@@ -48,48 +48,22 @@ impl PointLightRenderer {
     }
 
     /// Renders the gbuffer to the screen
-    pub fn render(
-        &self,
-        device: &Device,
-        queue: &Queue,
-        screen: &TextureView,
-        gbuffer: &GBuffer,
-        lights: &LightSet<PointLight>,
-        light_mesh: &LightMesh,
-        camera: &Camera
+    pub fn render<'a>(
+        &'a self,
+        render_pass: &mut RenderPass<'a>,
+        gbuffer: &'a GBuffer,
+        lights: &'a LightSet<PointLight>,
+        light_mesh: &'a LightMesh,
+        camera: &'a Camera
     ) {
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
-        let color_attachments = &[
-            RenderPassColorAttachment {
-                view: screen,
-                resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Clear(Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }),
-                    store: true
-                }
-            }
-        ];
-
-        // Render pass
-        {
-            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: None,
-                color_attachments,
-                depth_stencil_attachment: None
-            });
-            let num_lights = lights.lights.len() as u32;
-            render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
-            render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
-            render_pass.set_vertex_buffer(1, lights.instance_slice());                          // Sets light instance data
-            render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);                           // Sets bind group for GBuffer (collection of textures)
-            render_pass.set_bind_group(1, camera.bind_group(), &[]);                            // Sets bind group for camera
-            render_pass.set_pipeline(&self.pipeline);                                           // Sets pipeline
-            render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_lights)               // Draws!
-        }
-
-        // Submits commands
-        let commands = encoder.finish();
-        queue.submit(std::iter::once(commands));
+        let num_lights = lights.lights.len() as u32;
+        render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
+        render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
+        render_pass.set_vertex_buffer(1, lights.instance_slice());                          // Sets light instance data
+        render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);                           // Sets bind group for GBuffer (collection of textures)
+        render_pass.set_bind_group(1, camera.bind_group(), &[]);                            // Sets bind group for camera
+        render_pass.set_pipeline(&self.pipeline);                                           // Sets pipeline
+        render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_lights);              // Draws!
     }
 
     fn create_module(device: &Device, source: &str) -> ShaderModule {

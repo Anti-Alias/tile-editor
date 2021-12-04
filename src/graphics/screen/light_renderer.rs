@@ -50,45 +50,18 @@ impl LightRenderer {
     }
 
     /// Renders ambient and diffuse lights to the screen using a `GBuffer`.
-    pub fn render(
-        &self,
-        device: &Device,
-        queue: &Queue,
-        screen: &TextureView,
-        gbuffer: &GBuffer,
-        light_bundle: &LightBundle,
-        camera: &Camera
-    ) {
-
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
-        let color_attachments = &[
-            RenderPassColorAttachment {
-                view: screen,
-                resolve_target: None,
-                ops: Operations {
-                    load: LoadOp::Load,
-                    store: true
-                }
-            }
-        ];
-
-        // Render pass
-        {
-            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: None,
-                color_attachments,
-                depth_stencil_attachment: None
-            });
-            render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);
-            render_pass.set_bind_group(1, light_bundle.bind_group(), &[]);
-            render_pass.set_bind_group(2, camera.bind_group(), &[]);
-            render_pass.set_pipeline(&self.pipeline);
-            render_pass.draw(0..6, 0..1);
-        }
-
-        // Submits commands
-        let commands = encoder.finish();
-        queue.submit(std::iter::once(commands));
+    pub fn render<'a>(
+        &'a self,
+        render_pass: &mut RenderPass<'a>,
+        gbuffer: &'a GBuffer,
+        light_bundle: &'a LightBundle,
+        camera: &'a Camera
+    ) where {
+        render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);
+        render_pass.set_bind_group(1, light_bundle.bind_group(), &[]);
+        render_pass.set_bind_group(2, camera.bind_group(), &[]);
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.draw(0..6, 0..1);
     }
 
     fn create_module(device: &Device, source: &str) -> ShaderModule {

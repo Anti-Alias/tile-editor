@@ -6,7 +6,7 @@ fn main() {
         .title("Tile Editor")
         .size(1280, 720)
         .depth_stencil_format(TextureFormat::Depth32Float)
-        .gui_enabled(false)
+        .gui_enabled(true)
         .input_handler(|_app| {})
         .start();
 }
