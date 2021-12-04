@@ -484,10 +484,12 @@ fn create_wood_floor_instance(device: &Device, queue: &Queue) -> ModelInstanceSe
     let diffuse_tex = create_tex_from_file("assets/cubemap/wood_diffuse.png", device, queue, TextureFormat::Rgba8UnormSrgb);
     let specular_tex = create_tex_from_file("assets/cubemap/wood_specular.png", device, queue, TextureFormat::Rgba8UnormSrgb);
     let gloss_tex = create_tex_from_file("assets/cubemap/wood_gloss.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let normal_tex = create_tex_from_file("assets/cubemap/wood_normal.png", device, queue, TextureFormat::Rgba8Unorm);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .specular(specular_tex)
         .gloss(gloss_tex)
+        .normal(normal_tex)
         .build(&device);
 
     // Creates cube model
