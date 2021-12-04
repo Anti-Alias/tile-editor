@@ -50,14 +50,14 @@ impl PointLightRenderer {
     }
 
     /// Renders the gbuffer to the screen
-    pub fn render<'a, 'b>(
+    pub fn render<'a>(
         &'a self,
-        render_pass: &'b mut RenderPass<'a>,
+        render_pass: &mut RenderPass<'a>,
         gbuffer: &'a GBuffer,
         lights: &'a LightSet<PointLight>,
         light_mesh: &'a LightMesh,
         camera: &'a Camera
-    ) where 'a: 'b {
+    ) {
         let num_lights = lights.lights.len() as u32;
         render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
         render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
