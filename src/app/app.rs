@@ -9,14 +9,14 @@ use epi::*;
 use pollster::block_on;
 
 
-use wgpu::{Device, Queue, TextureFormat, SurfaceConfiguration};
+use wgpu::{Device, Queue, TextureFormat, SurfaceConfiguration, CommandEncoderDescriptor, RenderPassDescriptor};
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer};
 use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight};
-use crate::graphics::screen;
+use crate::graphics::screen::Screen;
 
 use crate::gui::{GUI, Editor};
 use crate::graphics::util::Matrix4Ext;
@@ -213,25 +213,27 @@ impl App {
                         false
                     );
 
-                    // Renders point lights to screen using gbuffer
-                    point_light_renderer.render(
-                        &device,
-                        &queue,
-                        &surface_view,
-                        &gbuffer,
-                        &light_bundle.point_lights,
-                        &light_mesh,
-                        &camera
-                    );
+                    // Makes encoder and screen
+                    let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
+                    let screen = Screen::new(surface_view);
 
-                    light_renderer.render(
-                        &device,
-                        &queue,
-                        &surface_view,
-                        &gbuffer,
-                        &light_bundle,
-                        &camera
-                    );
+                    // Renders point, directional and ambient lights
+                    {
+                        let mut screen_render_pass = screen.begin_render_pass(&mut encoder);
+                        point_light_renderer.render(
+                            &mut screen_render_pass,
+                            &gbuffer,
+                            &light_bundle.point_lights,
+                            &light_mesh,
+                            &camera
+                        );
+                        light_renderer.render(
+                            &mut screen_render_pass,
+                            &gbuffer,
+                            &light_bundle,
+                            &camera
+                        );
+                    }
 
                     // Moves lights
                     move_lights(&mut light_bundle, t*2.3);
@@ -248,7 +250,6 @@ impl App {
                         gui.update(&platform.context());
                         let (_output, paint_commands) = platform.end_frame(Some(&window));
                         let paint_jobs = platform.context().tessellate(paint_commands);
-                        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
                         let screen_descriptor = ScreenDescriptor {
                             physical_width: surface_config.width,
                             physical_height: surface_config.height,
@@ -259,15 +260,16 @@ impl App {
                         egui_rpass.update_buffers(&mut device, &mut queue, &paint_jobs, &screen_descriptor);
                         egui_rpass.execute(
                             &mut encoder,
-                            &surface_view,
+                            &screen.view,
                             &paint_jobs,
                             &screen_descriptor,
                             None,
                         ).unwrap();
-                        // Submit the commands.
-                        queue.submit(iter::once(encoder.finish()));
                     }
 
+                    // Submits commands and presents screen
+                    let commands = encoder.finish();
+                    queue.submit(std::iter::once(commands));
                     surface_tex.present();
 
                     // Done with current loop

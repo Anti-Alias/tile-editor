@@ -50,7 +50,28 @@ impl PointLightRenderer {
     }
 
     /// Renders the gbuffer to the screen
-    pub fn render(
+    pub fn render<'a, 'b>(
+        &'a self,
+        render_pass: &'b mut RenderPass<'a>,
+        gbuffer: &'a GBuffer,
+        lights: &'a LightSet<PointLight>,
+        light_mesh: &'a LightMesh,
+        camera: &'a Camera
+    ) where 'a: 'b {
+
+        // Render pass
+        let num_lights = lights.lights.len() as u32;
+        render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
+        render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
+        render_pass.set_vertex_buffer(1, lights.instance_slice());                          // Sets light instance data
+        render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);                           // Sets bind group for GBuffer (collection of textures)
+        render_pass.set_bind_group(1, camera.bind_group(), &[]);                            // Sets bind group for camera
+        render_pass.set_pipeline(&self.pipeline);                                           // Sets pipeline
+        render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_lights);              // Draws!
+    }
+
+    /// Renders the gbuffer to the screen
+    pub fn render_old(
         &self,
         device: &Device,
         queue: &Queue,
