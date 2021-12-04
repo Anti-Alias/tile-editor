@@ -183,8 +183,6 @@ impl App {
 
             match event {
                 RedrawRequested(..) => {
-
-
                     // Gets texture view of surface
                     let surface_tex = match surface.get_current_texture() {
                         Ok(frame) => frame,
@@ -217,7 +215,7 @@ impl App {
                     let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
                     let screen = Screen::new(surface_view);
 
-                    // Renders point, directional and ambient lights
+                    // Draws and moves lights
                     {
                         let mut screen_render_pass = screen.begin_render_pass(&mut encoder);
                         point_light_renderer.render(
@@ -241,7 +239,6 @@ impl App {
 
                     // Moves camera
                     move_camera(&mut camera, 150.0, t, 200.0);
-                    //move_camera(&mut camera, 150.0, 3.0, 200.0);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -267,16 +264,14 @@ impl App {
                         ).unwrap();
                     }
 
-                    // Submits commands and presents screen
+                    // Submits all draw commands and presents screen
                     let commands = encoder.finish();
                     queue.submit(std::iter::once(commands));
                     surface_tex.present();
 
-                    // Done with current loop
-                    *control_flow = ControlFlow::Poll;
-
-                    // Update t
+                    // Finish
                     t += 0.003;
+                    *control_flow = ControlFlow::Poll;
                 }
                 MainEventsCleared => {
                     window.request_redraw();
