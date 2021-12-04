@@ -44,9 +44,7 @@ impl PointLightRenderer {
             gbuffer_bind_group_layout,
             camera_bind_group_layout
         );
-        Self {
-            pipeline,
-        }
+        Self { pipeline }
     }
 
     /// Renders the gbuffer to the screen
