@@ -1,23 +1,23 @@
 use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
-use cgmath::{BaseFloat, Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3};
+use cgmath::{Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3};
 
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use pollster::block_on;
-use rand::rngs::StdRng;
-use rand::SeedableRng;
-use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor, SurfaceConfiguration};
+
+
+use wgpu::{Device, Queue, TextureFormat, SurfaceConfiguration};
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
-use crate::graphics::gbuffer::{GBuffer, ModelEnvironment};
-use crate::graphics::light::{AmbientLight, LightMesh, LightSet, PointLight, LightBundle, DirectionalLight};
+use crate::graphics::gbuffer::{GBuffer};
+use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight};
 use crate::graphics::screen;
-use crate::graphics::screen::ScreenBuffer;
+
 use crate::gui::{GUI, Editor};
 use crate::graphics::util::Matrix4Ext;
 
@@ -130,7 +130,7 @@ impl App {
             size.width as f32,
             size.height as f32
         );
-        let (mut light_bundle, mut light_mesh) = create_lights(&device, &queue);
+        let (mut light_bundle, light_mesh) = create_lights(&device, &queue);
 
         // Creates model-> gbuffer renderer, then primes it
         let mut model_renderer = gbuffer::ModelRenderer::new();
@@ -146,7 +146,7 @@ impl App {
         );
 
         // Creates point_light -> screen renderer
-        let mut point_light_renderer = screen::PointLightRenderer::new(
+        let point_light_renderer = screen::PointLightRenderer::new(
             &device,
             surface_format,
             gbuffer.bind_group_layout(),
@@ -154,7 +154,7 @@ impl App {
         );
 
         // Creates ambient/directional_light -> screen renderer
-        let mut light_renderer = screen::LightRenderer::new(
+        let light_renderer = screen::LightRenderer::new(
             &device,
             surface_format,
             gbuffer.bind_group_layout(),
@@ -402,7 +402,7 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     let mut light_bundle = LightBundle::create(&device, 64, 64, 64);
     let point_lights = &mut light_bundle.point_lights;
     let ambient_lights = &mut light_bundle.ambient_lights;
-    let directional_lights = &mut light_bundle.directional_lights;
+    let _directional_lights = &mut light_bundle.directional_lights;
 
     // Adds point light(s)
     let intensity = 40000.0;

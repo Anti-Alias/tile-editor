@@ -45,6 +45,11 @@ impl Material {
         self.normal.as_ref()
     }
 
+    /// Emissive texture
+    pub fn emissive(&self) -> Option<&Texture> {
+        self.emissive.as_ref()
+    }
+
     /// Bit pattern where each bit determines the presence of a texture in the material.
     /// Bit order starting from LSB: NORMAL, AMBIENT, DIFFUSE, SPECULAR, GLOSS, EMISSIVE.
     /// IE:

@@ -1,8 +1,8 @@
 use std::ops::Index;
 use wgpu::*;
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
+
 use bytemuck::{Pod, Zeroable};
-use cgmath::{InnerSpace, Matrix, Matrix3, Matrix4, SquareMatrix, Transform, Vector3};
+use cgmath::{Matrix, Matrix3, Matrix4, SquareMatrix, Transform, Vector3};
 use crate::graphics::Model;
 
 /// Represents the instance data of a `Model`.

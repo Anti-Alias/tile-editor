@@ -1,10 +1,10 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+
 use wgpu::*;
 use crate::graphics::Camera;
 use crate::graphics::gbuffer::GBuffer;
 use crate::graphics::light::{LightMesh, LightSet, PointLight};
-use crate::graphics::screen::ScreenBuffer;
+
 use crate::graphics::util::string_with_lines;
 
 /// Responsible for rendering point lights to a screen using a `GBuffer`.

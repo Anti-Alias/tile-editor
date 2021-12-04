@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::*;
-use crate::graphics::ModelInstance;
+
 
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Pod, Zeroable)]

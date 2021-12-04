@@ -186,13 +186,6 @@ impl Camera {
         queue.write_buffer(&self.buffer, 0, bytemuck::bytes_of(&raw_data));
     }
 
-    /// Reference to projection-view buffer.
-    /// This buffer is written to on invocations of 'write'.
-    /// To be used in rendering pipelines.
-    pub fn projection_view_buffer(&self) -> &Buffer {
-        self.projection_view_buffer()
-    }
-
     /// Underlying WGPU buffer
     pub fn buffer(&self) -> &Buffer {
         &self.buffer
