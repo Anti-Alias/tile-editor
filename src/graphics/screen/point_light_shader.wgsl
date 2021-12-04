@@ -93,7 +93,7 @@ fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
 
     // Unpacks components from color
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
-    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz);
+    let norm_vec = textureLoad(norm_tex, xy, 0).xyz;
     let color = textureLoad(color_tex, xy, 0);
     let diffuse_bits = bitcast<u32>(color.g);
     let specular_gloss_bits = bitcast<u32>(color.b);
@@ -118,11 +118,12 @@ fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
     // Computes specular part
     let frag_to_camera = camera.eye - frag_world_pos;
     let h = normalize(frag_to_camera + frag_to_light);
-    let spec = pow(max(dot(h, norm_vec), 0.0), gloss*2.0);
+    let spec = pow(max(dot(h, norm_vec), 0.0), gloss);
     let specular = frag.light_color * specular_col * spec * att;
 
     // Done
     return  diffuse + specular;
+    //return norm_vec;
 }
 
 // ------------- Entrypoint -------------

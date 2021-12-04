@@ -103,7 +103,7 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
     // Samples geom
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
     let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;
-    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz);
+    let norm_vec = textureLoad(norm_tex, xy, 0).xyz;
 
     // Samples color and extracts bits
     let color = textureLoad(color_tex, xy, 0);

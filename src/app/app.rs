@@ -234,12 +234,12 @@ impl App {
                     );
 
                     // Moves lights
-                    move_lights(&mut light_bundle, t);
+                    move_lights(&mut light_bundle, t*2.3);
                     light_bundle.flush(&queue);
 
                     // Moves camera
-                    //move_camera(&mut camera, 150.0, t, 200.0);
-                    move_camera(&mut camera, 150.0, 3.0, 200.0);
+                    move_camera(&mut camera, 150.0, t, 200.0);
+                    //move_camera(&mut camera, 150.0, 3.0, 200.0);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -291,7 +291,7 @@ impl App {
                         gbuffer = GBuffer::new(&device, size.width, size.height);
 
                         // Updates camera
-                        update_camera(&mut camera, size.width as f32, size.height as f32);
+                        //update_camera(&mut camera, size.width as f32, size.height as f32);
                     }
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
@@ -387,7 +387,7 @@ fn move_camera(camera: &mut Camera, y: f32, t: f32, rad: f32) {
     let th = t * PI / 2.0;
     camera.move_to(Point3::new(
         f32::cos(th)*rad,
-        y + f32::sin(th)*180.0_f32,
+        f32::sin(th)*rad/2.0 + y,
         f32::sin(th)*rad)
     );
     camera.look_at(Point3::new(0.0, 0.0, 0.0));
@@ -405,22 +405,20 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     let directional_lights = &mut light_bundle.directional_lights;
 
     // Adds point light(s)
-    let intensity = 20000.0;
+    let intensity = 40000.0;
     point_lights.lights.push(PointLight::new(
-        [0.0, 50.0, 150.0],                   // Position
+        [0.0, 100.0, 250.0],                   // Position
         [intensity, intensity, intensity],     // Color
         [1.0, 0.0, 1.0]                        // Attenuation
     ));
     point_lights.compute_radiuses(5.0/256.0);
 
     // Adds directional light(s)
-    let db = 255.0/255.0;
-    /*
-    directional_lights.lights.push(DirectionalLight::new([0.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
-     */
+    //let db = 255.0/255.0;
+    //directional_lights.lights.push(DirectionalLight::new([0.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
 
     // Adds ambient light(s)
-    let ab = 5.0/255.0;
+    let ab = 8.0/255.0;
     ambient_lights.lights.push(AmbientLight::new([ab, ab, ab]));
 
     // Done
@@ -429,14 +427,14 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
 }
 
 
-fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue) -> Texture {
+fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue, format: TextureFormat) -> Texture {
     log::info!("Loading texture '{}'...", file_name);
     use image::io::Reader as ImageReader;
     let img = ImageReader::open(file_name)
         .unwrap()
         .decode()
         .unwrap();
-    let tex = Texture::from_image(device, queue, &img, None);
+    let tex = Texture::from_image(device, queue, &img, format, None);
     log::info!("Finished loading texture '{}'...", file_name);
     tex
 }
@@ -444,13 +442,17 @@ fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue) -> Text
 fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Creates texture from image
-    let diffuse_tex = create_tex_from_file("assets/cubemap/diffuse.png", device, queue);
-    let emissive_tex = create_tex_from_file("assets/cubemap/emissive.png", device, queue);
-    let normal_tex = create_tex_from_file("assets/cubemap/normal.png", device, queue);
+    let diffuse_tex = create_tex_from_file("assets/cubemap/diffuse.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let emissive_tex = create_tex_from_file("assets/cubemap/emissive.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let normal_tex = create_tex_from_file("assets/cubemap/normal.png", device, queue, TextureFormat::Rgba8Unorm);
+    let specular_tex = create_tex_from_file("assets/cubemap/specular.png", device, queue, TextureFormat::Rgba8Unorm);
+    let gloss_tex = create_tex_from_file("assets/cubemap/gloss.png", device, queue, TextureFormat::Rgba8Unorm);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .emissive(emissive_tex)
         .normal(normal_tex)
+        .specular(specular_tex)
+        .gloss(gloss_tex)
         .build(&device);
 
     // Creates cube model
@@ -467,7 +469,7 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
         .push(ModelInstance::new(Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))))
         .push(ModelInstance::new(Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))))
         .push(ModelInstance::new(Matrix4::identity()
-            .translate(Vector3::new(0.0, 70.0, 0.0))
+            .translate(Vector3::new(0.0, 100.0, 0.0))
             .rotate_degrees(Vector3::new(1.0, 0.0, 0.0).normalize(), 45.0)
             .rotate_degrees(Vector3::new(0.0, 0.0, 1.0).normalize(), 45.0)
             .into()
@@ -479,9 +481,9 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 fn create_wood_floor_instance(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Creates texture from image
-    let diffuse_tex = create_tex_from_file("assets/cubemap/wood_diffuse.png", device, queue);
-    let specular_tex = create_tex_from_file("assets/cubemap/wood_specular.png", device, queue);
-    let gloss_tex = create_tex_from_file("assets/cubemap/wood_gloss.png", device, queue);
+    let diffuse_tex = create_tex_from_file("assets/cubemap/wood_diffuse.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let specular_tex = create_tex_from_file("assets/cubemap/wood_specular.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let gloss_tex = create_tex_from_file("assets/cubemap/wood_gloss.png", device, queue, TextureFormat::Rgba8UnormSrgb);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .specular(specular_tex)

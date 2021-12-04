@@ -232,7 +232,7 @@ impl Mesh {
                 position: [0.5, -0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
                 tangent: [-1.0, 0.0, 0.0],
-                bitangent: [0.0, 1.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x3, y2]
             },
@@ -240,7 +240,7 @@ impl Mesh {
                 position: [-0.5, -0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
                 tangent: [-1.0, 0.0, 0.0],
-                bitangent: [0.0, 1.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x4, y2]
             },
@@ -248,7 +248,7 @@ impl Mesh {
                 position: [-0.5, 0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
                 tangent: [-1.0, 0.0, 0.0],
-                bitangent: [0.0, 1.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x4, y1]
             },
@@ -256,7 +256,7 @@ impl Mesh {
                 position: [0.5, 0.5, -0.5],
                 normal: [0.0, 0.0, -1.0],
                 tangent: [-1.0, 0.0, 0.0],
-                bitangent: [0.0, 1.0, 1.0],
+                bitangent: [0.0, 1.0, 0.0],
                 color: rgba,
                 uv: [x3, y1]
             },

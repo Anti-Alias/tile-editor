@@ -116,9 +116,9 @@ fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
     );
     let model_pos = model_mat * vec4<f32>(vertex.position, 1.0);
     let position = camera.proj_view * model_pos;
-    let normal = norm_mat * vertex.normal;
-    let tangent = norm_mat * vertex.tangent;
-    let bitangent = norm_mat * vertex.bitangent;
+    let normal = normalize(norm_mat * vertex.normal);
+    let tangent = normalize(norm_mat * vertex.tangent);
+    let bitangent = normalize(norm_mat * vertex.bitangent);
     return ModelVertexOut(
        position,
        model_pos,
@@ -155,7 +155,7 @@ fn sample_diffuse(in: ModelVertexOut) -> f32 {
     let diffuse = in.color * textureSample(diff_tex, diff_samp, in.uv);
     return bitcast<f32>(pack4x8unorm(diffuse));  // Unholy bit casting...
 #   else
-    return 0.0;
+    return bitcast<f32>(0xFFFFFFFFu);
 #   endif
 }
 
@@ -185,14 +185,14 @@ fn sample_emissive(in: ModelVertexOut) -> f32 {
 #   endif
 }
 
-fn sample_normal(in: ModelVertexOut, normal: vec3<f32>, tangent: vec3<f32>, bitangent: vec3<f32>) -> vec3<f32> {
+fn sample_normal(in: ModelVertexOut) -> vec3<f32> {
 #   ifdef M_NORMAL_MATERIAL_ENABLED
+    let norm_texel = textureSample(norm_tex, norm_samp, in.uv).rgb * 2.0 - 1.0;
     let tbn = mat3x3<f32>(in.tangent, in.bitangent, in.normal);
-    var norm_texel = textureSample(norm_tex, norm_samp, in.uv).xyz * 2.0 - vec3<f32>(1.0, 1.0, 1.0);
-    norm_texel.z = clamp(norm_texel.z, 0.0, 1.0);
-    return tbn * norm_texel;
+    return normalize(tbn * norm_texel);
 #   else
-    return normal;
+    let tbn = mat3x3<f32>(in.tangent, in.bitangent, in.normal);
+    return normalize(tbn[2]);
 #   endif
 }
 
@@ -204,7 +204,6 @@ fn main(in: ModelVertexOut) -> ColorTargetOut {
 
     // Variables to write out to color targets
     let position = in.model_position;               // X, Y, Z, <unused>
-    let face_normal = vec4<f32>(in.normal, 1.0);    // X, Y, Z, <unused>
     var color = vec4<f32>(0.0);                     // ambient(rgba), diffuse(rgba), specular(red, green, blue, gloss), emissive(rgba)
 
     // Sample from textures and write encoded value to color
@@ -212,7 +211,7 @@ fn main(in: ModelVertexOut) -> ColorTargetOut {
     color.g = sample_diffuse(in);
     color.b = sample_specular_gloss(in);
     color.a = sample_emissive(in);
-    let normal = sample_normal(in, in.normal, in.tangent, in.bitangent);
+    let normal = sample_normal(in);
 
     // Outputs variables to color targets
     return ColorTargetOut(
