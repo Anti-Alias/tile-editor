@@ -183,8 +183,10 @@ impl App {
             // Pass the winit events to the platform integration.
             platform.handle_event(&event);
 
+
             match event {
                 RedrawRequested(..) => {
+
                     // Gets texture view of surface
                     let surface_tex = match surface.get_current_texture() {
                         Ok(frame) => frame,
@@ -194,28 +196,25 @@ impl App {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
 
-                    // Renders models to gbuffer
-                    camera.flush(&queue);
-                    model_renderer.render(
-                        &device,
-                        &queue,
-                        &model_instances,
-                        &camera,
-                        &gbuffer,
-                        true
-                    );
-                    model_renderer.render(
-                        &device,
-                        &queue,
-                        &floor_instance,
-                        &camera,
-                        &gbuffer,
-                        false
-                    );
-
                     // Makes encoder and screen
                     let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
                     let screen = Screen::new(surface_view);
+
+                    // Renders models to gbuffer
+                    {
+                        let mut render_pass = gbuffer.begin_render_pass(&mut encoder, true);
+                        camera.flush(&queue);
+                        model_renderer.render(
+                            &mut render_pass,
+                            &model_instances,
+                            &camera
+                        );
+                        model_renderer.render(
+                            &mut render_pass,
+                            &floor_instance,
+                            &camera
+                        );
+                    }
 
                     // Draws and moves lights
                     {

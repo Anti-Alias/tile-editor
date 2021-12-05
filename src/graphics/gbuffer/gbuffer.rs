@@ -94,6 +94,14 @@ impl GBuffer {
         }
     }
 
+    pub fn begin_render_pass<'a>(&'a self, encoder: &'a mut CommandEncoder, clear: bool) -> RenderPass<'a> {
+        encoder.begin_render_pass(&RenderPassDescriptor {
+            label: Some("GBuffer Render Pass"),
+            color_attachments: &self.color_attachments(clear),
+            depth_stencil_attachment: Some(self.depth_stencil_attachment(clear))
+        })
+    }
+
     /// Resizes all of the textures in the gbuffer to conform to a new size
     pub fn resize(&mut self, device: &Device, width: u32, height: u32) {
         *self = GBuffer::new(device, width, height);

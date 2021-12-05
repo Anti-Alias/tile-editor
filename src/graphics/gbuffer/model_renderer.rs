@@ -34,45 +34,12 @@ impl ModelRenderer {
     /// * `queue` - Queue to encode draw commands
     /// * `gbuffer` - GBuffer to draw to
     /// * `pipeline_provider` Provider of `RenderPipeline` objects
-    pub fn render(
-        &self,
-        device: &Device,
-        queue: &Queue,
-        instances: &ModelInstanceSet,
-        camera: &Camera,
-        gbuffer: &GBuffer,
-        clear: bool
-    ) {
-
-        // Creates encoder
-        let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor {
-            label: Some("ModelRenderer encoder")
-        });
-
-        // Begins render pass with gbuffer's attachments
-        {
-            let mut render_pass = encoder.begin_render_pass(&RenderPassDescriptor {
-                label: Some("Model Renderer Render Pass"),
-                color_attachments: &gbuffer.color_attachments(clear),
-                depth_stencil_attachment: Some(gbuffer.depth_stencil_attachment(clear))
-            });
-
-            // Draws all meshes within the model using render pass
-            self.render_with_render_pass(&mut render_pass, instances, camera);
-        }
-
-        // Gets commands and writes them to queue
-        let commands = encoder.finish();
-        queue.submit(std::iter::once(commands));
-    }
-
-    fn render_with_render_pass<'a, 'b>(
+    pub fn render<'a>(
         &'a self,
-        render_pass: &mut RenderPass<'b>,
-        instances: &'b ModelInstanceSet,
-        camera: &'b Camera
-    ) where 'a: 'b {
-
+        render_pass: &mut RenderPass<'a>,
+        instances: &'a ModelInstanceSet,
+        camera: &'a Camera
+    ) {
         // Unpacks environment
         let model = &instances.model;
 
