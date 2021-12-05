@@ -1,7 +1,7 @@
 use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
-use cgmath::{Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3};
+use cgmath::{Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3, VectorSpace};
 
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
@@ -247,11 +247,11 @@ impl App {
                     }
 
                     // Moves lights
-                    //move_lights(&mut light_bundle, t*1.414);
+                    move_lights(&mut light_bundle, 150.0, t*1.414);
                     light_bundle.flush(&queue);
 
                     // Moves camera
-                    move_camera(&mut camera, 150.0, t, 400.0);
+                    move_camera(&mut camera, 150.0, t, 300.0);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -382,14 +382,13 @@ fn update_camera(camera: &mut Camera, width: f32, height: f32) {
     });
 }
 
-fn move_lights(light_bundle: &mut LightBundle, t: f32) {
-    let rad = 200.0;
+fn move_lights(light_bundle: &mut LightBundle, radius: f32, t: f32) {
     let point_lights = &mut light_bundle.point_lights;
     for (i, light) in point_lights.lights.iter_mut().enumerate() {
         let theta = PI * t / (i+1) as f32;
         let light_pos = &mut light.position;
-        light_pos[0] = f32::cos(theta / 2.0) * rad;
-        light_pos[2] = f32::sin(theta / 2.0) * rad;
+        light_pos[0] = f32::cos(theta / 2.0) * radius;
+        light_pos[2] = f32::sin(theta / 2.0) * radius;
     }
 }
 
