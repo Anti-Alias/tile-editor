@@ -170,14 +170,3 @@ impl Index<usize> for ModelInstanceSet {
         &self.instances[index]
     }
 }
-
-/// Represents a reference to a `ModelInstanceSet` that flushes it when disposed of.
-pub struct ModelView<'a, 'b> {
-    pub instances: &'a mut ModelInstanceSet,
-    pub(crate) queue: &'b Queue
-}
-impl<'a, 'b> Drop for ModelView<'a, 'b> {
-    fn drop(&mut self) {
-        self.instances.flush(self.queue);
-    }
-}

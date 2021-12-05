@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use wgpu::{Device, Queue, SurfaceConfiguration};
 use crate::graphics::light::{LightBundle, LightSet, PointLight};
-use crate::graphics::{Camera, Model, ModelInstance, ModelInstanceSet, ModelView};
+use crate::graphics::{Camera, Model, ModelInstance, ModelInstanceSet};
 use crate::graphics::gbuffer::{GBuffer, ModelRenderer};
 use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer};
 
@@ -31,14 +31,16 @@ pub struct SceneConfig {
 
 /// Represents a set
 pub struct Scene {
-    models: Vec<ModelInstanceSet>,
-    light_bundle: LightBundle,
-    camera: Camera,
-    gbuffer: GBuffer,
-    light_renderer: LightRenderer,
-    model_renderer: ModelRenderer,
-    point_light_renderer: PointLightRenderer,
-    point_light_debug_renderer: Option<PointLightDebugRenderer>
+    sequence: u32,                                                  // Sequence used for generating "handles"
+    models: Vec<ModelInstanceSet>,                                  // All models with their respective instances
+    model_handles: Vec<ModelHandle>,                                // Parallel array to `models`
+    light_bundle: LightBundle,                                      // Ambient, directional and point lights in one bundle
+    camera: Camera,                                                 // Camera of the scene
+    gbuffer: GBuffer,                                               // GBuffer used for deferred rendering
+    light_renderer: LightRenderer,                                  // Renders ambient and directional lights while sampling from gbuffer
+    model_renderer: ModelRenderer,                                  // Renders models to the gbuffer
+    point_light_renderer: PointLightRenderer,                       // Renders point lights while sampling from gbuffer
+    point_light_debug_renderer: Option<PointLightDebugRenderer>     // Optional debug renderer that renders the point lights themselves. Helps figuring out where point lights are in space.
 }
 
 impl Scene {
@@ -91,7 +93,9 @@ impl Scene {
 
         // Done
         Self {
+            sequence: 0,
             models: Vec::new(),
+            model_handles: Vec::new(),
             light_bundle,
             camera,
             gbuffer,
@@ -102,14 +106,100 @@ impl Scene {
         }
     }
 
-    pub fn model_view<'a, 'b>(&'a mut self, index: usize, queue: &'b Queue) -> ModelView<'a, 'b> {
+    /// Adds a model to the scene.
+    /// Keep in mind that this is likely to result in a pipeline build and is considered expensive.
+    /// Should be done upfront.
+    pub fn add_model(&mut self, device: &Device, model: Model, max_instances: usize) -> ModelHandle {
+        self.add_model_and_instances(device, ModelInstanceSet::new(device, model, max_instances))
+    }
+
+    /// Adds a model and its instances to the scene.
+    /// Keep in mind that this is likely to result in a pipeline build and is considered expensive.
+    /// Should be done upfront.
+    pub fn add_model_and_instances(&mut self, device: &Device, instances: ModelInstanceSet) -> ModelHandle {
+        self.model_renderer.prime(device, &instances.model, self.camera.bind_group_layout());
+        self.models.push(instances);
+        let handle = self.sequence;
+        self.model_handles.push(handle);
+        self.sequence += 1;
+        handle
+    }
+
+    /// Removes a particular model.
+    pub fn remove_model(&mut self, handle: ModelHandle) -> ModelInstanceSet {
+        let index = self.model_handles.binary_search(&handle).expect("Could not find model with handle");
+        self.model_handles.remove(index);
+        self.models.remove(index)
+    }
+
+    /// Retrieves a view of all `ModelInstanceSet`s
+    pub fn model_instances<'a>(&'a mut self, queue: &'a Queue, handle: ModelHandle) -> impl View<'a, ModelInstanceSet> {
+        let index = self.model_handles.binary_search(&handle).expect("Could not find model with handle");
+        let instance_set = &mut self.models[index];
         ModelView {
-            instances: &mut self.models[index],
+            resource: instance_set,
             queue
         }
     }
 
-    pub fn light_view<'a, 'b>(&'a mut self, queue: &'b Queue) -> LightView<'a, 'b> {
-        todo!()
+    /// Retrieves view of the scene's `LightBundle`.
+    pub fn lights<'a>(&'a mut self, queue: &'a Queue) -> impl View<'a, LightBundle> {
+        LightView {
+            queue,
+            resource: &mut self.light_bundle
+        }
+    }
+
+
+    /// Renders this scene
+    pub fn render(&mut self, queue: &Queue) {
+
+        // Flushes resources
+        self.camera.flush(queue);
+        self.models.iter_mut().for_each(|set| set.flush(queue));
+        self.light_bundle.flush(queue);
+
+        // Renders
+        self.model_renderer.render()
+    }
+}
+
+/// Represents a view on some underlying resource.
+/// When this view is "dropped", the underlying resource should be flushed.
+pub trait View<'a, T>: Drop {
+    fn resource(&'a mut self) -> &'a mut T;
+}
+
+
+
+// -------------------- Model view --------------------
+struct ModelView<'a> {
+    queue: &'a Queue,
+    resource: &'a mut ModelInstanceSet
+}
+impl<'a> View<'a, ModelInstanceSet> for ModelView<'a> {
+    fn resource(&'a mut self) -> &'a mut ModelInstanceSet {
+        self.resource
+    }
+}
+impl<'a> Drop for ModelView<'a> {
+    fn drop(&mut self) {
+        self.resource.flush(self.queue);
+    }
+}
+
+// -------------------- Light view --------------------
+struct LightView<'a> {
+    queue: &'a Queue,
+    resource: &'a mut LightBundle
+}
+impl<'a> View<'a, LightBundle> for LightView<'a> {
+    fn resource(&'a mut self) -> &'a mut LightBundle {
+        self.resource
+    }
+}
+impl<'a> Drop for LightView<'a> {
+    fn drop(&mut self) {
+        self.resource.flush(self.queue);
     }
 }
