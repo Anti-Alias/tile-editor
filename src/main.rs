@@ -4,9 +4,8 @@ use tile_editor::app::App;
 fn main() {
     App::new()
         .title("Tile Editor")
-        .size(640, 480)
-        .depth_stencil_format(TextureFormat::Depth32Float)
+        .size(1280, 720)
         .gui_enabled(false)
-        .input_handler(|app| {})
+        .input_handler(|_app| {})
         .start();
 }

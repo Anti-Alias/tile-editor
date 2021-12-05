@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use wgpu::{Device, ShaderModule, ShaderModuleDescriptor, ShaderSource};
 use crate::graphics::{Material};
-use crate::graphics::gbuffer::GBuffer;
+
 use crate::graphics::util::string_with_lines;
 
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
@@ -112,7 +112,7 @@ impl ModelShaderProvider {
             macros.insert(String::from("M_EMISSIVE_TEXTURE_BINDING"), String::from(current_binding.to_string()));
             current_binding += 1;
             macros.insert(String::from("M_EMISSIVE_SAMPLER_BINDING"), String::from(current_binding.to_string()));
-            current_binding += 1;
+            //current_binding += 1;
         }
 
         // ----------- GBuffer macros -----------

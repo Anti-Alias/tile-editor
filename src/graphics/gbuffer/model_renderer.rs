@@ -13,8 +13,6 @@ impl ModelRenderer {
     // Helpful local constants
     const VERTEX_BUFFER_SLOT: u32 = 0;
     const INSTANCE_BUFFER_SLOT: u32 = 1;
-    const DIFFUSE_TEX_BIND_GROUP: u32 = 0;
-    const NORMAL_TEX_BIND_GROUP: u32 = 1;
 
     /// Creates a `ModelRenderer` with a default shader
     pub fn new() -> ModelRenderer {

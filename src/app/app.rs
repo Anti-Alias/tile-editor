@@ -1,23 +1,23 @@
 use std::f32::consts::PI;
 use std::iter;
 use std::time::Instant;
-use cgmath::{BaseFloat, Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3};
+use cgmath::{Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3, VectorSpace};
 
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use pollster::block_on;
-use rand::rngs::StdRng;
-use rand::SeedableRng;
-use wgpu::{Device, Queue, TextureFormat, TextureViewDescriptor, SurfaceConfiguration};
+
+
+use wgpu::{Device, Queue, TextureFormat, SurfaceConfiguration, CommandEncoderDescriptor, RenderPassDescriptor};
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
-use crate::graphics::gbuffer::{GBuffer, ModelEnvironment};
-use crate::graphics::light::{AmbientLight, LightMesh, LightSet, PointLight, LightBundle, DirectionalLight};
-use crate::graphics::screen;
-use crate::graphics::screen::ScreenBuffer;
+use crate::graphics::gbuffer::{GBuffer};
+use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight};
+use crate::graphics::screen::Screen;
+
 use crate::gui::{GUI, Editor};
 use crate::graphics::util::Matrix4Ext;
 
@@ -27,7 +27,6 @@ pub struct App {
     title: String,
     width: u32,
     height: u32,
-    depth_stencil_format: TextureFormat,
     is_ui_enabled: bool,
     input_handler: Option<Box<dyn FnMut(App)>>
 }
@@ -39,7 +38,6 @@ impl App {
             title: String::from("App"),
             width: 640,
             height: 480,
-            depth_stencil_format: TextureFormat::Depth32Float,
             is_ui_enabled: true,
             input_handler: None
         }
@@ -125,7 +123,7 @@ impl App {
             size.width as f32,
             size.height as f32
         );
-        let (mut light_bundle, mut light_mesh) = create_lights(&device, &queue);
+        let (mut light_bundle, light_mesh) = create_lights(&device, &queue);
 
         // Creates model-> gbuffer renderer, then primes it
         let mut model_renderer = gbuffer::ModelRenderer::new();
@@ -141,7 +139,7 @@ impl App {
         );
 
         // Creates point_light -> screen renderer
-        let mut point_light_renderer = screen::PointLightRenderer::new(
+        let point_light_renderer = screen::PointLightRenderer::new(
             &device,
             surface_format,
             gbuffer.bind_group_layout(),
@@ -149,11 +147,20 @@ impl App {
         );
 
         // Creates ambient/directional_light -> screen renderer
-        let mut light_renderer = screen::LightRenderer::new(
+        let light_renderer = screen::LightRenderer::new(
             &device,
             surface_format,
             gbuffer.bind_group_layout(),
             light_bundle.bind_group_layout(),
+            camera.bind_group_layout()
+        );
+
+        // Creates point light debug renderer
+        let point_light_debug_renderer = screen::PointLightDebugRenderer::new(
+            &device,
+            5.0,
+            surface_format,
+            GBuffer::DEPTH_STENCIL_FORMAT,
             camera.bind_group_layout()
         );
 
@@ -178,8 +185,6 @@ impl App {
 
             match event {
                 RedrawRequested(..) => {
-
-
                     // Gets texture view of surface
                     let surface_tex = match surface.get_current_texture() {
                         Ok(frame) => frame,
@@ -208,34 +213,45 @@ impl App {
                         false
                     );
 
-                    // Renders point lights to screen using gbuffer
-                    point_light_renderer.render(
-                        &device,
-                        &queue,
-                        &surface_view,
-                        &gbuffer,
-                        &light_bundle.point_lights,
-                        &light_mesh,
-                        &camera
-                    );
+                    // Makes encoder and screen
+                    let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
+                    let screen = Screen::new(surface_view);
 
-                    light_renderer.render(
-                        &device,
-                        &queue,
-                        &surface_view,
-                        &gbuffer,
-                        &light_bundle,
-                        &camera
-                    );
+                    // Draws and moves lights
+                    {
+                        let mut render_pass = screen.begin_render_pass(&mut encoder);
+                        point_light_renderer.render(
+                            &mut render_pass,
+                            &gbuffer,
+                            &light_bundle.point_lights,
+                            &light_mesh,
+                            &camera
+                        );
+                        light_renderer.render(
+                            &mut render_pass,
+                            &gbuffer,
+                            &light_bundle,
+                            &camera
+                        );
+                    }
+
+                    // Draws debug lights
+                    {
+                        let mut render_pass = screen.begin_render_pass_with_depth(gbuffer.depth_stencil_view(), &mut encoder);
+                        point_light_debug_renderer.render(
+                            &mut render_pass,
+                            &light_bundle.point_lights,
+                            &light_mesh,
+                            &camera
+                        );
+                    }
 
                     // Moves lights
-                    //move_lights(&mut light_bundle, 0.0);
+                    move_lights(&mut light_bundle, 150.0, t*1.414);
                     light_bundle.flush(&queue);
 
                     // Moves camera
-                    move_camera(&mut camera, 150.0, -t);
-                    //move_camera(&mut camera, 150.0, 1.5);
-
+                    move_camera(&mut camera, 150.0, t, 300.0);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -244,7 +260,6 @@ impl App {
                         gui.update(&platform.context());
                         let (_output, paint_commands) = platform.end_frame(Some(&window));
                         let paint_jobs = platform.context().tessellate(paint_commands);
-                        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
                         let screen_descriptor = ScreenDescriptor {
                             physical_width: surface_config.width,
                             physical_height: surface_config.height,
@@ -255,22 +270,21 @@ impl App {
                         egui_rpass.update_buffers(&mut device, &mut queue, &paint_jobs, &screen_descriptor);
                         egui_rpass.execute(
                             &mut encoder,
-                            &surface_view,
+                            &screen.view,
                             &paint_jobs,
                             &screen_descriptor,
                             None,
                         ).unwrap();
-                        // Submit the commands.
-                        queue.submit(iter::once(encoder.finish()));
                     }
 
+                    // Submits all draw commands and presents screen
+                    let commands = encoder.finish();
+                    queue.submit(std::iter::once(commands));
                     surface_tex.present();
 
-                    // Done with current loop
-                    *control_flow = ControlFlow::Poll;
-
-                    // Update t
+                    // Finish
                     t += 0.003;
+                    *control_flow = ControlFlow::Poll;
                 }
                 MainEventsCleared => {
                     window.request_redraw();
@@ -287,7 +301,7 @@ impl App {
                         gbuffer = GBuffer::new(&device, size.width, size.height);
 
                         // Updates camera
-                        update_camera(&mut camera, size.width as f32, size.height as f32);
+                        //update_camera(&mut camera, size.width as f32, size.height as f32);
                     }
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
@@ -300,7 +314,7 @@ impl App {
     }
 }
 
-const CAM_NEAR: f32 = 1.0;
+const CAM_NEAR: f32 = 2.0;
 const CAM_FAR: f32 = 8000.0;
 const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
 
@@ -368,23 +382,21 @@ fn update_camera(camera: &mut Camera, width: f32, height: f32) {
     });
 }
 
-fn move_lights(light_bundle: &mut LightBundle, t: f32) {
-    let rad = 200.0;
+fn move_lights(light_bundle: &mut LightBundle, radius: f32, t: f32) {
     let point_lights = &mut light_bundle.point_lights;
     for (i, light) in point_lights.lights.iter_mut().enumerate() {
         let theta = PI * t / (i+1) as f32;
         let light_pos = &mut light.position;
-        light_pos[0] = f32::cos(theta / 2.0) * rad;
-        light_pos[2] = f32::sin(theta / 2.0) * rad;
+        light_pos[0] = f32::cos(theta / 2.0) * radius;
+        light_pos[2] = f32::sin(theta / 2.0) * radius;
     }
 }
 
-fn move_camera(camera: &mut Camera, y: f32, t: f32) {
-    let rad = 300.0_f32;
+fn move_camera(camera: &mut Camera, y: f32, t: f32, rad: f32) {
     let th = t * PI / 2.0;
     camera.move_to(Point3::new(
         f32::cos(th)*rad,
-        y + f32::sin(th)*180.0_f32,
+        f32::sin(th)*rad/2.0 + y,
         f32::sin(th)*rad)
     );
     camera.look_at(Point3::new(0.0, 0.0, 0.0));
@@ -399,25 +411,23 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
     let mut light_bundle = LightBundle::create(&device, 64, 64, 64);
     let point_lights = &mut light_bundle.point_lights;
     let ambient_lights = &mut light_bundle.ambient_lights;
-    let directional_lights = &mut light_bundle.directional_lights;
+    let _directional_lights = &mut light_bundle.directional_lights;
 
     // Adds point light(s)
-    let intensity = 32000.0;
+    let intensity = 40000.0;
     point_lights.lights.push(PointLight::new(
-        [0.0, 160.0, 150.0],                   // Position
-        [intensity, intensity, intensity],      // Color
-        [1.0, 0.0, 1.0]                         // Attenuation
+        [0.0, 100.0, 250.0],                   // Position
+        [intensity, intensity, intensity],     // Color
+        [1.0, 0.0, 1.0]                        // Attenuation
     ));
     point_lights.compute_radiuses(5.0/256.0);
 
     // Adds directional light(s)
-    let db = 255.0/255.0;
-    /*
-    directional_lights.lights.push(DirectionalLight::new([0.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
-     */
+    //let db = 255.0/255.0;
+    //directional_lights.lights.push(DirectionalLight::new([0.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
 
     // Adds ambient light(s)
-    let ab = 5.0/255.0;
+    let ab = 8.0/255.0;
     ambient_lights.lights.push(AmbientLight::new([ab, ab, ab]));
 
     // Done
@@ -426,14 +436,14 @@ fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
 }
 
 
-fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue) -> Texture {
+fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue, format: TextureFormat) -> Texture {
     log::info!("Loading texture '{}'...", file_name);
     use image::io::Reader as ImageReader;
     let img = ImageReader::open(file_name)
         .unwrap()
         .decode()
         .unwrap();
-    let tex = Texture::from_image(device, queue, &img, None);
+    let tex = Texture::from_image(device, queue, &img, format, None);
     log::info!("Finished loading texture '{}'...", file_name);
     tex
 }
@@ -441,11 +451,17 @@ fn create_tex_from_file(file_name: &str, device: &Device, queue: &Queue) -> Text
 fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Creates texture from image
-    let diffuse_tex = create_tex_from_file("assets/cubemap/diffuse.png", device, queue);
-    //let specular_tex = create_tex_from_file("assets/cubemap/specular.png", device, queue);
+    let diffuse_tex = create_tex_from_file("assets/cubemap/diffuse.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let emissive_tex = create_tex_from_file("assets/cubemap/emissive.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let normal_tex = create_tex_from_file("assets/cubemap/normal.png", device, queue, TextureFormat::Rgba8Unorm);
+    let specular_tex = create_tex_from_file("assets/cubemap/specular.png", device, queue, TextureFormat::Rgba8Unorm);
+    let gloss_tex = create_tex_from_file("assets/cubemap/gloss.png", device, queue, TextureFormat::Rgba8Unorm);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
-        //.specular(specular_tex)
+        .emissive(emissive_tex)
+        .normal(normal_tex)
+        .specular(specular_tex)
+        .gloss(gloss_tex)
         .build(&device);
 
     // Creates cube model
@@ -462,7 +478,7 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
         .push(ModelInstance::new(Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))))
         .push(ModelInstance::new(Matrix4::identity().translate(Vector3::new(-100.0, 0.0, 0.0))))
         .push(ModelInstance::new(Matrix4::identity()
-            .translate(Vector3::new(0.0, 70.0, 0.0))
+            .translate(Vector3::new(0.0, 100.0, 0.0))
             .rotate_degrees(Vector3::new(1.0, 0.0, 0.0).normalize(), 45.0)
             .rotate_degrees(Vector3::new(0.0, 0.0, 1.0).normalize(), 45.0)
             .into()
@@ -474,13 +490,15 @@ fn create_model_instances(device: &Device, queue: &Queue) -> ModelInstanceSet {
 fn create_wood_floor_instance(device: &Device, queue: &Queue) -> ModelInstanceSet {
 
     // Creates texture from image
-    let diffuse_tex = create_tex_from_file("assets/cubemap/wood_diffuse.png", device, queue);
-    let specular_tex = create_tex_from_file("assets/cubemap/wood_specular.png", device, queue);
-    let gloss_tex = create_tex_from_file("assets/cubemap/wood_gloss.png", device, queue);
+    let diffuse_tex = create_tex_from_file("assets/cubemap/wood_diffuse.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let specular_tex = create_tex_from_file("assets/cubemap/wood_specular.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let gloss_tex = create_tex_from_file("assets/cubemap/wood_gloss.png", device, queue, TextureFormat::Rgba8UnormSrgb);
+    let normal_tex = create_tex_from_file("assets/cubemap/wood_normal.png", device, queue, TextureFormat::Rgba8Unorm);
     let material = MaterialBuilder::new()
         .diffuse(diffuse_tex)
         .specular(specular_tex)
         .gloss(gloss_tex)
+        .normal(normal_tex)
         .build(&device);
 
     // Creates cube model

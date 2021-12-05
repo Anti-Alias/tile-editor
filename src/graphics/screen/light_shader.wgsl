@@ -100,20 +100,26 @@ fn main(
 [[stage(fragment)]]
 fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
 
-    // Samples from GBuffer
+    // Samples geom
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));
-    let norm_vec = normalize(textureLoad(norm_tex, xy, 0).xyz);
+    let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;
+    let norm_vec = textureLoad(norm_tex, xy, 0).xyz;
+
+    // Samples color and extracts bits
     let color = textureLoad(color_tex, xy, 0);
     let diffuse_bits = bitcast<u32>(color.g);
     let specular_gloss_bits = bitcast<u32>(color.b);
+    let emissive_bits = bitcast<u32>(color.a);
+
+    // Unpacks bits
+    let diffuse_col = unpack4x8unorm(diffuse_bits).rgb;
     let specular_bits = specular_gloss_bits & 0x00FFFFFFu;
     let gloss_bits = (specular_gloss_bits & 0xFF000000u) >> 24u;
-    let diffuse_col = unpack4x8unorm(diffuse_bits).rgb;
     let specular_col = unpack4x8unorm(specular_bits).rgb;
     let gloss = f32(gloss_bits);
-    let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;
+    let emissive = unpack4x8unorm(emissive_bits).rgb;
 
-    // Accumulates lights
+    // Adds directional lights with specular component
     var light_sum = vec3<f32>(0.0);
     var spec_sum = vec3<f32>(0.0);
     let frag_world_pos = textureLoad(pos_tex, xy, 0).xyz;       // Position of fragment
@@ -128,8 +134,10 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
 
         // Computes specular part
         let h = normalize(light_vec + view_vec);
-        let dot = dot(h, norm_vec);
-        let spec = pow(max(dot, 0.0), gloss);
+        var spec = 0.0;
+        if(dot(light_vec, norm_vec) > 0.0) {
+            spec = pow(max(dot(h, norm_vec), 0.0), gloss*4.0);
+        }
 
         // Adds to sum
         spec_sum = spec_sum + light.color * specular_col * spec;
@@ -141,6 +149,6 @@ fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
         light_sum = light_sum + light.color;
     }
 
-    // Adds emissive light
-    return vec4<f32>(diffuse_col*light_sum + spec_sum, 1.0);
+    // Returns combination of lights with emission
+    return vec4<f32>(diffuse_col*light_sum + spec_sum + emissive, 1.0);
 }

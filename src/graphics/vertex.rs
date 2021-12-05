@@ -40,6 +40,8 @@ impl Color {
 pub struct ModelVertex {
     pub position: [f32; 3],
     pub normal: [f32; 3],
+    pub tangent: [f32; 3],
+    pub bitangent: [f32; 3],
     pub color: [f32; 4],
     pub uv: [f32; 2]
 }
@@ -62,16 +64,28 @@ impl Vertex for ModelVertex {
                     shader_location: 1,
                     format: VertexFormat::Float32x3
                 },
-                // Color (r, g, b, a)
+                // Tangent (x, y, z)
                 VertexAttribute {
                     offset: std::mem::size_of::<[f32; 6]>() as BufferAddress,
                     shader_location: 2,
+                    format: VertexFormat::Float32x3
+                },
+                // Bitangent (x, y, z)
+                VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 9]>() as BufferAddress,
+                    shader_location: 3,
+                    format: VertexFormat::Float32x3
+                },
+                // Color (r, g, b, a)
+                VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 12]>() as BufferAddress,
+                    shader_location: 4,
                     format: VertexFormat::Float32x4
                 },
                 // UV (u, v)
                 VertexAttribute {
-                    offset: std::mem::size_of::<[f32; 10]>() as BufferAddress,
-                    shader_location: 3,
+                    offset: std::mem::size_of::<[f32; 16]>() as BufferAddress,
+                    shader_location: 5,
                     format: VertexFormat::Float32x2
                 }
             ]

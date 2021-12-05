@@ -1,5 +1,5 @@
 use wgpu::*;
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
+
 
 
 /// Geometry buffer that stores a multitude of color targets and a depth_stencil target
@@ -160,7 +160,7 @@ impl GBuffer {
         ];
 
         // Creates required bind group entries
-        let mut bind_group_entries = [
+        let bind_group_entries = [
             BindGroupEntry {
                 binding: 0,
                 resource: BindingResource::TextureView(pos_view)

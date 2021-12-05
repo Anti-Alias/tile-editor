@@ -19,10 +19,11 @@ impl Texture {
         device: &Device,
         queue: &Queue,
         bytes: &[u8],
+        format: TextureFormat,
         label: Option<&'a str>
     ) -> Result<Self, ImageError> {
         let img = image::load_from_memory(bytes)?;
-        Ok(Self::from_image(device, queue, &img, label))
+        Ok(Self::from_image(device, queue, &img, format, label))
     }
 
     /// Creates new texture from image.
@@ -30,6 +31,7 @@ impl Texture {
         device: &Device,
         queue: &Queue,
         image: &DynamicImage,
+        format: TextureFormat,
         label: Option<&'a str>
     ) -> Texture {
         let rgba = image.as_rgba8().unwrap();
@@ -48,7 +50,7 @@ impl Texture {
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8UnormSrgb,
+            format,
             usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST
         });
 

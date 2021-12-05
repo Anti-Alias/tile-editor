@@ -1,4 +1,4 @@
-use wgpu::*;
+
 use bytemuck::{Pod, Zeroable};
 
 /// Represents an ambient light that affects all objects uniformly

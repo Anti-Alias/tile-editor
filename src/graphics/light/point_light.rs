@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::*;
-use crate::graphics::ModelInstance;
+
 
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Pod, Zeroable)]
@@ -87,7 +87,7 @@ impl PointLight {
     }
 
     /// The WGPU memory layout of a `PointLight` when stored in a vertex buffer, typically for instancing.
-    pub fn layout<'a>() -> VertexBufferLayout<'a> {
+    pub fn vertex_buffer_layout<'a>() -> VertexBufferLayout<'a> {
         VertexBufferLayout {
             array_stride: std::mem::size_of::<PointLight>() as BufferAddress,
             step_mode: VertexStepMode::Instance,
