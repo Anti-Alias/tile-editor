@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
-use crate::graphics::light::{LightBundle, LightSet, PointLight};
+use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
 use crate::graphics::{Camera, Model, ModelInstance, ModelInstanceSet};
 use crate::graphics::gbuffer::{GBuffer, ModelRenderer};
 use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer, Screen};
@@ -35,6 +35,7 @@ pub struct Scene {
     models: Vec<ModelInstanceSet>,                                  // All models with their respective instances
     model_handles: Vec<ModelHandle>,                                // Parallel array to `models`
     light_bundle: LightBundle,                                      // Ambient, directional and point lights in one bundle
+    light_mesh: LightMesh,                                          // Mesh used to render light volumes during deferred rendering
     camera: Camera,                                                 // Camera of the scene
     gbuffer: GBuffer,                                               // GBuffer used for deferred rendering
     light_renderer: LightRenderer,                                  // Renders ambient and directional lights while sampling from gbuffer
@@ -84,12 +85,13 @@ impl Scene {
         let point_light_debug_renderer = config.point_light_debug_config.map(|config| {
             PointLightDebugRenderer::new(
                 device,
-                config.light_radius,
+                LightMesh::new(&device, 4, 8, 5.0),
                 surface_config.format,
                 GBuffer::DEPTH_STENCIL_FORMAT,
                 camera_bgl
             )
         });
+        let light_mesh = LightMesh::new(&device, 8, 16, 1.0);
 
         // Done
         Self {
@@ -97,6 +99,7 @@ impl Scene {
             models: Vec::new(),
             model_handles: Vec::new(),
             light_bundle,
+            light_mesh,
             camera,
             gbuffer,
             light_renderer,
@@ -157,26 +160,30 @@ impl Scene {
     pub fn render(&mut self, screen: &Screen, encoder: &mut CommandEncoder) {
 
         // Renders models to gbuffer
-        let mut render_pass = self.gbuffer.begin_render_pass(encoder, true);
-        for instance_set in &self.models {
-            self.model_renderer.render(&mut render_pass, instance_set, &self.camera);
+        {
+            let mut render_pass = self.gbuffer.begin_render_pass(encoder, true);
+            for instance_set in &self.models {
+                self.model_renderer.render(&mut render_pass, instance_set, &self.camera);
+            }
         }
 
         // Renders lights to screen using gbuffer
-        let mut render_pass = screen.begin_render_pass(encoder);
-        self.point_light_renderer.render(
-            &mut render_pass,
-            &self.gbuffer,
-            &self.light_bundle.point_lights,
-            &self.light_mesh,
-            &self.camera
-        );
-        self.light_renderer.render(
-            &mut render_pass,
-            &self.gbuffer,
-            &self.light_bundle,
-            &self.camera
-        );
+        {
+            let mut render_pass = screen.begin_render_pass(encoder);
+            self.point_light_renderer.render(
+                &mut render_pass,
+                &self.gbuffer,
+                &self.light_bundle.point_lights,
+                &self.light_mesh,
+                &self.camera
+            );
+            self.light_renderer.render(
+                &mut render_pass,
+                &self.gbuffer,
+                &self.light_bundle,
+                &self.camera
+            );
+        }
     }
 }
 

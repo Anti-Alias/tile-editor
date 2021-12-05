@@ -99,12 +99,12 @@ impl PointLightDebugRenderer {
         camera: &'a Camera
     )  {
         let num_lights = point_lights.lights.len() as u32;
-        render_pass.set_vertex_buffer(0, self.light_mesh.vertices.slice(..));                    // Sets light mesh vertices
-        render_pass.set_index_buffer(self.light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
-        render_pass.set_vertex_buffer(1, point_lights.instance_slice());                    // Sets light instance data
-        render_pass.set_bind_group(0, camera.bind_group(), &[]);                            // Sets bind group for camera
-        render_pass.set_pipeline(&self.pipeline);                                           // Sets pipeline
-        render_pass.draw_indexed(0..self.light_mesh.num_indices, 0, 0..num_lights);              // Draws!
+        render_pass.set_vertex_buffer(0, self.light_mesh.vertices.slice(..));                   // Sets light mesh vertices
+        render_pass.set_index_buffer(self.light_mesh.indices.slice(..), IndexFormat::Uint32);   // Sets light mesh indices
+        render_pass.set_vertex_buffer(1, point_lights.instance_slice());                        // Sets light instance data
+        render_pass.set_bind_group(0, camera.bind_group(), &[]);                                // Sets bind group for camera
+        render_pass.set_pipeline(&self.pipeline);                                               // Sets pipeline
+        render_pass.draw_indexed(0..self.light_mesh.num_indices, 0, 0..num_lights);             // Draws!
     }
 
     fn create_module(device: &Device, source: &str) -> ShaderModule {
