@@ -102,7 +102,7 @@ impl LightMesh {
     }
 
     /// The WGPU memory layout of a `LightMesh`.
-    pub fn layout<'a>() -> VertexBufferLayout<'a> {
+    pub fn vertex_buffer_layout<'a>() -> VertexBufferLayout<'a> {
         VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as BufferAddress,
             step_mode: VertexStepMode::Vertex,

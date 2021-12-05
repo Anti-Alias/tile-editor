@@ -56,7 +56,7 @@ impl LightRenderer {
         gbuffer: &'a GBuffer,
         light_bundle: &'a LightBundle,
         camera: &'a Camera
-    ) where {
+    ) {
         render_pass.set_bind_group(0, gbuffer.bind_group(), &[]);
         render_pass.set_bind_group(1, light_bundle.bind_group(), &[]);
         render_pass.set_bind_group(2, camera.bind_group(), &[]);

@@ -27,7 +27,6 @@ pub struct App {
     title: String,
     width: u32,
     height: u32,
-    depth_stencil_format: TextureFormat,
     is_ui_enabled: bool,
     input_handler: Option<Box<dyn FnMut(App)>>
 }
@@ -39,7 +38,6 @@ impl App {
             title: String::from("App"),
             width: 640,
             height: 480,
-            depth_stencil_format: TextureFormat::Depth32Float,
             is_ui_enabled: true,
             input_handler: None
         }
@@ -53,11 +51,6 @@ impl App {
     pub fn size(mut self, width: u32, height: u32) -> Self {
         self.width = width;
         self.height = height;
-        self
-    }
-
-    pub fn depth_stencil_format(mut self, format: TextureFormat) -> Self {
-        self.depth_stencil_format = format;
         self
     }
 
@@ -162,6 +155,15 @@ impl App {
             camera.bind_group_layout()
         );
 
+        // Creates point light debug renderer
+        let point_light_debug_renderer = screen::PointLightDebugRenderer::new(
+            &device,
+            5.0,
+            surface_format,
+            GBuffer::DEPTH_STENCIL_FORMAT,
+            camera.bind_group_layout()
+        );
+
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
         let mut platform = Platform::new(PlatformDescriptor {
@@ -217,28 +219,39 @@ impl App {
 
                     // Draws and moves lights
                     {
-                        let mut screen_render_pass = screen.begin_render_pass(&mut encoder);
+                        let mut render_pass = screen.begin_render_pass(&mut encoder);
                         point_light_renderer.render(
-                            &mut screen_render_pass,
+                            &mut render_pass,
                             &gbuffer,
                             &light_bundle.point_lights,
                             &light_mesh,
                             &camera
                         );
                         light_renderer.render(
-                            &mut screen_render_pass,
+                            &mut render_pass,
                             &gbuffer,
                             &light_bundle,
                             &camera
                         );
                     }
 
+                    // Draws debug lights
+                    {
+                        let mut render_pass = screen.begin_render_pass_with_depth(gbuffer.depth_stencil_view(), &mut encoder);
+                        point_light_debug_renderer.render(
+                            &mut render_pass,
+                            &light_bundle.point_lights,
+                            &light_mesh,
+                            &camera
+                        );
+                    }
+
                     // Moves lights
-                    move_lights(&mut light_bundle, t*2.3);
+                    //move_lights(&mut light_bundle, t*1.414);
                     light_bundle.flush(&queue);
 
                     // Moves camera
-                    move_camera(&mut camera, 150.0, t, 200.0);
+                    move_camera(&mut camera, 150.0, t, 400.0);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -301,7 +314,7 @@ impl App {
     }
 }
 
-const CAM_NEAR: f32 = 1.0;
+const CAM_NEAR: f32 = 2.0;
 const CAM_FAR: f32 = 8000.0;
 const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
 

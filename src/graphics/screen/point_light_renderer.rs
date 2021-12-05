@@ -95,8 +95,8 @@ impl PointLightRenderer {
             module,
             entry_point: "main",
             buffers: &[
-                LightMesh::layout(),
-                PointLight::layout()
+                LightMesh::vertex_buffer_layout(),
+                PointLight::vertex_buffer_layout()
             ]
         };
         let color_targets = [

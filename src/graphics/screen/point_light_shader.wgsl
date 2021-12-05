@@ -1,5 +1,5 @@
 #ifdef M_DO_NOT_SET_ME
-// Note: This is an 'ubershader' that must be preprocessed with 'gpp'.
+// Note: This is a shader that must be preprocessed with 'gpp'.
 // All macro variable names should be uppercase with words separated by '_'.
 // All macro variable names should be prefixed with 'M_'. IE: 'M_MY_VARIABLE_NAME'.
 // Macro flag variable names should be suffixed with '_ENABLED'. IE: 'M_UNICYCLES_ENABLED'.
@@ -11,10 +11,10 @@
 
 
 // ------------- Vertex input types -------------
-struct PointLightVertexIn {
+struct PointLightVertex {
     [[location(0)]] position: vec3<f32>;
 };
-struct PointLightInstanceIn {
+struct PointLightInstance {
     [[location(1)]] position: vec3<f32>;
     [[location(2)]] radius: f32;
     [[location(3)]] color: vec3<f32>;
@@ -22,7 +22,7 @@ struct PointLightInstanceIn {
 };
 
 // ------------- Vertex output type (fragment) -------------
-struct GBufferVertexOut {
+struct PointLightFragment {
     [[builtin(position)]] position: vec4<f32>;
     [[location(0)]] light_position: vec3<f32>;
     [[location(1)]] light_color: vec3<f32>;
@@ -51,12 +51,12 @@ var<uniform> camera: CameraUni;
 // ------------- Entrypoint -------------
 [[stage(vertex)]]
 fn main(
-    vertex: PointLightVertexIn,
-    light: PointLightInstanceIn
-) -> GBufferVertexOut {
+    vertex: PointLightVertex,
+    light: PointLightInstance
+) -> PointLightFragment {
     let model_pos = (vertex.position * light.radius + light.position);
     let clip_pos = camera.proj_view * vec4<f32>(model_pos, 1.0);
-    return GBufferVertexOut(
+    return PointLightFragment(
         clip_pos,
         light.position,
         light.color,
@@ -87,7 +87,7 @@ struct ColorTargetOut {
 };
 
 
-fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
+fn compute_lighting(frag: PointLightFragment) -> vec3<f32> {
 
     // Converts framebuffer coordinates to UV coordiantes
 
@@ -118,7 +118,10 @@ fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
     // Computes specular part
     let frag_to_camera = camera.eye - frag_world_pos;
     let h = normalize(frag_to_camera + frag_to_light);
-    let spec = pow(max(dot(h, norm_vec), 0.0), gloss*4.0);
+    var spec = 0.0;
+    if(dot(light_vec, norm_vec) > 0.0) {
+        spec = pow(max(dot(h, norm_vec), 0.0), gloss*4.0);
+    }
     let specular = frag.light_color * specular_col * spec * att;
 
     // Done
@@ -128,7 +131,7 @@ fn compute_lighting(frag: GBufferVertexOut) -> vec3<f32> {
 
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
-fn main(frag: GBufferVertexOut) -> ColorTargetOut {
+fn main(frag: PointLightFragment) -> ColorTargetOut {
 
     // Samples color texture and modifies color components
     let output = compute_lighting(frag);
