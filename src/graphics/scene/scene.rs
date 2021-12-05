@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use wgpu::{Device, Queue, SurfaceConfiguration};
+use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
 use crate::graphics::light::{LightBundle, LightSet, PointLight};
 use crate::graphics::{Camera, Model, ModelInstance, ModelInstanceSet};
 use crate::graphics::gbuffer::{GBuffer, ModelRenderer};
-use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer};
+use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer, Screen};
 
 type ModelHandle = u32;
 type PointLightHandle = u32;
@@ -152,15 +152,31 @@ impl Scene {
 
 
     /// Renders this scene
-    pub fn render(&mut self, queue: &Queue) {
+    /// * `screen` - Screen to render to
+    /// * `encoder` - CommandEncoder used to encode commands
+    pub fn render(&mut self, screen: &Screen, encoder: &mut CommandEncoder) {
 
-        // Flushes resources
-        self.camera.flush(queue);
-        self.models.iter_mut().for_each(|set| set.flush(queue));
-        self.light_bundle.flush(queue);
+        // Renders models to gbuffer
+        let mut render_pass = self.gbuffer.begin_render_pass(encoder, true);
+        for instance_set in &self.models {
+            self.model_renderer.render(&mut render_pass, instance_set, &self.camera);
+        }
 
-        // Renders
-        self.model_renderer.render()
+        // Renders lights to screen using gbuffer
+        let mut render_pass = screen.begin_render_pass(encoder);
+        self.point_light_renderer.render(
+            &mut render_pass,
+            &self.gbuffer,
+            &self.light_bundle.point_lights,
+            &self.light_mesh,
+            &self.camera
+        );
+        self.light_renderer.render(
+            &mut render_pass,
+            &self.gbuffer,
+            &self.light_bundle,
+            &self.camera
+        );
     }
 }
 
