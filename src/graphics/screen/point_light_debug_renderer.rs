@@ -6,14 +6,17 @@ use crate::graphics::util::string_with_lines;
 
 /// Renderer used to visualize the position of point lights.
 /// Typically used for debugging and is not intended to be used in a final product.
-pub struct PointLightDebugRenderer { pipeline: RenderPipeline }
+pub struct PointLightDebugRenderer {
+    light_mesh: LightMesh,
+    pipeline: RenderPipeline
+}
 
 impl PointLightDebugRenderer {
 
     /// Creates a new debug renderer
     pub fn new(
         device: &Device,
-        light_radius: f32,
+        light_mesh: LightMesh,
         screen_format: TextureFormat,
         depth_stencil_format: TextureFormat,
         camera_bind_group_layout: &BindGroupLayout
@@ -21,7 +24,7 @@ impl PointLightDebugRenderer {
         Self::create_from_shader(
             device,
             String::from(include_str!("point_light_debug_shader.wgsl")),
-            light_radius,
+            light_mesh,
             screen_format,
             depth_stencil_format,
             camera_bind_group_layout
@@ -32,12 +35,12 @@ impl PointLightDebugRenderer {
     pub fn create_from_shader(
         device: &Device,
         shader_source: String,
-        light_radius: f32,
+        light_mesh: LightMesh,
         screen_format: TextureFormat,
         depth_stencil_format: TextureFormat,
         camera_bind_group_layout: &BindGroupLayout
     ) -> Self {
-        let module = Self::create_module(device, shader_source.as_str(), light_radius);
+        let module = Self::create_module(device, shader_source.as_str());
         let layout = device.create_pipeline_layout(&PipelineLayoutDescriptor {
             label: Some("Point Light Debug Renderer Pipeline Layout"),
             bind_group_layouts: &[camera_bind_group_layout],
@@ -83,27 +86,29 @@ impl PointLightDebugRenderer {
                 ]
             })
         });
-        Self { pipeline }
+        Self {
+            light_mesh,
+            pipeline
+        }
     }
 
     pub fn render<'a>(
         &'a self,
         render_pass: &mut RenderPass<'a>,
         point_lights: &'a LightSet<PointLight>,
-        light_mesh: &'a LightMesh,
         camera: &'a Camera
     )  {
         let num_lights = point_lights.lights.len() as u32;
-        render_pass.set_vertex_buffer(0, light_mesh.vertices.slice(..));                    // Sets light mesh vertices
-        render_pass.set_index_buffer(light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
+        render_pass.set_vertex_buffer(0, self.light_mesh.vertices.slice(..));                    // Sets light mesh vertices
+        render_pass.set_index_buffer(self.light_mesh.indices.slice(..), IndexFormat::Uint32);    // Sets light mesh indices
         render_pass.set_vertex_buffer(1, point_lights.instance_slice());                    // Sets light instance data
         render_pass.set_bind_group(0, camera.bind_group(), &[]);                            // Sets bind group for camera
         render_pass.set_pipeline(&self.pipeline);                                           // Sets pipeline
-        render_pass.draw_indexed(0..light_mesh.num_indices, 0, 0..num_lights);              // Draws!
+        render_pass.draw_indexed(0..self.light_mesh.num_indices, 0, 0..num_lights);              // Draws!
     }
 
-    fn create_module(device: &Device, source: &str, light_radius: f32) -> ShaderModule {
-        let source = Self::preprocess_source(source, light_radius);
+    fn create_module(device: &Device, source: &str) -> ShaderModule {
+        let source = Self::preprocess_source(source);
         log::info!("Preprocessed gbuffer shader source as:\n{}", string_with_lines(&source));
         let source = ShaderSource::Wgsl(Cow::from(source.as_str()));
         device.create_shader_module(&ShaderModuleDescriptor {
@@ -112,7 +117,7 @@ impl PointLightDebugRenderer {
         })
     }
 
-    fn preprocess_source(source: &str, light_radius: f32) -> String {
+    fn preprocess_source(source: &str) -> String {
 
         // Prepares empty preprocessor context
         let mut context = gpp::Context::new();
@@ -121,7 +126,6 @@ impl PointLightDebugRenderer {
         // Gbuffer bind group
         macros.insert(String::from("M_CAMERA_BIND_GROUP"), 0.to_string());
         macros.insert(String::from("M_CAMERA_BINDING"), 0.to_string());
-        macros.insert(String::from("M_LIGHT_RADIUS"), light_radius.to_string());
 
         // Returns preprocessed string
         gpp::process_str(source, &mut context).unwrap()
