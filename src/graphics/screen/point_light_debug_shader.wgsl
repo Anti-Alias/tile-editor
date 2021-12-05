@@ -32,8 +32,7 @@ var<uniform> camera: CameraUni;
 
 [[stage(vertex)]]
 fn main(vertex: PointLightVertex, instance: PointLightInstance) -> PointLightFragment {
-    let vpos = vertex.position * f32(M_LIGHT_RADIUS);
-    let clip_pos = camera.proj_view * (vec4<f32>(vpos + instance.position, 1.0));
+    let clip_pos = camera.proj_view * (vec4<f32>(vertex.position + instance.position, 1.0));
     let c = instance.color;
     let max_channel = max(max(c.r, max(c.g, c.b)), 0.0001);     // Get max of r,g,b with epsilon to prevent divide-by-zero.
     let color = c / max_channel;

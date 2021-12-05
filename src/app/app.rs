@@ -158,7 +158,7 @@ impl App {
         // Creates point light debug renderer
         let point_light_debug_renderer = screen::PointLightDebugRenderer::new(
             &device,
-            5.0,
+            LightMesh::new(&device, 4, 8, 5.0),
             surface_format,
             GBuffer::DEPTH_STENCIL_FORMAT,
             camera.bind_group_layout()
@@ -240,7 +240,6 @@ impl App {
                         point_light_debug_renderer.render(
                             &mut render_pass,
                             &light_bundle.point_lights,
-                            &light_mesh,
                             &camera
                         );
                     }
@@ -404,7 +403,7 @@ fn move_camera(camera: &mut Camera, y: f32, t: f32, rad: f32) {
 fn create_lights(device: &Device, queue: &Queue) -> (LightBundle, LightMesh) {
 
     // Creates light mesh
-    let light_mesh = LightMesh::new(&device, 8, 16);
+    let light_mesh = LightMesh::new(&device, 8, 16, 1.0);
 
     // Gets light sets
     let mut light_bundle = LightBundle::create(&device, 64, 64, 64);
