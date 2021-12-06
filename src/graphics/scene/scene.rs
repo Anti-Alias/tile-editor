@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use cgmath::{Point3, Vector3};
 use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
 use crate::graphics::light::{LightBundle, LightMesh, LightSet, LightView, PointLight};
 use crate::graphics::{Camera, CameraView, Model, ModelInstance, ModelInstanceSet, ModelView, View};
@@ -25,8 +26,7 @@ pub struct PointLightDebugConfig {
 pub struct SceneConfig {
     pub light_config: LightConfig,
     pub surface_config: SurfaceConfiguration,
-    pub point_light_debug_config: Option<PointLightDebugConfig>,
-    pub camera: Camera
+    pub point_light_debug_config: Option<PointLightDebugConfig>
 }
 
 /// Represents a set
@@ -47,7 +47,7 @@ pub struct Scene {
 impl Scene {
 
     /// Creates a new scene
-    pub fn new(device: &Device, config: SceneConfig) -> Self {
+    pub fn new(device: &Device, camera: Camera, config: SceneConfig) -> Self {
         // Unpacks
         let light_config = &config.light_config;
         let surface_config = &config.surface_config;
@@ -59,7 +59,6 @@ impl Scene {
             LightSet::new(device, light_config.max_directional_lights),
             LightSet::new(device, light_config.max_ambient_lights)
         );
-        let camera = config.camera;
         let gbuffer = GBuffer::new(device, surface_config.width, surface_config.height);
 
         // Gets layouts of "bindables"
@@ -146,7 +145,7 @@ impl Scene {
     }
 
     /// Retrieves view of the scene's `LightBundle`.
-    pub fn lights<'a>(&'a mut self, queue: &'a Queue) -> impl View<LightBundle> {
+    pub fn light_view<'a>(&'a mut self, queue: &'a Queue) -> impl View<LightBundle> {
         LightView {
             queue,
             resource: &mut self.light_bundle
@@ -154,7 +153,7 @@ impl Scene {
     }
 
     /// Retrieves view of the scene's `Camera`.
-    pub fn camera<'a>(&'a mut self, queue: &'a Queue) -> impl View<Camera> {
+    pub fn camera_view<'a>(&'a mut self, queue: &'a Queue) -> impl View<Camera> {
         CameraView {
             queue,
             resource: &mut self.camera
@@ -196,6 +195,17 @@ impl Scene {
                 &self.light_bundle,
                 &self.camera
             );
+        }
+
+        {
+            let mut render_pass = screen.begin_render_pass_with_depth(&self.gbuffer.depth_stencil_view(), encoder);
+            if let Some(ref mut point_light_debug_renderer) = self.point_light_debug_renderer {
+                point_light_debug_renderer.render(
+                    &mut render_pass,
+                    &self.light_bundle.point_lights,
+                    &self.camera
+                );
+            }
         }
     }
 }
