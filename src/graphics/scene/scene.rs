@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
-use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
-use crate::graphics::{Camera, Model, ModelInstance, ModelInstanceSet};
+use crate::graphics::light::{LightBundle, LightMesh, LightSet, LightView, PointLight};
+use crate::graphics::{Camera, CameraView, Model, ModelInstance, ModelInstanceSet, ModelView, View};
 use crate::graphics::gbuffer::{GBuffer, ModelRenderer};
 use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer, Screen};
 
@@ -47,7 +47,7 @@ pub struct Scene {
 impl Scene {
 
     /// Creates a new scene
-    fn new(device: &Device, config: SceneConfig) -> Self {
+    pub fn new(device: &Device, config: SceneConfig) -> Self {
         // Unpacks
         let light_config = &config.light_config;
         let surface_config = &config.surface_config;
@@ -136,7 +136,7 @@ impl Scene {
     }
 
     /// Retrieves a view of all `ModelInstanceSet`s
-    pub fn model_instances<'a>(&'a mut self, queue: &'a Queue, handle: ModelHandle) -> impl View<'a, ModelInstanceSet> {
+    pub fn model_instances<'a>(&'a mut self, queue: &'a Queue, handle: ModelHandle) -> impl View<ModelInstanceSet> {
         let index = self.model_handles.binary_search(&handle).expect("Could not find model with handle");
         let instance_set = &mut self.models[index];
         ModelView {
@@ -146,11 +146,24 @@ impl Scene {
     }
 
     /// Retrieves view of the scene's `LightBundle`.
-    pub fn lights<'a>(&'a mut self, queue: &'a Queue) -> impl View<'a, LightBundle> {
+    pub fn lights<'a>(&'a mut self, queue: &'a Queue) -> impl View<LightBundle> {
         LightView {
             queue,
             resource: &mut self.light_bundle
         }
+    }
+
+    /// Retrieves view of the scene's `Camera`.
+    pub fn camera<'a>(&'a mut self, queue: &'a Queue) -> impl View<Camera> {
+        CameraView {
+            queue,
+            resource: &mut self.camera
+        }
+    }
+
+    /// Resizes gbuffer
+    pub fn resize(&mut self, device: &Device, gbuffer_width: u32, gbuffer_height: u32) {
+        self.gbuffer = GBuffer::new(&device, gbuffer_width, gbuffer_height);
     }
 
 
@@ -184,45 +197,5 @@ impl Scene {
                 &self.camera
             );
         }
-    }
-}
-
-/// Represents a view on some underlying resource.
-/// When this view is "dropped", the underlying resource should be flushed.
-pub trait View<'a, T>: Drop {
-    fn resource(&'a mut self) -> &'a mut T;
-}
-
-
-
-// -------------------- Model view --------------------
-struct ModelView<'a> {
-    queue: &'a Queue,
-    resource: &'a mut ModelInstanceSet
-}
-impl<'a> View<'a, ModelInstanceSet> for ModelView<'a> {
-    fn resource(&'a mut self) -> &'a mut ModelInstanceSet {
-        self.resource
-    }
-}
-impl<'a> Drop for ModelView<'a> {
-    fn drop(&mut self) {
-        self.resource.flush(self.queue);
-    }
-}
-
-// -------------------- Light view --------------------
-struct LightView<'a> {
-    queue: &'a Queue,
-    resource: &'a mut LightBundle
-}
-impl<'a> View<'a, LightBundle> for LightView<'a> {
-    fn resource(&'a mut self) -> &'a mut LightBundle {
-        self.resource
-    }
-}
-impl<'a> Drop for LightView<'a> {
-    fn drop(&mut self) {
-        self.resource.flush(self.queue);
     }
 }

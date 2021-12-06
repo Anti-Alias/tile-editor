@@ -1,5 +1,6 @@
 use wgpu::*;
 use crate::graphics::light::{AmbientLight, DirectionalLight, LightSet, PointLight};
+use crate::graphics::View;
 
 /// Represents a bundle of light sets of various types
 pub struct LightBundle {
@@ -135,5 +136,20 @@ impl LightBundle {
             ]
         });
         (group, layout)
+    }
+}
+
+pub(crate) struct LightView<'a> {
+    pub(crate) queue: &'a Queue,
+    pub(crate) resource: &'a mut LightBundle
+}
+impl<'a> View<'a, LightBundle> for LightView<'a> {
+    fn resource(&mut self) -> &mut LightBundle {
+        self.resource
+    }
+}
+impl<'a> Drop for LightView<'a> {
+    fn drop(&mut self) {
+        self.resource.flush(self.queue);
     }
 }

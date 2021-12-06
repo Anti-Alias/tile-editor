@@ -8,7 +8,6 @@ use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use pollster::block_on;
 
-
 use wgpu::{Device, Queue, TextureFormat, SurfaceConfiguration, CommandEncoderDescriptor, RenderPassDescriptor};
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
@@ -16,6 +15,7 @@ use winit::event_loop::ControlFlow;
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer};
 use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight};
+use crate::graphics::scene::{LightConfig, PointLightDebugConfig, Scene, SceneConfig};
 use crate::graphics::screen::Screen;
 
 use crate::gui::{GUI, Editor};
@@ -118,51 +118,25 @@ impl App {
         // Sets up model (with instances), camera and lights
         let model_instances = create_model_instances(&device, &queue);
         let floor_instance = create_wood_floor_instance(&device, &queue);
-        let mut camera = create_camera(
-            &device,
-            size.width as f32,
-            size.height as f32
-        );
         let (mut light_bundle, light_mesh) = create_lights(&device, &queue);
-
-        // Creates model-> gbuffer renderer, then primes it
-        let mut model_renderer = gbuffer::ModelRenderer::new();
-        model_renderer.prime(
-            &device,
-            &model_instances.model,
-            camera.bind_group_layout()
-        );
-        model_renderer.prime(
-            &device,
-            &floor_instance.model,
-            camera.bind_group_layout()
-        );
-
-        // Creates point_light -> screen renderer
-        let point_light_renderer = screen::PointLightRenderer::new(
-            &device,
-            surface_format,
-            gbuffer.bind_group_layout(),
-            camera.bind_group_layout()
-        );
-
-        // Creates ambient/directional_light -> screen renderer
-        let light_renderer = screen::LightRenderer::new(
-            &device,
-            surface_format,
-            gbuffer.bind_group_layout(),
-            light_bundle.bind_group_layout(),
-            camera.bind_group_layout()
-        );
-
-        // Creates point light debug renderer
-        let point_light_debug_renderer = screen::PointLightDebugRenderer::new(
-            &device,
-            LightMesh::new(&device, 4, 8, 5.0),
-            surface_format,
-            GBuffer::DEPTH_STENCIL_FORMAT,
-            camera.bind_group_layout()
-        );
+        let mut scene = Scene::new(&device, SceneConfig {
+            light_config: LightConfig {
+                max_point_lights: 32,
+                max_directional_lights: 32,
+                max_ambient_lights: 32
+            },
+            surface_config: surface_config.clone(),
+            point_light_debug_config: Some(PointLightDebugConfig {
+                light_radius: 5.0
+            }),
+            camera: create_camera(
+                &device,
+                size.width as f32,
+                size.height as f32
+            )
+        });
+        let box_model_handle = scene.add_model_and_instances(&device, model_instances);
+        scene.add_model_and_instances(&device, floor_instance);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -198,58 +172,15 @@ impl App {
 
                     // Makes encoder and screen
                     let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
-                    let screen = Screen::new(surface_view);
+                    let mut screen = Screen::new(surface_view);
 
-                    // Renders models to gbuffer
-                    {
-                        let mut render_pass = gbuffer.begin_render_pass(&mut encoder, true);
-                        camera.flush(&queue);
-                        model_renderer.render(
-                            &mut render_pass,
-                            &model_instances,
-                            &camera
-                        );
-                        model_renderer.render(
-                            &mut render_pass,
-                            &floor_instance,
-                            &camera
-                        );
-                    }
+                    // Renders scene
+                    scene.render(&screen, &mut encoder);
 
-                    // Draws and moves lights
-                    {
-                        let mut render_pass = screen.begin_render_pass(&mut encoder);
-                        point_light_renderer.render(
-                            &mut render_pass,
-                            &gbuffer,
-                            &light_bundle.point_lights,
-                            &light_mesh,
-                            &camera
-                        );
-                        light_renderer.render(
-                            &mut render_pass,
-                            &gbuffer,
-                            &light_bundle,
-                            &camera
-                        );
-                    }
+                    // Moves camera and lights
+                    move_camera(&mut scene.camera(&queue).resource(), 50.0, t, 300.0);
+                    move_lights(&mut scene.lights(&queue).resource(), 100.0, t*1.414);
 
-                    // Draws debug lights
-                    {
-                        let mut render_pass = screen.begin_render_pass_with_depth(gbuffer.depth_stencil_view(), &mut encoder);
-                        point_light_debug_renderer.render(
-                            &mut render_pass,
-                            &light_bundle.point_lights,
-                            &camera
-                        );
-                    }
-
-                    // Moves lights
-                    move_lights(&mut light_bundle, 150.0, t*1.414);
-                    light_bundle.flush(&queue);
-
-                    // Moves camera
-                    move_camera(&mut camera, 150.0, t, 300.0);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -292,11 +223,11 @@ impl App {
                     // Screen resized
                     winit::event::WindowEvent::Resized(size) => {
 
-                        // Updates surface and depth_stencil
+                        // Updates surface and gbuffer
                         if size.width != 0 { surface_config.width = size.width; }
                         if size.height != 0 { surface_config.height = size.height; }
                         surface.configure(&device, &surface_config);
-                        gbuffer = GBuffer::new(&device, size.width, size.height);
+                        scene.resize(&device, size.width, size.height);
 
                         // Updates camera
                         //update_camera(&mut camera, size.width as f32, size.height as f32);
