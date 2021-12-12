@@ -1,4 +1,3 @@
-
 use std::f32::consts::PI;
 use cgmath::{InnerSpace, Matrix4, Point3, SquareMatrix, Vector3};
 use wgpu::{Device, Queue, TextureFormat};
