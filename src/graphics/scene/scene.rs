@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use cgmath::{Point3, Vector3};
-use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
-use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
-use crate::graphics::{Camera, Model, ModelInstance, ModelInstanceSet};
+
+
+use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration};
+use crate::graphics::light::{LightBundle, LightMesh};
+use crate::graphics::{Camera, Model, ModelInstanceSet};
 use crate::graphics::gbuffer::{GBuffer, ModelRenderer};
 use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer, Screen};
 

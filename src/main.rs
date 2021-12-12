@@ -1,7 +1,8 @@
+
 use std::f32::consts::PI;
 use cgmath::{InnerSpace, Matrix4, Point3, SquareMatrix, Vector3};
 use wgpu::{Device, Queue, TextureFormat};
-use tile_editor::app::{App, AppState, AppEvent};
+use tile_editor::app::{App, AppEvent};
 use tile_editor::graphics::{Camera, Color, MaterialBuilder, Mesh, Model, ModelInstance, ModelInstanceSet, Texture};
 use tile_editor::graphics::light::{AmbientLight, LightBundle, PointLight};
 use tile_editor::graphics::scene::Scene;
@@ -9,11 +10,11 @@ use tile_editor::graphics::util::Matrix4Ext;
 
 fn main() {
     let mut t = 0.0;
-    let mut app = App::new()
+    let app = App::new()
         .title("Tile Editor")
         .size(1280, 720)
         .gui_enabled(false)
-        .event_handler(move |event, state, control_flow| {
+        .event_handler(move |event, state, _control_flow| {
             match event {
                 AppEvent::STARTED => {
                     on_start(state.scene, state.device, state.queue)
@@ -45,7 +46,7 @@ fn on_update(scene: &mut Scene, t: f32) {
     move_lights(&mut scene.light_bundle(), 200.0, t*1.414);
 }
 
-fn on_resize(width: u32, height: u32, scene: &mut Scene) {
+fn on_resize(width: u32, height: u32, _scene: &mut Scene) {
     log::info!("Application resized to dimensions: {}x{}", width, height)
 }
 
@@ -75,10 +76,10 @@ fn move_camera(camera: &mut Camera, y: f32, t: f32, rad: f32) {
 fn add_lights(scene: &mut Scene) {
 
     // Gets light sets
-    let mut light_bundle = scene.light_bundle();
+    let light_bundle = scene.light_bundle();
     let point_lights = &mut light_bundle.point_lights;
     let ambient_lights = &mut light_bundle.ambient_lights;
-    let directional_lights = &mut light_bundle.directional_lights;
+    let _directional_lights = &mut light_bundle.directional_lights;
 
     // Adds point light(s)
     let intensity = 40000.0;

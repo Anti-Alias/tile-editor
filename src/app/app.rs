@@ -1,52 +1,17 @@
-use std::f32::consts::PI;
-use std::iter;
-use std::time::Instant;
 use cgmath::{Deg, InnerSpace, Matrix4, Perspective, Point3, Rad, SquareMatrix, Vector3, VectorSpace};
-
 use egui_wgpu_backend::{RenderPass, ScreenDescriptor};
 use egui_winit_platform::{Platform, PlatformDescriptor};
 use epi::*;
 use pollster::block_on;
-
 use wgpu::{Device, Queue, TextureFormat, SurfaceConfiguration, CommandEncoderDescriptor, RenderPassDescriptor};
 use winit::event::Event::*;
 use winit::event_loop::ControlFlow;
-
 use crate::graphics::*;
-use crate::graphics::gbuffer::{GBuffer};
 use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight, LightSet};
 use crate::graphics::scene::{DebugConfig, Scene};
 use crate::graphics::screen::Screen;
-
 use crate::gui::{GUI, Editor};
-use crate::graphics::util::Matrix4Ext;
 
-/// Represents a change in the app
-pub enum AppEvent {
-    STARTED,
-    UPDATE {
-        dt: f32
-    },
-    RESIZED {
-        width: u32,
-        height: u32
-    }
-}
-
-/// Determines if application should continue running
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum AppControlFlow {
-    CONTINUE,
-    EXIT
-}
-
-/// State of the application.
-/// Helpful, right???
-pub struct AppState<'a> {
-    pub scene: &'a mut Scene,
-    pub device: &'a Device,
-    pub queue: &'a Queue
-}
 
 /// Represents the application as a whole.
 /// Draws an EGUI interface on top of the map renderer
@@ -230,7 +195,7 @@ impl App {
 
                     // Makes encoder and screen
                     let mut encoder = device.create_command_encoder(&CommandEncoderDescriptor::default());
-                    let mut screen = Screen::new(surface_view);
+                    let screen = Screen::new(surface_view);
 
                     // Renders scene
                     scene.flush(&queue);
@@ -315,31 +280,32 @@ const CAM_NEAR: f32 = 2.0;
 const CAM_FAR: f32 = 8000.0;
 const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
 
-/*
-fn create_camera(device: &Device, width: u32, height: u32) -> Camera {
-    let sw = width as f32;
-    let sh = height as f32;
-    let hw = sw / 2.0;
-    let hh = sh / 2.0;
-    let mut cam = Camera::create_ortho(
-        &device,
-        Point3::<f32>::new(0.0, 0.0, 0.0),
-        Vector3::<f32>::new(0.0, 0.0, -1.0),
-        Vector3::<f32>::unit_y(),
-        Ortho { left: -hw, right: hw, bottom: -hh, top: hh, near: CAM_NEAR, far: CAM_FAR }
-    );
-    cam.set_coordinate_system(Camera::OPENGL_COORDINATE_SYSTEM);
-    cam
+/// Represents a change in the app
+pub enum AppEvent {
+    STARTED,
+    UPDATE {
+        dt: f32
+    },
+    RESIZED {
+        width: u32,
+        height: u32
+    }
 }
 
-fn update_camera(camera: &mut Camera, width: u32, height: u32) {
-    let sw = width as f32;
-    let sh = height as f32;
-    let hw = sw / 2.0;
-    let hh = sh / 2.0;
-    camera.set_ortho(Ortho { left: -hw, right: hw, bottom: -hh, top: hh, near: CAM_NEAR, far: CAM_FAR });
+/// Determines if application should continue running
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum AppControlFlow {
+    CONTINUE,
+    EXIT
 }
-*/
+
+/// State of the application.
+/// Helpful, right???
+pub struct AppState<'a> {
+    pub scene: &'a mut Scene,
+    pub device: &'a Device,
+    pub queue: &'a Queue
+}
 
 fn create_camera(device: &Device, width: f32, height: f32) -> Camera {
     let sw = width as f32;

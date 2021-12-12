@@ -2,7 +2,7 @@ use std::ops::Index;
 use wgpu::*;
 
 use bytemuck::{Pod, Zeroable};
-use cgmath::{Matrix, Matrix3, Matrix4, SquareMatrix, Transform, Vector3};
+use cgmath::{Matrix, Matrix3, Matrix4, SquareMatrix};
 use crate::graphics::{Model};
 
 /// Represents the instance data of a `Model`.
