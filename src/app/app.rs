@@ -21,6 +21,23 @@ use crate::graphics::screen::Screen;
 use crate::gui::{GUI, Editor};
 use crate::graphics::util::Matrix4Ext;
 
+/// Represents a change in the app
+pub enum AppEvent {
+    STARTED,
+    STOPPED,
+    UPDATE,
+    RESIZED {
+        width: u32,
+        height: u32
+    }
+}
+
+/// State of the application.
+/// Helpful, right???
+pub struct AppState<'a> {
+    pub scene: &'a mut Scene
+}
+
 /// Represents the application as a whole.
 /// Draws an EGUI interface on top of the map renderer
 pub struct App {
@@ -28,7 +45,7 @@ pub struct App {
     width: u32,
     height: u32,
     is_ui_enabled: bool,
-    input_handler: Option<Box<dyn FnMut(App)>>
+    event_handler: Option<Box<dyn FnMut(AppEvent, AppState)>>
 }
 
 impl App {
@@ -39,7 +56,7 @@ impl App {
             width: 640,
             height: 480,
             is_ui_enabled: true,
-            input_handler: None
+            event_handler: None
         }
     }
 
@@ -54,8 +71,8 @@ impl App {
         self
     }
 
-    pub fn input_handler(mut self, handler: impl FnMut(App) + 'static) -> Self {
-        self.input_handler = Some(Box::new(handler));
+    pub fn event_handler(mut self, handler: impl FnMut(AppEvent, AppState) + 'static) -> Self {
+        self.event_handler = Some(Box::new(handler));
         self
     }
 
@@ -64,7 +81,7 @@ impl App {
         self
     }
 
-    pub fn start(self) {
+    pub fn start(mut self) {
 
         // Initializes logger
         env_logger::init();
@@ -135,6 +152,17 @@ impl App {
                 render_lights: true
             }
         );
+
+        // Fires "start" event
+        if let Some(ref mut event_handler) = self.event_handler {
+            event_handler(
+                AppEvent::STARTED,
+                AppState {
+                    scene: &mut scene
+                }
+            );
+        }
+
         scene.add_model_and_instances(&device, model_instances);
         scene.add_model_and_instances(&device, floor_instance);
         add_lights(&mut scene);
@@ -157,7 +185,6 @@ impl App {
 
             // Pass the winit events to the platform integration.
             platform.handle_event(&event);
-
 
             match event {
                 RedrawRequested(..) => {
@@ -223,15 +250,21 @@ impl App {
 
                     // Screen resized
                     winit::event::WindowEvent::Resized(size) => {
-
-                        // Updates surface and gbuffer
                         if size.width != 0 { surface_config.width = size.width; }
                         if size.height != 0 { surface_config.height = size.height; }
                         surface.configure(&device, &surface_config);
                         scene.resize(&device, size.width, size.height);
-
-                        // Updates camera
-                        //update_camera(&mut camera, size.width as f32, size.height as f32);
+                        if let Some(ref mut event_handler) = self.event_handler {
+                            event_handler(
+                                AppEvent::RESIZED {
+                                    width: size.width,
+                                    height: size.height
+                                },
+                                AppState {
+                                    scene: &mut scene
+                                }
+                            )
+                        }
                     }
                     winit::event::WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
@@ -241,6 +274,16 @@ impl App {
                 _ => (),
             }
         });
+
+        // Fires "stop" event
+        if let Some(ref mut event_handler) = self.event_handler {
+            event_handler(
+                AppEvent::STOPPED,
+                AppState {
+                    scene: &mut scene
+                }
+            );
+        }
     }
 }
 
