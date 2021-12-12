@@ -14,8 +14,8 @@ use winit::event_loop::ControlFlow;
 
 use crate::graphics::*;
 use crate::graphics::gbuffer::{GBuffer};
-use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight};
-use crate::graphics::scene::{LightConfig, PointLightDebugConfig, Scene, SceneConfig};
+use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight, LightSet};
+use crate::graphics::scene::{DebugConfig, Scene};
 use crate::graphics::screen::Screen;
 
 use crate::gui::{GUI, Editor};
@@ -120,20 +120,24 @@ impl App {
             size.width as f32,
             size.height as f32
         );
-        let mut scene = Scene::new(&device, camera, SceneConfig {
-            light_config: LightConfig {
-                max_point_lights: 32,
-                max_directional_lights: 32,
-                max_ambient_lights: 32
-            },
-            surface_config: surface_config.clone(),
-            point_light_debug_config: Some(PointLightDebugConfig {
-                light_radius: 5.0
-            }),
-        });
+        let light_bundle = LightBundle::new(
+            &device,
+            LightSet::new(&device, 32),
+            LightSet::new(&device, 32),
+            LightSet::new(&device, 32)
+        );
+        let mut scene = Scene::new(
+            &device,
+            camera,
+            light_bundle,
+            &surface_config,
+            &DebugConfig {
+                render_lights: true
+            }
+        );
         scene.add_model_and_instances(&device, model_instances);
         scene.add_model_and_instances(&device, floor_instance);
-        add_lights(&mut scene, &queue);
+        add_lights(&mut scene);
 
         // Sets up EGUI
         let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
@@ -172,11 +176,12 @@ impl App {
                     let mut screen = Screen::new(surface_view);
 
                     // Renders scene
+                    scene.flush(&queue);
                     scene.render(&screen, &mut encoder);
 
                     // Moves camera and lights
-                    move_camera(&mut scene.camera_view(&queue).resource(), 50.0, t, 300.0);
-                    move_lights(&mut scene.light_view(&queue).resource(), 200.0, t*1.414);
+                    move_camera(&mut scene.camera(), 50.0, t, 300.0);
+                    move_lights(&mut scene.light_bundle(), 200.0, t*1.414);
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
@@ -327,11 +332,10 @@ fn move_camera(camera: &mut Camera, y: f32, t: f32, rad: f32) {
     camera.look_at(Point3::new(0.0, 0.0, 0.0));
 }
 
-fn add_lights(scene: &mut Scene, queue: &Queue) {
+fn add_lights(scene: &mut Scene) {
 
     // Gets light sets
-    let mut light_view = scene.light_view(queue);
-    let light_bundle = light_view.resource();
+    let mut light_bundle = scene.light_bundle();
     let point_lights = &mut light_bundle.point_lights;
     let ambient_lights = &mut light_bundle.ambient_lights;
     let directional_lights = &mut light_bundle.directional_lights;
@@ -350,7 +354,7 @@ fn add_lights(scene: &mut Scene, queue: &Queue) {
     //directional_lights.lights.push(DirectionalLight::new([0.0, -1.0, 0.0], [db, db, db]));       // White light pointing left (illuminates right site)
 
     // Adds ambient light(s)
-    let ab = 8.0/255.0;
+    let ab = 2.0/255.0;
     ambient_lights.lights.push(AmbientLight::new([ab, ab, ab]));
 }
 

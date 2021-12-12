@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use cgmath::{Point3, Vector3};
 use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration, TextureView};
-use crate::graphics::light::{LightBundle, LightMesh, LightSet, LightView, PointLight};
-use crate::graphics::{Camera, CameraView, Model, ModelInstance, ModelInstanceSet, ModelView, View};
+use crate::graphics::light::{LightBundle, LightMesh, LightSet, PointLight};
+use crate::graphics::{Camera, Model, ModelInstance, ModelInstanceSet};
 use crate::graphics::gbuffer::{GBuffer, ModelRenderer};
 use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer, Screen};
 
@@ -11,22 +11,9 @@ type PointLightHandle = u32;
 type DirectionalLightHandle = u32;
 type AmbientLighthandle = u32;
 
-#[derive(Copy, Clone, Debug, Default)]
-pub struct LightConfig {
-    pub max_point_lights: u32,
-    pub max_directional_lights: u32,
-    pub max_ambient_lights: u32
-}
-
-#[derive(Copy, Clone, Debug, Default)]
-pub struct PointLightDebugConfig {
-    pub light_radius: f32
-}
-
-pub struct SceneConfig {
-    pub light_config: LightConfig,
-    pub surface_config: SurfaceConfiguration,
-    pub point_light_debug_config: Option<PointLightDebugConfig>
+#[derive(Copy, Clone, Debug, Default, PartialEq, Hash)]
+pub struct DebugConfig {
+    pub render_lights: bool
 }
 
 /// Represents a set
@@ -47,18 +34,15 @@ pub struct Scene {
 impl Scene {
 
     /// Creates a new scene
-    pub fn new(device: &Device, camera: Camera, config: SceneConfig) -> Self {
-        // Unpacks
-        let light_config = &config.light_config;
-        let surface_config = &config.surface_config;
+    pub fn new(
+        device: &Device,
+        camera: Camera,
+        light_bundle: LightBundle,
+        surface_config: &SurfaceConfiguration,
+        debug_config: &DebugConfig
+    ) -> Self {
 
         // Creates "bindables"
-        let light_bundle = LightBundle::new(
-            device,
-            LightSet::new(device, light_config.max_point_lights),
-            LightSet::new(device, light_config.max_directional_lights),
-            LightSet::new(device, light_config.max_ambient_lights)
-        );
         let gbuffer = GBuffer::new(device, surface_config.width, surface_config.height);
 
         // Gets layouts of "bindables"
@@ -81,15 +65,18 @@ impl Scene {
             gbuffer_bgl,
             camera_bgl
         );
-        let point_light_debug_renderer = config.point_light_debug_config.map(|config| {
-            PointLightDebugRenderer::new(
+        let point_light_debug_renderer = if debug_config.render_lights {
+            Some(PointLightDebugRenderer::new(
                 device,
                 LightMesh::new(&device, 4, 8, 5.0),
                 surface_config.format,
                 GBuffer::DEPTH_STENCIL_FORMAT,
                 camera_bgl
-            )
-        });
+            ))
+        }
+        else {
+            None
+        };
         let light_mesh = LightMesh::new(&device, 8, 16, 1.0);
 
         // Done
@@ -134,35 +121,33 @@ impl Scene {
         self.models.remove(index)
     }
 
-    /// Retrieves a view of all `ModelInstanceSet`s
-    pub fn model_instances<'a>(&'a mut self, queue: &'a Queue, handle: ModelHandle) -> impl View<ModelInstanceSet> {
+    /// Retrieves  all `ModelInstanceSet`s
+    pub fn model_instances(&mut self, handle: ModelHandle) -> &mut ModelInstanceSet {
         let index = self.model_handles.binary_search(&handle).expect("Could not find model with handle");
-        let instance_set = &mut self.models[index];
-        ModelView {
-            resource: instance_set,
-            queue
-        }
+        &mut self.models[index]
     }
 
-    /// Retrieves view of the scene's `LightBundle`.
-    pub fn light_view<'a>(&'a mut self, queue: &'a Queue) -> impl View<LightBundle> {
-        LightView {
-            queue,
-            resource: &mut self.light_bundle
-        }
+    /// Retrieves `LightBundle`.
+    pub fn light_bundle(&mut self) -> &mut LightBundle {
+        &mut self.light_bundle
     }
 
-    /// Retrieves view of the scene's `Camera`.
-    pub fn camera_view<'a>(&'a mut self, queue: &'a Queue) -> impl View<Camera> {
-        CameraView {
-            queue,
-            resource: &mut self.camera
-        }
+    /// Retrieves `Camera`.
+    pub fn camera(&mut self) -> &mut Camera {
+        &mut self.camera
     }
 
     /// Resizes gbuffer
     pub fn resize(&mut self, device: &Device, gbuffer_width: u32, gbuffer_height: u32) {
         self.gbuffer = GBuffer::new(&device, gbuffer_width, gbuffer_height);
+    }
+
+    pub fn flush(&mut self, queue: &Queue) {
+        self.camera.flush(queue);
+        self.light_bundle.flush(queue);
+        for instance_set in &mut self.models {
+            instance_set.flush(queue);
+        }
     }
 
 

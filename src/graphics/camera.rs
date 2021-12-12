@@ -1,7 +1,6 @@
 use cgmath::{Vector3, Matrix4, Perspective, SquareMatrix, Ortho, Point3, PerspectiveFov};
 use wgpu::*;
 use bytemuck::{Pod, Zeroable};
-use crate::graphics::View;
 
 
 /// Represents a camera.
@@ -209,19 +208,4 @@ struct RawData {
     pub eye: [f32; 3],
     pub pad: u32,
     pub proj_view: [[f32; 4]; 4]
-}
-
-pub(crate) struct CameraView<'a> {
-    pub(crate) queue: &'a Queue,
-    pub(crate) resource: &'a mut Camera
-}
-impl<'a> View<'a, Camera> for CameraView<'a> {
-    fn resource(&mut self) -> &mut Camera {
-        self.resource
-    }
-}
-impl<'a> Drop for CameraView<'a> {
-    fn drop(&mut self) {
-        self.resource.flush(self.queue);
-    }
 }

@@ -6,7 +6,6 @@ pub use model_instance::*;
 pub use texture::*;
 pub use vertex::*;
 pub use voxel_map_graphics::*;
-pub use view::*;
 
 mod mesh;
 mod model;
@@ -22,4 +21,3 @@ pub mod screen;
 pub mod light;
 pub mod util;
 pub mod scene;
-mod view;

@@ -3,7 +3,7 @@ use wgpu::*;
 
 use bytemuck::{Pod, Zeroable};
 use cgmath::{Matrix, Matrix3, Matrix4, SquareMatrix, Transform, Vector3};
-use crate::graphics::{Model, View};
+use crate::graphics::{Model};
 
 /// Represents the instance data of a `Model`.
 #[repr(C)]
@@ -168,20 +168,5 @@ impl Index<usize> for ModelInstanceSet {
     type Output = ModelInstance;
     fn index(&self, index: usize) -> &Self::Output {
         &self.instances[index]
-    }
-}
-
-pub(crate) struct ModelView<'a> {
-    pub(crate) queue: &'a Queue,
-    pub(crate) resource: &'a mut ModelInstanceSet
-}
-impl<'a> View<'a, ModelInstanceSet> for ModelView<'a> {
-    fn resource(&mut self) -> &mut ModelInstanceSet {
-        self.resource
-    }
-}
-impl<'a> Drop for ModelView<'a> {
-    fn drop(&mut self) {
-        self.resource.flush(self.queue);
     }
 }
