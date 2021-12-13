@@ -24,7 +24,6 @@ pub struct App {
 }
 
 impl App {
-
     pub fn new() -> App {
         App {
             title: String::from("App"),
@@ -105,11 +104,7 @@ impl App {
         surface.configure(&device, &surface_config);
 
         // Sets up models and the scene
-        let camera = create_camera(
-            &device,
-            size.width as f32,
-            size.height as f32
-        );
+        let camera = create_camera(&device);
         let light_bundle = LightBundle::new(
             &device,
             LightSet::new(&device, 32),
@@ -203,10 +198,14 @@ impl App {
 
                     // Updates/draws EGUI
                     if self.is_ui_enabled {
+
+                        // Renders GUI to platform
                         platform.update_time(start_time.elapsed().as_secs_f64());
                         platform.begin_frame();
                         gui.update(&platform.context());
                         let (_output, paint_commands) = platform.end_frame(Some(&window));
+
+                        // Renders tesselated gui to render pass
                         let paint_jobs = platform.context().tessellate(paint_commands);
                         let screen_descriptor = ScreenDescriptor {
                             physical_width: surface_config.width,
@@ -276,10 +275,6 @@ impl App {
     }
 }
 
-const CAM_NEAR: f32 = 2.0;
-const CAM_FAR: f32 = 8000.0;
-const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
-
 /// Represents a change in the app
 pub enum AppEvent {
     STARTED,
@@ -307,25 +302,20 @@ pub struct AppState<'a> {
     pub queue: &'a Queue
 }
 
-fn create_camera(device: &Device, width: f32, height: f32) -> Camera {
-    let sw = width as f32;
-    let sh = height as f32;
-    let hw = sw / 2.0;
-    let hh = sh / 2.0;
+fn create_camera(device: &Device) -> Camera {
     let mut cam = Camera::create_perspective(
         &device,
         Point3::<f32>::new(0.0, 0.0, 0.0),
         Vector3::<f32>::new(0.0, 0.0, -1.0),
         Vector3::<f32>::unit_y(),
         Perspective {
-            left: -hw * CAM_PERSPECTIVE_SCALE,
-            right: hw * CAM_PERSPECTIVE_SCALE,
-            bottom: -hh * CAM_PERSPECTIVE_SCALE,
-            top: hh * CAM_PERSPECTIVE_SCALE,
-            near: CAM_NEAR,
-            far: CAM_FAR
+            left: -1.0,
+            right: 1.0,
+            bottom: -1.0,
+            top: 1.0,
+            near: 0.0,
+            far: 1.0
         }
     );
-    cam.set_coordinate_system(Camera::OPENGL_COORDINATE_SYSTEM);
     cam
 }

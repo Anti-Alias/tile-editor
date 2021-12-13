@@ -1,5 +1,5 @@
 use std::f32::consts::PI;
-use cgmath::{InnerSpace, Matrix4, Point3, SquareMatrix, Vector3};
+use cgmath::{InnerSpace, Matrix4, Perspective, Point3, SquareMatrix, Vector3};
 use wgpu::{Device, Queue, TextureFormat};
 use tile_editor::app::{App, AppEvent};
 use tile_editor::graphics::{Camera, Color, MaterialBuilder, Mesh, Model, ModelInstance, ModelInstanceSet, Texture};
@@ -7,12 +7,18 @@ use tile_editor::graphics::light::{AmbientLight, LightBundle, PointLight};
 use tile_editor::graphics::scene::Scene;
 use tile_editor::graphics::util::Matrix4Ext;
 
+const SCREEN_WIDTH: u32 = 1280;
+const SCREEN_HEIGHT: u32 = 720;
+const CAM_NEAR: f32 = 2.0;
+const CAM_FAR: f32 = 8000.0;
+const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
+
 fn main() {
     let mut t = 0.0;
     let app = App::new()
         .title("Tile Editor")
-        .size(1280, 720)
-        .gui_enabled(false)
+        .size(SCREEN_WIDTH, SCREEN_HEIGHT)
+        .gui_enabled(true)
         .event_handler(move |event, state, _control_flow| {
             match event {
                 AppEvent::STARTED => {
@@ -32,7 +38,20 @@ fn main() {
 
 fn on_start(scene: &mut Scene, device: &Device, queue: &Queue) {
     log::info!("Application started!");
-
+    let camera = scene.camera();
+    let sw = SCREEN_WIDTH as f32;
+    let sh = SCREEN_HEIGHT as f32;
+    let hw = sw / 2.0;
+    let hh = sh / 2.0;
+    camera.set_coordinate_system(Camera::OPENGL_COORDINATE_SYSTEM);
+    camera.set_perspective(Perspective {
+        left: -hw * CAM_PERSPECTIVE_SCALE,
+        right: hw * CAM_PERSPECTIVE_SCALE,
+        bottom: -hh * CAM_PERSPECTIVE_SCALE,
+        top: hh * CAM_PERSPECTIVE_SCALE,
+        near: CAM_NEAR,
+        far: CAM_FAR
+    });
     let model_instances = create_box_model_and_instances(&device, &queue);
     let floor_instance = create_floor_and_instances(&device, &queue);
     scene.add_model_and_instances(&device, model_instances);
@@ -45,8 +64,18 @@ fn on_update(scene: &mut Scene, t: f32) {
     move_lights(&mut scene.light_bundle(), 200.0, t*1.414);
 }
 
-fn on_resize(width: u32, height: u32, _scene: &mut Scene) {
-    log::info!("Application resized to dimensions: {}x{}", width, height)
+fn on_resize(width: u32, height: u32, scene: &mut Scene) {
+    let hw = width as f32 / 2.0;
+    let hh = height as f32 / 2.0;
+    let camera = scene.camera();
+    camera.set_perspective(Perspective {
+        left: -hw * CAM_PERSPECTIVE_SCALE,
+        right: hw * CAM_PERSPECTIVE_SCALE,
+        bottom: -hh * CAM_PERSPECTIVE_SCALE,
+        top: hh * CAM_PERSPECTIVE_SCALE,
+        near: CAM_NEAR,
+        far: CAM_FAR
+    });
 }
 
 
