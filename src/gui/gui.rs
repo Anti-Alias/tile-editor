@@ -1,16 +1,16 @@
 use epi::egui::style::{Widgets, WidgetVisuals};
 use epi::egui::{TopBottomPanel, Color32, Stroke, Ui, CtxRef};
 
-use crate::gui::Editor;
+use crate::gui::{Editor, SimpleEditor};
 
 
 /// Main GUI 'n chewy
 pub struct GUI {
     /// All editors available
-    editors: Vec<Editor>,
+    editors: Vec<Box<dyn Editor>>,
 
     /// Index of selected editor
-    editor_index: usize,
+    editor_index: Option<usize>,
 
     /// Menu flags
     window_flags: MenuFlags,
@@ -21,20 +21,15 @@ pub struct GUI {
 
 impl GUI {
 
-    pub fn new(starting_editor: Editor) -> GUI {
+    pub fn new() -> GUI {
         GUI {
-            editors: vec![starting_editor],
+            editors: Vec::new(),
             ..Default::default()
         }
     }
 
-    fn current_editor(&self) -> Option<&Editor> {
-        if (0..self.editors.len()).contains(&self.editor_index) {
-            Some(&self.editors[self.editor_index])
-        }
-        else {
-            None
-        }
+    fn current_editor(&self) -> Option<&SimpleEditor> {
+        self.editor_index.map(|idx| &self.editors[idx])
     }
 
     /*
@@ -101,8 +96,8 @@ impl GUI {
         if let Some(filename) = self.inputs.new_map_input.consume() {
             let filename = filename.trim();
             if !filename.is_empty() {
-                self.editor_index = self.editors.len();
-                self.editors.push(Editor {
+                self.editor_index = Some(self.editors.len());
+                self.editors.push(SimpleEditor {
                     name: filename.to_owned(),
                     content: filename.to_owned()
                 });
@@ -139,7 +134,7 @@ impl GUI {
         ui.horizontal(|ui| {
             for (i, editor) in self.editors.iter().enumerate() {
                 if ui.button(&editor.name).clicked() {
-                    self.editor_index = i;
+                    self.editor_index = Some(i);
                 }
             }
         });
@@ -161,10 +156,7 @@ impl GUI {
 
         // Editor panels
         if let Some(editor) = self.current_editor() {
-            editor.left_panel(ctx);     // Left panel
-            editor.right_panel(ctx);    // Right panel
-            editor.bottom_panel(ctx);   // Bottom panel
-            editor.content_panel(ctx);  // Content panel
+            editor.show(ctx);
         }
         else {
             epi::egui::CentralPanel::default().show(ctx, |ui| {
@@ -183,7 +175,7 @@ impl Default for GUI {
     fn default() -> Self {
         Self {
             editors: vec![],
-            editor_index: 0,
+            editor_index: None,
             window_flags: MenuFlags::default(),
             inputs: GUIInputs::default()
         }

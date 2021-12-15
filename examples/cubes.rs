@@ -15,7 +15,8 @@ const CAM_PERSPECTIVE_SCALE: f32 = (1.0/200.0) as f32;
 
 fn main() {
     let mut t = 0.0;
-    let app = App::new()
+    let mut app = App::new();
+    app
         .title("Tile Editor")
         .size(SCREEN_WIDTH, SCREEN_HEIGHT)
         .gui_enabled(true)

@@ -10,7 +10,7 @@ use crate::graphics::*;
 use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight, LightSet};
 use crate::graphics::scene::{DebugConfig, Scene};
 use crate::graphics::screen::Screen;
-use crate::gui::{GUI, Editor};
+use crate::gui::{GUI, SimpleEditor};
 
 
 /// Represents the application as a whole.
@@ -24,8 +24,8 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> App {
-        App {
+    pub fn new() -> Self {
+        Self {
             title: String::from("App"),
             width: 640,
             height: 480,
@@ -34,23 +34,23 @@ impl App {
         }
     }
 
-    pub fn title(mut self, title: &str) -> Self {
+    pub fn title(&mut self, title: &str) -> &mut Self {
         self.title = title.into();
         self
     }
 
-    pub fn size(mut self, width: u32, height: u32) -> Self {
+    pub fn size(&mut self, width: u32, height: u32) -> &mut Self {
         self.width = width;
         self.height = height;
         self
     }
 
-    pub fn event_handler(mut self, handler: impl FnMut(AppEvent, AppState, &mut AppControlFlow) + 'static) -> Self {
+    pub fn event_handler(&mut self, handler: impl FnMut(AppEvent, AppState, &mut AppControlFlow) + 'static) -> &mut Self {
         self.event_handler = Some(Box::new(handler));
         self
     }
 
-    pub fn gui_enabled(mut self, enabled: bool) -> Self {
+    pub fn gui_enabled(&mut self, enabled: bool) -> &mut Self {
         self.is_ui_enabled = enabled;
         self
     }
@@ -139,7 +139,7 @@ impl App {
         }
 
         // Sets up EGUI
-        let mut gui = GUI::new(Editor::new("Default Editor", "Default Editor"));
+        let mut gui = GUI::new();
         let mut platform = Platform::new(PlatformDescriptor {
             physical_width: size.width as u32,
             physical_height: size.height as u32,
