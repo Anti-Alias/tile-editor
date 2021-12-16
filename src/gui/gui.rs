@@ -2,12 +2,13 @@ use epi::egui::style::{Widgets, WidgetVisuals};
 use epi::egui::{TopBottomPanel, Color32, Stroke, Ui, CtxRef};
 
 use crate::gui::{Editor, SimpleEditor};
+use crate::gui::{Input};
 
 
 /// Main GUI 'n chewy
 pub struct GUI {
     /// All editors available
-    editors: Vec<Box<dyn Editor>>,
+    editors: Vec<EditorWithMeta>,
 
     /// Index of selected editor
     editor_index: Option<usize>,
@@ -28,7 +29,7 @@ impl GUI {
         }
     }
 
-    fn current_editor(&self) -> Option<&SimpleEditor> {
+    fn current_editor(&self) -> Option<&EditorWithMeta> {
         self.editor_index.map(|idx| &self.editors[idx])
     }
 
@@ -97,10 +98,14 @@ impl GUI {
             let filename = filename.trim();
             if !filename.is_empty() {
                 self.editor_index = Some(self.editors.len());
-                self.editors.push(SimpleEditor {
-                    name: filename.to_owned(),
-                    content: filename.to_owned()
-                });
+                let editor = EditorWithMeta {
+                    editor: Box::new(SimpleEditor {
+                        name: filename.to_owned(),
+                        content: filename.to_owned()
+                    }),
+                    name: filename.to_owned()
+                };
+                self.editors.push(editor);
             }
         }
     }
@@ -155,8 +160,8 @@ impl GUI {
         });
 
         // Editor panels
-        if let Some(editor) = self.current_editor() {
-            editor.show(ctx);
+        if let Some(meta) = self.current_editor() {
+            meta.editor.show(ctx);
         }
         else {
             epi::egui::CentralPanel::default().show(ctx, |ui| {
@@ -195,32 +200,6 @@ impl Default for MenuFlags {
     }
 }
 
-/// Represents input to be filled out.
-/// Should only be consumed when `is_ready` is set to true.
-struct Input<T: Default> {
-    pub is_ready: bool,
-    pub data: T
-}
-
-impl<T: Default> Input<T> {
-
-    /// Consumes the input, setting the `is_ready` to false if
-    pub fn consume(&mut self) -> Option<&T> {
-        if self.is_ready {
-            self.is_ready = false;
-            Some(&self.data)
-        }
-        else {
-            None
-        }
-    }
-}
-
-impl<T: Default> Default for Input<T> {
-    fn default() -> Self {
-        Input { is_ready: false, data: Default::default() }
-    }
-}
 
 /// A set of inputs
 struct GUIInputs {
@@ -275,4 +254,9 @@ pub fn light_widget_style() -> Widgets {
             expansion: 0.0,
         },
     }
+}
+
+struct EditorWithMeta {
+    editor: Box<dyn Editor>,
+    name: String
 }
