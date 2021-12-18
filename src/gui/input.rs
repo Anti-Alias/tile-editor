@@ -1,6 +1,6 @@
 /// Represents input to be filled out.
 /// Should only be consumed when `is_ready` is set to true.
-struct Input<T: Default> {
+pub struct Input<T: Default> {
     pub is_ready: bool,
     pub data: T
 }

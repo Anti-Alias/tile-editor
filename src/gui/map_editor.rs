@@ -1,12 +1,12 @@
 use epi::egui::{CtxRef, SidePanel, TopBottomPanel};
 use crate::gui::Editor;
 
-pub struct SimpleEditor {
+pub struct MapEditor {
     pub name: String,
     pub content: String
 }
 
-impl Editor for SimpleEditor {
+impl Editor for MapEditor {
     fn show(&self, ctx: &CtxRef) {
         self.left_panel(ctx);
         self.right_panel(ctx);
@@ -15,10 +15,10 @@ impl Editor for SimpleEditor {
     }
 }
 
-impl SimpleEditor {
+impl MapEditor {
 
-    pub fn new(name: &str, content: &str) -> SimpleEditor {
-        SimpleEditor {
+    pub fn new(name: &str, content: &str) -> MapEditor {
+        MapEditor {
             name: name.to_owned(),
             content: content.to_owned()
         }

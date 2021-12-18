@@ -10,7 +10,7 @@ use crate::graphics::*;
 use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight, LightSet};
 use crate::graphics::scene::{DebugConfig, Scene};
 use crate::graphics::screen::Screen;
-use crate::gui::{GUI, SimpleEditor};
+use crate::gui::{GUI, MapEditor};
 
 
 /// Represents the application as a whole.
@@ -202,7 +202,7 @@ impl App {
                         // Renders GUI to platform
                         platform.update_time(start_time.elapsed().as_secs_f64());
                         platform.begin_frame();
-                        gui.update(&platform.context());
+                        gui.show(&platform.context());
                         let (_output, paint_commands) = platform.end_frame(Some(&window));
 
                         // Renders tesselated gui to render pass
