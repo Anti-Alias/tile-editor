@@ -29,6 +29,19 @@ impl GUI {
         }
     }
 
+    /// Creates a new GUI with an initial editor
+    pub fn new_with_editor(editor: impl Editor, name: &str) -> GUI {
+        let gui = GUI {
+            editors: vec![EditorWithMeta {
+                editor: Box::new(editor),
+                name: name.to_owned()}
+            ],
+            editor_index: Some(0),
+            ..Default::default()
+        };
+        gui
+    }
+
     pub fn show(&mut self, ctx: &CtxRef) {
 
         // Shows menus hovering over UI
@@ -56,8 +69,31 @@ impl GUI {
         self.handle_inputs();
     }
 
+    /// Gets editor with specified name if present
+    fn editor(&mut self, name: &str) -> Option<&mut EditorWithMeta> {
+        for editor in &mut self.editors {
+            if editor.name == name {
+                return Some(editor)
+            }
+        }
+        None
+    }
+
+    /// Gets currently selected editor, if any
     fn current_editor(&self) -> Option<&EditorWithMeta> {
         self.editor_index.map(|idx| &self.editors[idx])
+    }
+
+    /// Uses editor with specified name.
+    /// Returns true if change occurred, and false if not
+    fn use_editor(&mut self, name: &str) -> bool {
+        for (i, editor) in self.editors.iter_mut().enumerate() {
+            if editor.name == name {
+                self.editor_index = Some(i);
+                return true
+            }
+        }
+        false
     }
 
     fn show_new_map_menu(&mut self, ctx: &CtxRef) {
@@ -113,7 +149,6 @@ impl GUI {
         if let Some(filename) = self.inputs.map_input.consume() {
             let filename = filename.trim();
             if !filename.is_empty() {
-                self.editor_index = Some(self.editors.len());
                 let editor = EditorWithMeta {
                     editor: Box::new(MapEditor {
                         name: filename.to_owned(),
@@ -121,6 +156,7 @@ impl GUI {
                     }),
                     name: filename.to_owned()
                 };
+                self.editor_index = Some(self.editors.len());
                 self.editors.push(editor);
             }
         }
@@ -129,14 +165,11 @@ impl GUI {
         if let Some(filename) = self.inputs.voxel_set_input.consume() {
             let filename = filename.trim();
             if !filename.is_empty() {
-                self.editor_index = Some(self.editors.len());
                 let editor = EditorWithMeta {
-                    editor: Box::new(VoxelEditor {
-                        name: filename.to_owned(),
-                        content: filename.to_owned()
-                    }),
+                    editor: Box::new(VoxelEditor::new()),
                     name: filename.to_owned()
                 };
+                self.editor_index = Some(self.editors.len());
                 self.editors.push(editor);
             }
         }

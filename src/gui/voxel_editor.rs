@@ -2,7 +2,6 @@ use epi::egui::{CtxRef, SidePanel, TopBottomPanel};
 use crate::gui::Editor;
 
 pub struct VoxelEditor {
-    pub name: String,
     pub content: String
 }
 
@@ -17,10 +16,9 @@ impl Editor for VoxelEditor {
 
 impl VoxelEditor {
 
-    pub fn new(name: &str, content: &str) -> VoxelEditor {
+    pub fn new() -> VoxelEditor {
         VoxelEditor {
-            name: name.to_owned(),
-            content: content.to_owned()
+            content: String::from("Default content")
         }
     }
 

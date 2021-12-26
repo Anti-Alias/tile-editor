@@ -19,7 +19,7 @@ pub struct App {
     title: String,
     width: u32,
     height: u32,
-    is_ui_enabled: bool,
+    gui: Option<GUI>,
     event_handler: Option<Box<dyn FnMut(AppEvent, AppState, &mut AppControlFlow)>>
 }
 
@@ -29,7 +29,7 @@ impl App {
             title: String::from("App"),
             width: 640,
             height: 480,
-            is_ui_enabled: true,
+            gui: None,
             event_handler: None
         }
     }
@@ -50,9 +50,8 @@ impl App {
         self
     }
 
-    pub fn gui_enabled(&mut self, enabled: bool) -> &mut Self {
-        self.is_ui_enabled = enabled;
-        self
+    pub fn gui(&mut self, gui: GUI) {
+        self.gui = Some(gui)
     }
 
     pub fn start(mut self) {
@@ -139,7 +138,6 @@ impl App {
         }
 
         // Sets up EGUI
-        let mut gui = GUI::new();
         let mut platform = Platform::new(PlatformDescriptor {
             physical_width: size.width as u32,
             physical_height: size.height as u32,
@@ -197,7 +195,7 @@ impl App {
                     scene.render(&screen, &mut encoder);
 
                     // Updates/draws EGUI
-                    if self.is_ui_enabled {
+                    if let Some(ref mut gui) = self.gui {
 
                         // Renders GUI to platform
                         platform.update_time(start_time.elapsed().as_secs_f64());
@@ -278,13 +276,8 @@ impl App {
 /// Represents a change in the app
 pub enum AppEvent {
     STARTED,
-    UPDATE {
-        dt: f32
-    },
-    RESIZED {
-        width: u32,
-        height: u32
-    }
+    UPDATE { dt: f32 },
+    RESIZED { width: u32, height: u32 }
 }
 
 /// Determines if application should continue running

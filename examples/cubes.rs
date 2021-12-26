@@ -19,7 +19,6 @@ fn main() {
     app
         .title("Tile Editor")
         .size(SCREEN_WIDTH, SCREEN_HEIGHT)
-        .gui_enabled(true)
         .event_handler(move |event, state, _control_flow| {
             match event {
                 AppEvent::STARTED => {
