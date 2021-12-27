@@ -197,10 +197,11 @@ impl App {
                     // Updates/draws EGUI
                     if let Some(ref mut gui) = self.gui {
 
-                        // Renders GUI to platform
+                        // Stores EGUI draw calls
                         platform.update_time(start_time.elapsed().as_secs_f64());
                         platform.begin_frame();
-                        gui.show(&platform.context());
+                        gui.show(&platform.context(), &mut egui_rpass);
+                        //update(&platform.context());
                         let (_output, paint_commands) = platform.end_frame(Some(&window));
 
                         // Renders tesselated gui to render pass

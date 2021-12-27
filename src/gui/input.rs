@@ -8,10 +8,10 @@ pub struct Input<T: Default> {
 impl<T: Default> Input<T> {
 
     /// Consumes the input, setting the `is_ready` to false if
-    pub fn consume(&mut self) -> Option<&T> {
+    pub fn consume(&mut self) -> Option<T> {
         if self.is_ready {
             self.is_ready = false;
-            Some(&self.data)
+            Some(std::mem::take(&mut self.data))
         }
         else {
             None

@@ -1,4 +1,5 @@
 use epi::egui::{CtxRef, SidePanel, TopBottomPanel};
+use epi::TextureAllocator;
 use crate::gui::Editor;
 
 pub struct MapEditor {
@@ -7,7 +8,7 @@ pub struct MapEditor {
 }
 
 impl Editor for MapEditor {
-    fn show(&self, ctx: &CtxRef) {
+    fn show(&mut self, ctx: &CtxRef, tex_alloc: &mut dyn TextureAllocator) {
         self.left_panel(ctx);
         self.right_panel(ctx);
         self.bottom_panel(ctx);

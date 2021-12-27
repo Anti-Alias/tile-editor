@@ -1,5 +1,7 @@
+use egui::Frame;
 use epi::egui::style::{Widgets, WidgetVisuals};
 use epi::egui::{TopBottomPanel, Color32, Stroke, Ui, CtxRef};
+use epi::TextureAllocator;
 
 use crate::gui::{Input, VoxelEditor};
 use crate::gui::{Editor, MapEditor};
@@ -14,7 +16,7 @@ pub struct GUI {
     editor_index: Option<usize>,
 
     /// Menu flags
-    window_flags: MenuFlags,
+    window_flags: WindowFlags,
 
     /// Selections from menus, checkboxes, etc
     inputs: GUIInputs
@@ -42,7 +44,7 @@ impl GUI {
         gui
     }
 
-    pub fn show(&mut self, ctx: &CtxRef) {
+    pub fn show(&mut self, ctx: &CtxRef, tex_alloc: &mut dyn TextureAllocator) {
 
         // Shows menus hovering over UI
         self.show_windows(ctx);
@@ -55,7 +57,7 @@ impl GUI {
 
         // Editor panel
         if let Some(meta) = self.current_editor() {
-            meta.editor.show(ctx);
+            meta.editor.show(ctx, tex_alloc);
         }
         else {
             epi::egui::CentralPanel::default().show(ctx, |ui| {
@@ -80,8 +82,8 @@ impl GUI {
     }
 
     /// Gets currently selected editor, if any
-    fn current_editor(&self) -> Option<&EditorWithMeta> {
-        self.editor_index.map(|idx| &self.editors[idx])
+    fn current_editor(&mut self) -> Option<&mut EditorWithMeta> {
+        self.editor_index.map(move |idx| &mut self.editors[idx])
     }
 
     /// Uses editor with specified name.
@@ -166,7 +168,7 @@ impl GUI {
             let filename = filename.trim();
             if !filename.is_empty() {
                 let editor = EditorWithMeta {
-                    editor: Box::new(VoxelEditor::new()),
+                    editor: Box::new(VoxelEditor::new(filename)),
                     name: filename.to_owned()
                 };
                 self.editor_index = Some(self.editors.len());
@@ -216,7 +218,7 @@ impl Default for GUI {
         Self {
             editors: vec![],
             editor_index: None,
-            window_flags: MenuFlags::default(),
+            window_flags: WindowFlags::default(),
             inputs: GUIInputs::default()
         }
     }
@@ -224,7 +226,7 @@ impl Default for GUI {
 
 /// Stores flags regarding the "opened" status of menus in `GUI`
 #[derive(Default)]
-struct MenuFlags {
+struct WindowFlags {
     new_map_opened: bool,
     voxel_set_opened: bool
 }

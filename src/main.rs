@@ -12,7 +12,7 @@ fn main() {
     app
         .title("GUI Example")
         .size(SCREEN_WIDTH, SCREEN_HEIGHT)
-        .gui(GUI::new_with_editor(VoxelEditor::new(), "test_voxel_editor"))
+        .gui(GUI::new_with_editor(VoxelEditor::new("test_voxel_editor"), "test_voxel_editor"))
     ;
     app.start();
 }
