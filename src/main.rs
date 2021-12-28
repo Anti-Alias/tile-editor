@@ -1,5 +1,5 @@
 use tile_editor::app::App;
-use tile_editor::gui::{GUI, VoxelEditor};
+use tile_editor::gui::{GUI, VoxelSetEditor};
 
 const SCREEN_WIDTH: u32 = 1280;
 const SCREEN_HEIGHT: u32 = 720;
@@ -12,7 +12,7 @@ fn main() {
     app
         .title("GUI Example")
         .size(SCREEN_WIDTH, SCREEN_HEIGHT)
-        .gui(GUI::new_with_editor(VoxelEditor::new("test_voxel_editor"), "test_voxel_editor"))
+        .gui(GUI::new_with_editor(VoxelSetEditor::new("test_voxel_editor"), "test_voxel_editor"))
     ;
     app.start();
 }

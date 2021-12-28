@@ -3,11 +3,12 @@ use epi::egui::style::{Widgets, WidgetVisuals};
 use epi::egui::{TopBottomPanel, Color32, Stroke, Ui, CtxRef};
 use epi::TextureAllocator;
 
-use crate::gui::{Input, VoxelEditor};
+use crate::gui::{Input, VoxelSetEditor};
 use crate::gui::{Editor, MapEditor};
 
 
 /// Main GUI 'n chewy
+#[derive(Default)]
 pub struct GUI {
     /// All editors available
     editors: Vec<EditorWithMeta>,
@@ -15,11 +16,9 @@ pub struct GUI {
     /// Index of selected editor
     editor_index: Option<usize>,
 
-    /// Menu flags
-    window_flags: WindowFlags,
-
-    /// Selections from menus, checkboxes, etc
-    inputs: GUIInputs
+    /// Window states
+    map_window_state: MapWindowState,
+    voxel_set_window_state: VoxelSetWindowState
 }
 
 impl GUI {
@@ -46,16 +45,13 @@ impl GUI {
 
     pub fn show(&mut self, ctx: &CtxRef, tex_alloc: &mut dyn TextureAllocator) {
 
-        // Shows menus hovering over UI
-        self.show_windows(ctx);
-
         // Top panel
         TopBottomPanel::top("top").show(ctx, |ui| {
             self.show_menu_bar(ui); // Menu bar
             self.show_tabs(ui);     // Tabs
         });
 
-        // Editor panel
+        // Editor content (or default message)
         if let Some(meta) = self.current_editor() {
             meta.editor.show(ctx, tex_alloc);
         }
@@ -67,8 +63,9 @@ impl GUI {
             });
         }
 
-        // Handles selections
-        self.handle_inputs();
+        // Shows windows, and handles their selections
+        self.show_windows(ctx);
+        self.handle_windows();
     }
 
     /// Gets editor with specified name if present
@@ -98,57 +95,59 @@ impl GUI {
         false
     }
 
-    fn show_new_map_menu(&mut self, ctx: &CtxRef) {
-        let window_opened_ptr = &mut self.window_flags.new_map_opened;
-        let input_ptr = &mut self.inputs.map_input.data;
-        let input_ready_ptr = &mut self.inputs.map_input.is_ready;
+    fn show_new_map_window(&mut self, ctx: &CtxRef) {
+        let input_ptr = &mut self.map_window_state.filename;
+        let ready_ptr = &mut self.map_window_state.is_ready;
+        let show_window_ptr = &mut self.map_window_state.is_open;
         epi::egui::Window::new("New Map").show(ctx, move |ui| {
             ui.label("Name");
             ui.text_edit_singleline(input_ptr);
             ui.horizontal(|ui| {
                 if ui.button("Create").clicked() {
-                    *input_ready_ptr = true;
-                    *window_opened_ptr = false;
+                    *ready_ptr = true;
+                    *show_window_ptr = false;
                 }
                 if ui.button("Cancel").clicked() {
-                    *window_opened_ptr = false;
+                    *show_window_ptr = false;
                 }
             });
         });
     }
 
-    fn show_new_voxel_set_menu(&mut self, ctx: &CtxRef) {
-        let window_opened_ptr = &mut self.window_flags.voxel_set_opened;
-        let input_ptr = &mut self.inputs.voxel_set_input.data;
-        let input_ready_ptr = &mut self.inputs.voxel_set_input.is_ready;
+    fn show_new_voxel_set_window(&mut self, ctx: &CtxRef) {
+        let input_ptr = &mut self.voxel_set_window_state.filename;
+        let ready_ptr = &mut self.voxel_set_window_state.is_ready;
+        let show_window_ptr = &mut self.voxel_set_window_state.is_open;
         epi::egui::Window::new("New Voxel Set").show(ctx, move |ui| {
             ui.label("Name");
             ui.text_edit_singleline(input_ptr);
             ui.horizontal(|ui| {
                 if ui.button("Create").clicked() {
-                    *input_ready_ptr = true;
-                    *window_opened_ptr = false;
+                    *ready_ptr = true;
+                    *show_window_ptr = false;
                 }
                 if ui.button("Cancel").clicked() {
-                    *window_opened_ptr = false;
+                    *show_window_ptr = false;
                 }
             });
         });
     }
 
     fn show_windows(&mut self, ctx: &CtxRef) {
-        if self.window_flags.new_map_opened {
-            self.show_new_map_menu(ctx);
+        if self.map_window_state.is_open {
+            self.show_new_map_window(ctx);
         }
-        if self.window_flags.voxel_set_opened {
-            self.show_new_voxel_set_menu(ctx);
+        if self.voxel_set_window_state.is_open {
+            self.show_new_voxel_set_window(ctx);
         }
     }
 
-    fn handle_inputs(&mut self) {
+    fn handle_windows(&mut self) {
 
         // Handles new map
-        if let Some(filename) = self.inputs.map_input.consume() {
+        if self.map_window_state.is_ready {
+            self.map_window_state.is_ready = false;
+            let filename = std::mem::take(&mut self.map_window_state.filename);
             let filename = filename.trim();
             if !filename.is_empty() {
                 let editor = EditorWithMeta {
@@ -164,11 +163,13 @@ impl GUI {
         }
 
         // Handles new voxel set
-        if let Some(filename) = self.inputs.voxel_set_input.consume() {
+        if self.voxel_set_window_state.is_ready {
+            self.map_window_state.is_ready = false;
+            let filename = std::mem::take(&mut self.voxel_set_window_state.filename);
             let filename = filename.trim();
             if !filename.is_empty() {
                 let editor = EditorWithMeta {
-                    editor: Box::new(VoxelEditor::new(filename)),
+                    editor: Box::new(VoxelSetEditor::new(filename)),
                     name: filename.to_owned()
                 };
                 self.editor_index = Some(self.editors.len());
@@ -178,16 +179,16 @@ impl GUI {
     }
 
     fn show_menu_bar(&mut self, ui: &mut Ui) {
-        epi::egui::menu::bar(ui, |ui|{
-            epi::egui::menu::menu(ui, "File", |ui|{
+        epi::egui::menu::bar(ui, move |ui|{
+            epi::egui::menu::menu(ui, "File", move |ui|{
                 if ui.button("New Map").clicked() {
-                    self.window_flags.new_map_opened = true;
+                    self.map_window_state.is_open = true;
                 }
                 if ui.button("Open Map").clicked() {
                     // todo
                 }
                 if ui.button("New Voxel Set").clicked() {
-                    self.window_flags.voxel_set_opened = true;
+                    self.voxel_set_window_state.is_open = true;
                 }
                 if ui.button("Open Voxel Set").clicked() {
                     // todo
@@ -213,31 +214,21 @@ impl GUI {
     }
 }
 
-impl Default for GUI {
-    fn default() -> Self {
-        Self {
-            editors: vec![],
-            editor_index: None,
-            window_flags: WindowFlags::default(),
-            inputs: GUIInputs::default()
-        }
-    }
-}
-
-/// Stores flags regarding the "opened" status of menus in `GUI`
+// Represents the state of a window that allows for selecting a new map
 #[derive(Default)]
-struct WindowFlags {
-    new_map_opened: bool,
-    voxel_set_opened: bool
+struct MapWindowState {
+    filename: String,
+    is_open: bool,
+    is_ready: bool
 }
 
-/// A set of inputs
+// Represents the state of a window that allows for selecting a new map
 #[derive(Default)]
-struct GUIInputs {
-    map_input: Input<String>,
-    voxel_set_input: Input<String>
+struct VoxelSetWindowState {
+    filename: String,
+    is_open: bool,
+    is_ready: bool
 }
-
 
 struct EditorWithMeta {
     editor: Box<dyn Editor>,

@@ -1,35 +1,41 @@
+use std::fs::File;
 use std::hash::Hash;
-use egui::{Align, Button, CursorIcon, Direction, Grid, Layout, ScrollArea, Style, TextEdit, Vec2, Window};
+use std::path::Path;
+use egui::{Align, Button, Color32, CursorIcon, Direction, Grid, Label, Layout, ScrollArea, Style, TextEdit, Vec2, Window};
 use egui::{CtxRef, SidePanel, TopBottomPanel, Frame};
 use egui_wgpu_backend::RenderPass;
 use epi::TextureAllocator;
 use crate::gui::{Editor, GUIMaterial, GUITexture, Input, GUITextureType};
 
-pub struct VoxelEditor {
-    name: String,                   // Name of the editor
-    material: GUIMaterial,          // Material the voxels use
-    texture_state: TextureState     // GUI state for texture selection
+pub struct VoxelSetEditor {
+    name: String,                               // Name of the editor
+    material: GUIMaterial,                      // Material the voxels use
+    texture_window_state: TextureWindowState    // GUI state for texture selection
 }
 
-impl Editor for VoxelEditor {
+impl Editor for VoxelSetEditor {
 
     /// Draws all panels of editor
     fn show(&mut self, ctx: &CtxRef, tex_alloc: &mut dyn TextureAllocator) {
+
+        // Shows panels
         self.show_left_panel(ctx);
         self.show_right_panel(ctx);
         self.show_bottom_panel(ctx);
         self.show_content_panel(ctx);
-        self.show_windows(ctx);
+
+        // Shows windows on top of panels
+        self.show_windows(ctx, tex_alloc);
     }
 }
 
-impl VoxelEditor {
+impl VoxelSetEditor {
 
     /// Creates a new named editor
-    pub fn new(name: &str) -> VoxelEditor {
-        VoxelEditor {
+    pub fn new(name: &str) -> VoxelSetEditor {
+        VoxelSetEditor {
             name: name.to_owned(),
-            texture_state: TextureState::default(),
+            texture_window_state: TextureWindowState::default(),
             material: GUIMaterial::default()
         }
     }
@@ -55,13 +61,11 @@ impl VoxelEditor {
             });
             let height = ui.available_height()/2.0 - 15.0;
             ui.separator();
-            ScrollArea::from_max_height(height).show(ui, |ui| {
-                ui.set_min_height(height);
-            });
+            self.material.show(ui);
             ui.vertical_centered_justified(|ui| {
                 ui.set_width_range(80.0..=80.0);
                 if ui.button("Add Texture").clicked() {
-                    self.texture_state.show_window = true;
+                    self.texture_window_state.is_open = true;
                 }
             });
             ui.separator();
@@ -92,29 +96,28 @@ impl VoxelEditor {
          */
     }
 
-    fn show_windows(&mut self, ctx: &CtxRef) {
-        if self.texture_state.show_window {
-            self.show_texture_window(ctx);
+    fn show_windows(&mut self, ctx: &CtxRef, tex_alloc: &mut dyn TextureAllocator) {
+        if self.texture_window_state.is_open {
+            self.show_texture_window(ctx, tex_alloc);
         }
     }
 
-    fn show_texture_window(&mut self, ctx: &CtxRef) {
+    fn show_texture_window(&mut self, ctx: &CtxRef, tex_alloc: &mut dyn TextureAllocator) {
         Window::new("Add Texture").show(ctx, move |ui| {
             Grid::new("grid")
                 .num_columns(3)
                 .spacing([10.0, 10.0])
                 .striped(true)
                 .show(ui, |ui| {
-
                     // Texture file selection
                     ui.label("File");
-                    ui.text_edit_singleline(&mut self.texture_state.filename_input.data);
+                    ui.text_edit_singleline(&mut self.texture_window_state.filename_input);
                     ui.button("Browse");
                     ui.end_row();
 
                     // Texture type selection
                     ui.label("Type");
-                    let texture_type_choice = &mut self.texture_state.type_choice;
+                    let texture_type_choice = &mut self.texture_window_state.type_choice;
                     Grid::new("choice_grid").num_columns(3).show(ui, |ui| {
                         ui.radio_value(texture_type_choice, GUITextureType::DIFFUSE, "Diffuse");
                         ui.radio_value(texture_type_choice, GUITextureType::NORMAL, "Normal");
@@ -130,37 +133,30 @@ impl VoxelEditor {
 
             // Add/cancel
             ui.horizontal(move |ui| {
-                if ui.button("Add").clicked() {
-                    let filename = self.texture_state.filename_input.consume();
-                    println!("Filename is {:?}", filename);
-                    if let Some(filename) = filename {
-                        let gui_tex = Self::load_gui_texture(&filename);
-                        self.material.set_texture(self.texture_state.type_choice, Some(gui_tex));
-                        self.texture_state.show_window = false;
+                let button = Button::new("Add").enabled(self.texture_window_state.is_valid());
+                if ui.add(button).clicked() {
+                    let filename = self.texture_window_state.filename_input.trim();
+                    match GUITexture::from_file(filename, tex_alloc) {
+                        Ok(gui_tex) => {
+                            let choice = self.texture_window_state.type_choice;
+                            self.material.set_texture(choice, Some(gui_tex));
+                            self.material.selected = choice;
+                            self.texture_window_state.close();
+                        }
+                        Err(_) => {
+                            self.texture_window_state.error = Some(String::from("Failed to open file"))
+                        }
                     }
                 }
                 if ui.button("Cancel").clicked() {
-                    self.texture_state.show_window = false;
+                    self.texture_window_state.close();
+                }
+                if let Some(ref mut error) = self.texture_window_state.error {
+                    let label = Label::new(error).text_color(Color32::RED);
+                    ui.add(label);
                 }
             });
         });
-    }
-
-    fn add_texture(&mut self, filename: &str, typ: GUITextureType) {
-        match typ {
-            GUITextureType::NORMAL => {
-
-            }
-            GUITextureType::AMBIENT => {}
-            GUITextureType::DIFFUSE => {}
-            GUITextureType::SPECULAR => {}
-            GUITextureType::GLOSS => {}
-            GUITextureType::EMISSIVE => {}
-        }
-    }
-
-    fn load_gui_texture(filename: &str) -> GUITexture {
-        todo!()
     }
 }
 
@@ -172,10 +168,22 @@ fn concat(str: &str, to_push: &str) -> String {
 
 // Represents a window that allows for selecting a texture for a material
 #[derive(Default)]
-struct TextureState {
-    filename_input: Input<String>,
+struct TextureWindowState {
+    filename_input: String,
     type_choice: GUITextureType,
-    show_window: bool
+    is_open: bool,
+    is_ready: bool,
+    error: Option<String>
+}
+
+impl TextureWindowState {
+    fn is_valid(&self) -> bool {
+        !self.filename_input.is_empty()
+    }
+    fn close(&mut self) {
+        self.error = None;
+        self.is_open = false;
+    }
 }
 
 impl Default for GUITextureType {
