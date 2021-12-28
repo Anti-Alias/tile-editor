@@ -19,7 +19,6 @@ struct PointLightFragment {
 };
 
 // ------------- Uniform type(s) -------------
-[[block]]
 struct CameraUni {
     eye: vec3<f32>;
     proj_view: mat4x4<f32>;
@@ -31,7 +30,7 @@ var<uniform> camera: CameraUni;
 
 
 [[stage(vertex)]]
-fn main(vertex: PointLightVertex, instance: PointLightInstance) -> PointLightFragment {
+fn vert_main(vertex: PointLightVertex, instance: PointLightInstance) -> PointLightFragment {
     let clip_pos = camera.proj_view * (vec4<f32>(vertex.position + instance.position, 1.0));
     let c = instance.color;
     let max_channel = max(max(c.r, max(c.g, c.b)), 0.0001);     // Get max of r,g,b with epsilon to prevent divide-by-zero.
@@ -40,6 +39,6 @@ fn main(vertex: PointLightVertex, instance: PointLightInstance) -> PointLightFra
 }
 
 [[stage(fragment)]]
-fn main(fragment: PointLightFragment) -> [[location(0)]] vec4<f32> {
+fn frag_main(fragment: PointLightFragment) -> [[location(0)]] vec4<f32> {
     return vec4<f32>(fragment.color, 1.0);
 }

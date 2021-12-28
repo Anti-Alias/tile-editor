@@ -51,7 +51,7 @@ impl PointLightDebugRenderer {
             layout: Some(&layout),
             vertex: VertexState {
                 module: &module,
-                entry_point: "main",
+                entry_point: "vert_main",
                 buffers: &[
                     LightMesh::vertex_buffer_layout(),
                     PointLight::vertex_buffer_layout()
@@ -62,7 +62,7 @@ impl PointLightDebugRenderer {
                 strip_index_format: None,
                 front_face: FrontFace::Ccw,
                 cull_mode: Some(Face::Back),
-                clamp_depth: false,
+                unclipped_depth: false,
                 polygon_mode: PolygonMode::Fill,
                 conservative: false
             },
@@ -76,7 +76,7 @@ impl PointLightDebugRenderer {
             multisample: Default::default(),
             fragment: Some(FragmentState {
                 module: &module,
-                entry_point: "main",
+                entry_point: "frag_main",
                 targets: &[
                     ColorTargetState {
                         format: screen_format,
@@ -84,7 +84,8 @@ impl PointLightDebugRenderer {
                         write_mask: Default::default()
                     }
                 ]
-            })
+            }),
+            multiview: None
         });
         Self {
             light_mesh,

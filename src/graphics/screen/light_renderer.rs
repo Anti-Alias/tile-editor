@@ -8,6 +8,13 @@ use crate::graphics::util::string_with_lines;
 /// Responsible for rendering ambient and directional lights to a screen using a `GBuffer`.
 pub struct LightRenderer { pipeline: RenderPipeline }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct LightArraySizes {
+    pub point_light_array_size: u32,
+    pub directional_light_array_size: u32,
+    pub ambient_light_array_size: u32
+}
+
 impl LightRenderer {
 
     /// Creates a new `LightRenderer` with a default shader
@@ -16,7 +23,8 @@ impl LightRenderer {
         screen_format: TextureFormat,
         gbuffer_bind_group_layout: &BindGroupLayout,
         light_bundle_bind_group_layout: &BindGroupLayout,
-        camera_bind_group_layout: &BindGroupLayout
+        camera_bind_group_layout: &BindGroupLayout,
+        array_sizes: &LightArraySizes
     )-> Self {
         Self::create_from_shader(
             device,
@@ -24,7 +32,8 @@ impl LightRenderer {
             screen_format,
             gbuffer_bind_group_layout,
             light_bundle_bind_group_layout,
-            camera_bind_group_layout
+            camera_bind_group_layout,
+            array_sizes
         )
     }
 
@@ -35,9 +44,10 @@ impl LightRenderer {
         screen_format: TextureFormat,
         gbuffer_bind_group_layout: &BindGroupLayout,
         light_bundle_bind_group_layout: &BindGroupLayout,
-        camera_bind_group_layout: &BindGroupLayout
+        camera_bind_group_layout: &BindGroupLayout,
+        array_sizes: &LightArraySizes
     ) -> Self {
-        let module = Self::create_module(device, &shader_source);
+        let module = Self::create_module(device, &shader_source, array_sizes);
         let pipeline = Self::create_pipeline(
             device,
             &module,
@@ -64,8 +74,8 @@ impl LightRenderer {
         render_pass.draw(0..6, 0..1);
     }
 
-    fn create_module(device: &Device, source: &str) -> ShaderModule {
-        let source = Self::preprocess_source(source);
+    fn create_module(device: &Device, source: &str, array_sizes: &LightArraySizes) -> ShaderModule {
+        let source = Self::preprocess_source(source, array_sizes);
         log::info!("Preprocessed gbuffer shader source as:\n{}", string_with_lines(&source));
         let source = ShaderSource::Wgsl(Cow::from(source.as_str()));
         device.create_shader_module(&ShaderModuleDescriptor {
@@ -93,7 +103,7 @@ impl LightRenderer {
         });
         let vertex = VertexState {
             module,
-            entry_point: "main",
+            entry_point: "vert_main",
             buffers: &[]
         };
         let color_targets = [
@@ -112,7 +122,7 @@ impl LightRenderer {
         ];
         let fragment = FragmentState {
             module,
-            entry_point: "main",
+            entry_point: "frag_main",
             targets: &color_targets
         };
         let primitive = PrimitiveState {
@@ -120,7 +130,7 @@ impl LightRenderer {
             strip_index_format: None,
             front_face: FrontFace::Ccw,
             cull_mode: None,
-            clamp_depth: false,
+            unclipped_depth: false,
             polygon_mode: PolygonMode::Fill,
             conservative: false
         };
@@ -131,15 +141,21 @@ impl LightRenderer {
             primitive,
             depth_stencil: None,
             multisample: Default::default(),
-            fragment: Some(fragment)
+            fragment: Some(fragment),
+            multiview: None
         })
     }
 
-    fn preprocess_source(source: &str) -> String {
+    fn preprocess_source(source: &str, array_sizes: &LightArraySizes) -> String {
 
         // Prepares empty preprocessor context
         let mut context = gpp::Context::new();
         let macros = &mut context.macros;
+
+        // Array sizes
+        macros.insert(String::from("M_POINT_LIGHT_ARRAY_SIZE"), array_sizes.point_light_array_size.to_string());
+        macros.insert(String::from("M_DIRECTIONAL_LIGHT_ARRAY_SIZE"), array_sizes.directional_light_array_size.to_string());
+        macros.insert(String::from("M_AMBIENT_LIGHT_ARRAY_SIZE"), array_sizes.ambient_light_array_size.to_string());
 
         // Gbuffer bind group
         macros.insert(String::from("M_GBUFFER_BIND_GROUP"), String::from("0"));

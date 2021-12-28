@@ -133,8 +133,7 @@ impl VoxelSetEditor {
 
             // Add/cancel
             ui.horizontal(move |ui| {
-                let button = Button::new("Add").enabled(self.texture_window_state.is_valid());
-                if ui.add(button).clicked() {
+                if ui.add_enabled(self.texture_window_state.is_valid(), Button::new("Add")).clicked() {
                     let filename = self.texture_window_state.filename_input.trim();
                     match GUITexture::from_file(filename, tex_alloc) {
                         Ok(gui_tex) => {

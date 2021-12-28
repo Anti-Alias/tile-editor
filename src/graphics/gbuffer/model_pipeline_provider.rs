@@ -63,7 +63,7 @@ impl ModelPipelineProvider {
         });
         let vertex = VertexState {
             module,
-            entry_point: "main",
+            entry_point: "vert_main",
             buffers: &[
                 ModelVertex::layout(),
                 ModelInstance::layout()
@@ -95,7 +95,7 @@ impl ModelPipelineProvider {
         });
         let fragment = Some(FragmentState {
             module,
-            entry_point: "main",
+            entry_point: "frag_main",
             targets: &color_target_states
         });
         let primitive = PrimitiveState {
@@ -103,7 +103,7 @@ impl ModelPipelineProvider {
             strip_index_format: None,
             front_face: FrontFace::Ccw,
             cull_mode: Some(Face::Back),
-            clamp_depth: false,
+            unclipped_depth: false,
             polygon_mode: PolygonMode::Fill,
             conservative: false
         };
@@ -121,7 +121,8 @@ impl ModelPipelineProvider {
             fragment,
             primitive,
             depth_stencil: depth_stencil_state,
-            multisample
+            multisample,
+            multiview: None
         });
         pipeline
     }

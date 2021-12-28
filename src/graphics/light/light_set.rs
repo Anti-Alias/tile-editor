@@ -11,13 +11,15 @@ impl<L: Pod + Zeroable> LightSet<L> {
 
     /// Creates a new set of lights
     /// * `device` Device used to allocate buffer
-    /// * `max_lights` How mahy lights to allocate on the CPU/GPU. Number of lights cannot exceed this value after the fact.
+    /// * `max_lights` How any lights to allocate on the CPU/GPU. Number of lights cannot exceed this value after the fact.
     pub fn new(device: &Device, max_lights: u32) -> Self {
         let lights: Vec<L> = Vec::with_capacity(max_lights as usize);
         let lights_size = std::mem::size_of::<L>() as u32;
+        let buffer_size = (16 + lights_size*max_lights);
+        log::info!("Light buffer size: {}", buffer_size);
         let buffer = device.create_buffer(&BufferDescriptor {
             label: Some("Light Set Buffer"),
-            size: (16 + lights_size*max_lights) as BufferAddress,
+            size: buffer_size as BufferAddress,
             usage: BufferUsages::UNIFORM | BufferUsages::VERTEX | BufferUsages::COPY_DST,
             mapped_at_creation: false
         });

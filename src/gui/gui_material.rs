@@ -28,8 +28,7 @@ impl GUIMaterial {
             if self.gloss.is_some() { ui.button("Gloss"); }
             if self.emissive.is_some() { ui.button("Emi"); }
         });
-        ScrollArea::from_max_height(128.0).show(ui, |ui| {
-            ui.set_max_width(128.0);
+        ScrollArea::vertical().max_height(128.0).show(ui, |ui| {
             if let Some(gui_tex) = self.selected_texture() {
                 let size = (gui_tex.width as f32, gui_tex.height as f32);
                 ui.image(gui_tex.texture_id, size);

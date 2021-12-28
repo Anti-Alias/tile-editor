@@ -1,3 +1,4 @@
+use std::num::NonZeroU64;
 use wgpu::*;
 use crate::graphics::light::{AmbientLight, DirectionalLight, LightSet, PointLight};
 

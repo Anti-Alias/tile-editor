@@ -4,7 +4,7 @@ use wgpu::{CommandEncoder, Device, Queue, SurfaceConfiguration};
 use crate::graphics::light::{LightBundle, LightMesh};
 use crate::graphics::{Camera, Model, ModelInstanceSet};
 use crate::graphics::gbuffer::{GBuffer, ModelRenderer};
-use crate::graphics::screen::{LightRenderer, PointLightDebugRenderer, PointLightRenderer, Screen};
+use crate::graphics::screen::{LightArraySizes, LightRenderer, PointLightDebugRenderer, PointLightRenderer, Screen};
 
 type ModelHandle = u32;
 type PointLightHandle = u32;
@@ -38,6 +38,7 @@ impl Scene {
         device: &Device,
         camera: Camera,
         light_bundle: LightBundle,
+        light_array_sizes: &LightArraySizes,
         surface_config: &SurfaceConfiguration,
         debug_config: &DebugConfig
     ) -> Self {
@@ -56,7 +57,8 @@ impl Scene {
             surface_config.format,
             gbuffer_bgl,
             light_bundle_bgl,
-            camera_bgl
+            camera_bgl,
+            light_array_sizes
         );
         let model_renderer = ModelRenderer::new();
         let point_light_renderer = PointLightRenderer::new(

@@ -178,10 +178,7 @@ impl MaterialBuilder {
             entries.push(BindGroupLayoutEntry {
                 binding: i*2+1,
                 visibility: ShaderStages::FRAGMENT,
-                ty: BindingType::Sampler {
-                    filtering: true,
-                    comparison: false
-                },
+                ty: BindingType::Sampler(SamplerBindingType::Filtering),
                 count: None
             });
         }

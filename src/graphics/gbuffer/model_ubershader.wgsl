@@ -47,7 +47,6 @@ struct ModelVertexOut {
 
 
 // ------------- Uniform type(s) -------------
-[[block]]
 struct CameraUni {
     eye: vec3<f32>;
     proj_view: mat4x4<f32>;
@@ -102,7 +101,7 @@ var emi_samp: sampler;
 
 // ------------- Entrypoint -------------
 [[stage(vertex)]]
-fn main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
+fn vert_main(vertex: ModelVertexIn, instance: ModelInstanceIn) -> ModelVertexOut {
     let model_mat = mat4x4<f32>(
         instance.m_col0,
         instance.m_col1,
@@ -200,7 +199,7 @@ fn sample_normal(in: ModelVertexOut) -> vec3<f32> {
 
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
-fn main(in: ModelVertexOut) -> ColorTargetOut {
+fn frag_main(in: ModelVertexOut) -> ColorTargetOut {
 
     // Variables to write out to color targets
     let position = in.model_position;               // X, Y, Z, <unused>

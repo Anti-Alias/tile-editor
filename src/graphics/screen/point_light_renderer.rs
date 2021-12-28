@@ -93,7 +93,7 @@ impl PointLightRenderer {
         });
         let vertex = VertexState {
             module,
-            entry_point: "main",
+            entry_point: "vert_main",
             buffers: &[
                 LightMesh::vertex_buffer_layout(),
                 PointLight::vertex_buffer_layout()
@@ -115,7 +115,7 @@ impl PointLightRenderer {
         ];
         let fragment = Some(FragmentState {
             module,
-            entry_point: "main",
+            entry_point: "frag_main",
             targets: &color_targets
         });
         let primitive = PrimitiveState {
@@ -123,7 +123,7 @@ impl PointLightRenderer {
             strip_index_format: None,
             front_face: FrontFace::Ccw,
             cull_mode: Some(Face::Front),
-            clamp_depth: false,
+            unclipped_depth: false,
             polygon_mode: Default::default(),
             conservative: false
         };
@@ -139,7 +139,8 @@ impl PointLightRenderer {
             primitive,
             depth_stencil: None,
             multisample,
-            fragment
+            fragment,
+            multiview: None
         })
     }
 

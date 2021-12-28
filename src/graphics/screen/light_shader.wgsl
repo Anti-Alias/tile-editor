@@ -25,25 +25,21 @@ struct AmbientLight {
     color: vec3<f32>;
 };
 
-[[block]]
 struct PointLightSet {
     length: i32;
-    lights: array<PointLight, 64>;
+    lights: array<PointLight, M_POINT_LIGHT_ARRAY_SIZE>;
 };
 
-[[block]]
 struct DirectionalLightSet {
     length: i32;
-    lights: array<DirectionalLight, 64>;
+    lights: array<DirectionalLight, M_DIRECTIONAL_LIGHT_ARRAY_SIZE>;
 };
 
-[[block]]
 struct AmbientLightSet {
     length: i32;
-    lights: array<AmbientLight, 64>;
+    lights: array<AmbientLight, M_AMBIENT_LIGHT_ARRAY_SIZE>;
 };
 
-[[block]]
 struct CameraUni {
     eye: vec3<f32>;
     proj_view: mat4x4<f32>;
@@ -90,7 +86,7 @@ var<uniform> camera: CameraUni;
 
 
 [[stage(vertex)]]
-fn main(
+fn vert_main(
     [[builtin(vertex_index)]] index: u32
 ) -> VertexOutput {
     let pos = vec4<f32>(coords[index], 0.0, 1.0);
@@ -98,7 +94,7 @@ fn main(
 }
 
 [[stage(fragment)]]
-fn main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
+fn frag_main(frag: VertexOutput) -> [[location(0)]] vec4<f32> {
 
     // Samples geom
     let xy = vec2<i32>(i32(frag.position.x), i32(frag.position.y));

@@ -30,7 +30,6 @@ struct PointLightFragment {
 };
 
 // ------------- Uniform type(s) -------------
-[[block]]
 struct CameraUni {
     eye: vec3<f32>;
     proj_view: mat4x4<f32>;
@@ -50,7 +49,7 @@ var<uniform> camera: CameraUni;
 
 // ------------- Entrypoint -------------
 [[stage(vertex)]]
-fn main(
+fn vert_main(
     vertex: PointLightVertex,
     light: PointLightInstance
 ) -> PointLightFragment {
@@ -75,7 +74,6 @@ struct PointLight {
     color: vec3<f32>;
 };
 
-[[block]]
 struct PointLightSet {
     size: u32;
     lights: array<PointLight, 128>;
@@ -131,7 +129,7 @@ fn compute_lighting(frag: PointLightFragment) -> vec3<f32> {
 
 // ------------- Entrypoint -------------
 [[stage(fragment)]]
-fn main(frag: PointLightFragment) -> ColorTargetOut {
+fn frag_main(frag: PointLightFragment) -> ColorTargetOut {
 
     // Samples color texture and modifies color components
     let output = compute_lighting(frag);

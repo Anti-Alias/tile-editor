@@ -9,7 +9,7 @@ use winit::event_loop::ControlFlow;
 use crate::graphics::*;
 use crate::graphics::light::{AmbientLight, LightMesh, PointLight, LightBundle, DirectionalLight, LightSet};
 use crate::graphics::scene::{DebugConfig, Scene};
-use crate::graphics::screen::Screen;
+use crate::graphics::screen::{LightArraySizes, Screen};
 use crate::gui::{GUI, MapEditor};
 
 
@@ -106,14 +106,19 @@ impl App {
         let camera = create_camera(&device);
         let light_bundle = LightBundle::new(
             &device,
-            LightSet::new(&device, 32),
-            LightSet::new(&device, 32),
-            LightSet::new(&device, 32)
+            LightSet::new(&device, 64),
+            LightSet::new(&device, 64),
+            LightSet::new(&device, 64)
         );
         let mut scene = Scene::new(
             &device,
             camera,
             light_bundle,
+            &LightArraySizes {
+                point_light_array_size: 64,
+                directional_light_array_size: 64,
+                ambient_light_array_size: 64
+            },
             &surface_config,
             &DebugConfig {
                 render_lights: true
